@@ -147,11 +147,10 @@ class _QrView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final QrCode code = QrCode(6, QrErrorCorrectLevel.M)..addData(data);
-    code.make();
+    final QrImage image = QrImage(QrCode(6, QrErrorCorrectLevel.M)..addData(data));
     return CustomPaint(
       size: Size.square(size),
-      painter: _QrPainter(code),
+      painter: _QrPainter(image),
     );
   }
 }
@@ -159,7 +158,7 @@ class _QrView extends StatelessWidget {
 class _QrPainter extends CustomPainter {
   _QrPainter(this.code);
 
-  final QrCode code;
+  final QrImage code;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -212,13 +211,13 @@ class _Code128Painter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(Offset.zero & size, Paint()..color = const Color(0xFFFFFFFF));
     final Iterable<BarcodeElement> elements = Barcode.code128().make(
-      Uint8List.fromList(data.codeUnits),
-      width: size.width.toInt(),
-      height: size.height.toInt(),
+      data,
+      width: size.width,
+      height: size.height,
     );
     final Paint dark = Paint()..color = const Color(0xFF000000);
     for (final BarcodeElement e in elements) {
-      if (e is BarcodeBar && e.color) {
+      if (e is BarcodeBar && e.black) {
         canvas.drawRect(
           Rect.fromLTWH(
             e.left.toDouble(),

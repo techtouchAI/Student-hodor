@@ -57,7 +57,7 @@ class _ReportsState extends ConsumerState<ReportsScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('التقارير والإنذار المبكر')),
       body: StreamBuilder<AcademicYear?>(
-        stream: db.activeYear().watchSingleOrNull(),
+        stream: db.watchActiveYear(),
         builder: (BuildContext context, AsyncSnapshot<AcademicYear?> ys) {
           final AcademicYear? year = ys.data;
           if (year == null) {

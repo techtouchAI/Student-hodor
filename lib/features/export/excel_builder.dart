@@ -5,6 +5,7 @@ library;
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
+import 'package:drift/drift.dart' hide Column;
 import 'package:excel/excel.dart';
 
 import '../../core/school_time.dart';
@@ -86,7 +87,7 @@ class ExcelBuilder {
         final String sheetName =
             '${sc.cls.grade}-${sc.cls.section}-${SchoolTime.monthNames[month - 1]}';
         final Sheet sheet = excel[sheetName.substring(0, 30)];
-        sheet.rtl = true;
+        sheet.isRTL = true;
         _writeHeader(sheet, sc, month);
         int row = 3;
         for (final Student s in sc.students) {
@@ -118,14 +119,14 @@ class ExcelBuilder {
               workWeekdays: workWeekdays,
               holidayKeys: holidayKeys,
             );
-            final Cell cell = sheet.cell(
+            final Data cell = sheet.cell(
               CellIndex.indexByColumnRow(columnIndex: 2 + day, rowIndex: row),
             );
             cell.value = TextCellValue(
               status == null ? (schoolDay ? '' : 'عطلة') : _statusAr[status],
             );
             cell.cellStyle = CellStyle(
-              backgroundColorHex: _colorFor(status, schoolDay),
+              backgroundColorHex: ExcelColor.fromHexString(_colorFor(status, schoolDay)),
               horizontalAlign: HorizontalAlign.Center,
             );
             switch (status) {
@@ -164,17 +165,17 @@ class ExcelBuilder {
 
   void _writeHeader(Sheet sheet, ExportScopeClass sc, int month) {
     sheet.merge(
-      start: CellIndex.indexByString('A1'),
-      end: CellIndex.indexByString('AK1'),
+      CellIndex.indexByString('A1'),
+      CellIndex.indexByString('AK1'),
     );
-    final Cell title = sheet.cell(CellIndex.indexByString('A1'));
+    final Data title = sheet.cell(CellIndex.indexByString('A1'));
     title.value = TextCellValue(
       '$schoolName — كشف حضور ${sc.cls.grade} ـ ${sc.cls.section} '
       '— ${SchoolTime.monthNames[month - 1]} $yearNumber — المدير: $directorName',
     );
     title.cellStyle = CellStyle(
-      backgroundColorHex: ExcelColors.header,
-      fontColorHex: '#FFFFFF',
+      backgroundColorHex: ExcelColor.fromHexString(ExcelColors.header),
+      fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
       bold: true,
       horizontalAlign: HorizontalAlign.Center,
     );
@@ -190,8 +191,8 @@ class ExcelBuilder {
       );
       c.value = TextCellValue('$day');
       c.cellStyle = CellStyle(
-        backgroundColorHex: ExcelColors.header,
-        fontColorHex: '#FFFFFF',
+        backgroundColorHex: ExcelColor.fromHexString(ExcelColors.header),
+        fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
         bold: true,
         horizontalAlign: HorizontalAlign.Center,
       );
@@ -207,8 +208,8 @@ class ExcelBuilder {
         .value = TextCellValue('نسبة الحضور');
     for (final String col in <String>['A3', 'B3', 'AI3', 'AJ3', 'AK3']) {
       sheet.cell(CellIndex.indexByString(col)).cellStyle = CellStyle(
-            backgroundColorHex: ExcelColors.header,
-            fontColorHex: '#FFFFFF',
+            backgroundColorHex: ExcelColor.fromHexString(ExcelColors.header),
+            fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
             bold: true,
             horizontalAlign: HorizontalAlign.Center,
           );

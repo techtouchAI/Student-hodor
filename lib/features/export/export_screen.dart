@@ -139,7 +139,7 @@ class _ExportState extends ConsumerState<ExportScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('تصدير التقارير')),
       body: StreamBuilder<AcademicYear?>(
-        stream: db.activeYear().watchSingleOrNull(),
+        stream: db.watchActiveYear(),
         builder: (BuildContext context, AsyncSnapshot<AcademicYear?> ys) {
           final AcademicYear? year = ys.data;
           if (year == null) {

@@ -96,33 +96,33 @@ class BackupService {
 
   Future<void> _insertAll(Map<String, Object?> data) async {
     for (final Map<String, Object?> r in _list(data['years'])) {
-      await db.into(db.academicYears).insert(AcademicYearsCompanion.fromJson(r));
+      await db.into(db.academicYears).insert(AcademicYear.fromJson(r).toCompanion(false));
     }
     for (final Map<String, Object?> r in _list(data['classes'])) {
-      await db.into(db.schoolClasses).insert(SchoolClassesCompanion.fromJson(r));
+      await db.into(db.schoolClasses).insert(SchoolClass.fromJson(r).toCompanion(false));
     }
     for (final Map<String, Object?> r in _list(data['students'])) {
-      await db.into(db.students).insert(StudentsCompanion.fromJson(r));
+      await db.into(db.students).insert(Student.fromJson(r).toCompanion(false));
     }
     for (final Map<String, Object?> r in _list(data['badges'])) {
-      await db.into(db.badges).insert(BadgesCompanion.fromJson(r));
+      await db.into(db.badges).insert(Badge.fromJson(r).toCompanion(false));
     }
     for (final Map<String, Object?> r in _list(data['sessions'])) {
-      await db.into(db.sessions).insert(SessionsCompanion.fromJson(r));
+      await db.into(db.sessions).insert(Session.fromJson(r).toCompanion(false));
     }
     for (final Map<String, Object?> r in _list(data['attendance'])) {
       await db
           .into(db.attendanceRows)
-          .insert(AttendanceRowsCompanion.fromJson(r));
+          .insert(AttendanceRow.fromJson(r).toCompanion(false));
     }
     for (final Map<String, Object?> r in _list(data['scanEvents'])) {
-      await db.into(db.scanEvents).insert(ScanEventsCompanion.fromJson(r));
+      await db.into(db.scanEvents).insert(ScanEvent.fromJson(r).toCompanion(false));
     }
     for (final Map<String, Object?> r in _list(data['leaves'])) {
-      await db.into(db.leaves).insert(LeavesCompanion.fromJson(r));
+      await db.into(db.leaves).insert(Leave.fromJson(r).toCompanion(false));
     }
     for (final Map<String, Object?> r in _list(data['holidays'])) {
-      await db.into(db.holidays).insert(HolidaysCompanion.fromJson(r));
+      await db.into(db.holidays).insert(Holiday.fromJson(r).toCompanion(false));
     }
     final Object? settings = data['settings'];
     if (settings is Map<String, Object?>) {
@@ -139,7 +139,7 @@ class BackupService {
   Future<int> _mergeSessions(Object? v) async {
     int n = 0;
     for (final Map<String, Object?> r in _list(v)) {
-      final SessionsCompanion c = SessionsCompanion.fromJson(r);
+      final SessionsCompanion c = Session.fromJson(r).toCompanion(false);
       final Session? existing = await (db.select(db.sessions)
             ..where((s) =>
                 s.classId.equals(c.classId.value) & s.date.equals(c.date.value)))
@@ -155,7 +155,7 @@ class BackupService {
   Future<int> _mergeAttendance(Object? v) async {
     int n = 0;
     for (final Map<String, Object?> r in _list(v)) {
-      final AttendanceRowsCompanion c = AttendanceRowsCompanion.fromJson(r);
+      final AttendanceRowsCompanion c = AttendanceRow.fromJson(r).toCompanion(false);
       final AttendanceRow? existing =
           await db.attendanceOf(c.studentId.value, c.date.value);
       if (existing == null) {
@@ -169,7 +169,7 @@ class BackupService {
   Future<int> _mergeScanEvents(Object? v) async {
     int n = 0;
     for (final Map<String, Object?> r in _list(v)) {
-      await db.into(db.scanEvents).insert(ScanEventsCompanion.fromJson(r));
+      await db.into(db.scanEvents).insert(ScanEvent.fromJson(r).toCompanion(false));
       n++;
     }
     return n;

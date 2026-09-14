@@ -1,7 +1,7 @@
 /// إدارة الصفوف والشعب للسنة الفعّالة.
 library;
 
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -23,7 +23,7 @@ class ClassesScreen extends ConsumerWidget {
         label: const Text('صف جديد'),
       ),
       body: StreamBuilder<AcademicYear?>(
-        stream: db.activeYear().watchSingleOrNull(),
+        stream: db.watchActiveYear(),
         builder: (BuildContext context, AsyncSnapshot<AcademicYear?> ys) {
           final AcademicYear? year = ys.data;
           if (year == null) {
@@ -52,7 +52,7 @@ class ClassesScreen extends ConsumerWidget {
                   return StreamBuilder<int>(
                     stream: (db.selectOnly(db.students)
                           ..addColumns(<Expression<int>>{countAll()})
-                          ..where((Students s) => s.classId.equals(c.id)))
+                          ..where(db.students.classId.equals(c.id)))
                         .map((TypedResult r) => r.read(countAll()) ?? 0)
                         .watchSingle(),
                     builder: (BuildContext context, AsyncSnapshot<int> n) => ListTile(

@@ -1,7 +1,7 @@
 /// شاشة المسح الميدانية: كاميرا MLKit أوفلاين + منع تكرار + إقفال اليوم.
 library;
 
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -88,7 +88,7 @@ class _ScanState extends ConsumerState<ScanScreen> {
       _debounce[raw] = DateTime.now();
       final ScanOutcome o =
           await ScanService(ref.read(dbProvider)).handleScan(session: session, raw: raw);
-      if (await Vibration.hasVibration() ?? false) {
+      if (await Vibration.hasVibrator() ?? false) {
         await Vibration.vibrate(duration: o.isSuccess ? 90 : 220);
       }
       if (mounted) {
@@ -198,9 +198,10 @@ class _ScanState extends ConsumerState<ScanScreen> {
     } else {
       await db.reopenSession(session.id);
     }
-    setState(() => _session = await (db.select(db.sessions)
+    final Session refreshed = await (db.select(db.sessions)
           ..where((s) => s.id.equals(session.id)))
-        .getSingle());
+        .getSingle();
+    setState(() => _session = refreshed);
   }
 
   @override
@@ -311,7 +312,7 @@ class _Header extends StatelessWidget {
         return StreamBuilder<int>(
           stream: (db.selectOnly(db.students)
                 ..addColumns(<Expression<int>>{countAll()})
-                ..where((Students st) => st.classId.equals(classId)))
+                ..where(db.students.classId.equals(classId)))
               .map((TypedResult r) => r.read(countAll()) ?? 0)
               .watchSingle(),
           builder: (BuildContext context, AsyncSnapshot<int> total) => Padding(

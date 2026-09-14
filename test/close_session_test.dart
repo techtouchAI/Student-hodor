@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide isNotNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:student_hodor/data/db.dart';
@@ -56,8 +56,8 @@ void main() {
           LeavesCompanion(
             yearId: const Value(1),
             studentId: Value(roster[1].id),
-            start: const Value(date),
-            end: const Value(date),
+            start: Value(date),
+            end: Value(date),
             type: const Value(0),
             createdAt: const Value('2026-09-13T07:00:00'),
           ),

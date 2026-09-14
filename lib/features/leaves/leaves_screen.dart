@@ -1,7 +1,7 @@
 /// إدارة الإجازات: إضافة/حذف مع نوع وسبب، تنعكس أصفر في التقارير.
 library;
 
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -25,7 +25,7 @@ class LeavesScreen extends ConsumerWidget {
         label: const Text('إجازة'),
       ),
       body: StreamBuilder<AcademicYear?>(
-        stream: db.activeYear().watchSingleOrNull(),
+        stream: db.watchActiveYear(),
         builder: (BuildContext context, AsyncSnapshot<AcademicYear?> ys) {
           final AcademicYear? year = ys.data;
           if (year == null) {

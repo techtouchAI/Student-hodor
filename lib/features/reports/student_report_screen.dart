@@ -38,7 +38,7 @@ class _StudentReportState extends ConsumerState<StudentReportScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(s.fullName)),
       body: StreamBuilder<AcademicYear?>(
-        stream: db.activeYear().watchSingleOrNull(),
+        stream: db.watchActiveYear(),
         builder: (BuildContext context, AsyncSnapshot<AcademicYear?> ys) {
           final AcademicYear? year = ys.data;
           if (year == null) {

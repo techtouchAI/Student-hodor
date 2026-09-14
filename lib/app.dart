@@ -58,7 +58,7 @@ class StudentHodorApp extends ConsumerWidget {
   const StudentHodorApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) => MaterialApp(
+  Widget build(BuildContext context, WidgetRef ref) => MaterialApp.router(
         title: 'حضور الطالب',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(

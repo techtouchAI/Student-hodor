@@ -1,6 +1,8 @@
 /// تقرير PDF شهري ملوّن مطابق لمنطق الإكسل، بعربية مشكّلة صحيحة.
+/// الخلية الملوّنة = حالة اليوم (أخضر/أحمر/أصفر/برتقالي/رمادي عطلة).
 library;
 
+import 'package:drift/drift.dart' hide Column;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -40,12 +42,10 @@ class PdfReport {
   final pw.Font font;
   final pw.Font fontBold;
 
+  static const double _dayW = 5.2;
+
   pw.TextStyle _s(double size, {bool bold = false, PdfColor? color}) =>
-      pw.TextStyle(
-        font: bold ? fontBold : font,
-        fontSize: size,
-        color: color,
-      );
+      pw.TextStyle(font: bold ? fontBold : font, fontSize: size, color: color);
 
   static String _t(String s) => arabicForPdf(s);
 
@@ -67,6 +67,37 @@ class PdfReport {
     }
   }
 
+  Map<int, pw.TableColumnWidth> _widths() => <int, pw.TableColumnWidth>{
+        0: const pw.FlexColumnWidth(6),
+        for (int i = 1; i <= 31; i++) i: const pw.FixedColumnWidth(_dayW),
+        32: const pw.FixedColumnWidth(14),
+        33: const pw.FixedColumnWidth(14),
+        34: const pw.FixedColumnWidth(16),
+      };
+
+  pw.TableRow _headerRow(int month) => pw.TableRow(
+        children: <pw.Widget>[
+          pw.Text(_t('اسم الطالب'), style: _s(6.5, bold: true)),
+          for (int day = 1; day <= 31; day++)
+            pw.Container(
+              width: _dayW,
+              height: 10,
+              color: DateTime(yearNumber, month, day).month == month
+                  ? PdfColors.teal800
+                  : PdfColors.white,
+              child: pw.Center(
+                child: pw.Text(
+                  DateTime(yearNumber, month, day).month == month ? '$day' : '',
+                  style: _s(4, bold: true, color: PdfColors.white),
+                ),
+              ),
+            ),
+          pw.Text(_t('غياب'), style: _s(5.5, bold: true)),
+          pw.Text(_t('إجازة'), style: _s(5.5, bold: true)),
+          pw.Text(_t('نسبة'), style: _s(5.5, bold: true)),
+        ],
+      );
+
   Future<pw.Document> build() async {
     final pw.Document doc = pw.Document(
       title: 'تقارير الحضور',
@@ -74,9 +105,7 @@ class PdfReport {
     );
     for (final int month in months) {
       for (final ExportScopeClass sc in classes) {
-        final List<pw.Widget> rows = <pw.Widget>[
-          _headerRow(),
-        ];
+        final List<pw.TableRow> rows = <pw.TableRow>[_headerRow(month)];
         for (final Student s in sc.students) {
           final Map<String, int> byDate = <String, int>{
             for (final AttendanceRow r in await (db.select(db.attendanceRows)
@@ -95,11 +124,10 @@ class PdfReport {
           for (int day = 1; day <= 31; day++) {
             final DateTime d = DateTime(yearNumber, month, day);
             if (d.month != month) {
-              cells.add(pw.SizedBox(width: 5, height: 9));
+              cells.add(pw.SizedBox(width: _dayW, height: 9));
               continue;
             }
-            final String key = SchoolTime.dateKey(d);
-            final int? status = byDate[key];
+            final int? status = byDate[SchoolTime.dateKey(d)];
             final bool schoolDay = SchoolTime.isSchoolDay(
               d,
               workWeekdays: workWeekdays,
@@ -117,15 +145,9 @@ class PdfReport {
             }
             cells.add(
               pw.Container(
-                width: 5.5,
+                width: _dayW,
                 height: 9,
                 color: _colorFor(status, schoolDay),
-                child: pw.Center(
-                  child: pw.Text(
-                    status == null ? '' : '${status + 1}',
-                    style: _s(4.5),
-                  ),
-                ),
               ),
             );
           }
@@ -134,18 +156,11 @@ class PdfReport {
           cells.add(pw.Text('$leave', style: _s(6)));
           cells.add(
             pw.Text(
-              '${(recorded == 0 ? 100 : (present + late) * 100 / recorded).toStringAsFixed(1)}%',
+              '${(recorded == 0 ? 100 : (present + late) * 100 / recorded).toStringAsFixed(0)}%',
               style: _s(6),
             ),
           );
-          rows.add(
-            pw.TableRow(
-              children: <pw.Widget>[
-                pw.Padding(padding: const PdfEdgeInsets.all(1), child: cells.first),
-                pw.Container(child: pw.Row(children: cells.skip(1).toList())),
-              ],
-            ),
-          );
+          rows.add(pw.TableRow(children: cells));
         }
         doc.addPage(
           pw.MultiPage(
@@ -155,23 +170,18 @@ class PdfReport {
                 pw.Text(
                   _t('$schoolName — ${sc.cls.grade} ـ ${sc.cls.section} — '
                       '${SchoolTime.monthNames[month - 1]} $yearNumber'),
-                  style: _s(12, bold: true),
+                  style: _s(11, bold: true),
                 ),
                 pw.Text(
-                  _t('المدير: $directorName — أخضر حاضر، أحمر غائب، أصفر إجازة، برتقالي متأخر'),
-                  style: _s(7),
+                  _t('المدير: $directorName — أخضر حاضر، أحمر غائب، أصفر إجازة، '
+                      'برتقالي متأخر، رمادي عطلة'),
+                  style: _s(6.5),
                 ),
                 pw.SizedBox(height: 4),
               ],
             ),
             build: (pw.Context c) => <pw.Widget>[
-              pw.Table(
-                columnWidths: const <int, TableColumnWidth>{
-                  0: FlexColumnWidth(4),
-                  1: FlexColumnWidth(14),
-                },
-                rows: rows,
-              ),
+              pw.Table(columnWidths: _widths(), rows: rows),
             ],
           ),
         );
@@ -179,13 +189,6 @@ class PdfReport {
     }
     return doc;
   }
-
-  pw.TableRow _headerRow() => pw.TableRow(
-        children: <pw.Widget>[
-          pw.Text(_t('اسم الطالب'), style: _s(7, bold: true)),
-          pw.Text(_t('أيام الشهر 1 → 31 ثم غياب/إجازة/نسبة'), style: _s(7, bold: true)),
-        ],
-      );
 
   Future<void> layout() async {
     final pw.Document doc = await build();

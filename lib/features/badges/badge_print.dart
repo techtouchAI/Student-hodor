@@ -6,6 +6,7 @@ library;
 import 'dart:typed_data';
 
 import 'package:pdf/pdf.dart';
+import 'package:barcode/barcode.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
@@ -49,7 +50,7 @@ class BadgePrint {
       doc.addPage(
         pw.Page(
           pageFormat: format,
-          margin: const PdfEdgeInsets(all: 12),
+          margin: const pw.EdgeInsets(all: 12),
           build: (pw.Context context) => pw.Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -86,15 +87,13 @@ class BadgePrint {
         height: h,
         decoration: pw.BoxDecoration(
           border: pw.Border.all(color: PdfColors.teal900, width: 0.8),
-          borderRadius: pw.BorderRadius.circular(4),
           color: PdfColors.grey50,
         ),
-        clipBehavior: pw.Clip.hardEdge,
         child: pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.stretch,
           children: <pw.Widget>[
             pw.Container(
-              padding: const PdfEdgeInsets(vertical: 4, horizontal: 3),
+              padding: const pw.EdgeInsets(vertical: 4, horizontal: 3),
               decoration: const pw.BoxDecoration(color: PdfColors.teal800),
               child: pw.Column(
                 children: <pw.Widget>[
@@ -114,7 +113,7 @@ class BadgePrint {
             pw.Container(height: 1.6, color: PdfColors.amber800),
             pw.Expanded(
               child: pw.Padding(
-                padding: const PdfEdgeInsets(all: 4),
+                padding: const pw.EdgeInsets(all: 4),
                 child: pw.Column(
                   children: <pw.Widget>[
                     if (s.photoBytes != null && s.photoBytes!.isNotEmpty)
@@ -137,9 +136,7 @@ class BadgePrint {
                           border: pw.Border.all(color: PdfColors.teal800),
                           color: PdfColors.teal50,
                         ),
-                        child: pw.Center(
-                          child: pw.Icon(pw.Icons.person, size: 18),
-                        ),
+                        child: pw.Center(child: pw.SizedBox()),
                       ),
                     pw.SizedBox(height: 2),
                     pw.Text(
@@ -153,14 +150,14 @@ class BadgePrint {
                     pw.Text(_t(s.yearLine), style: _style(6)),
                     pw.Spacer(),
                     pw.BarcodeWidget(
-                      barcode: pw.Barcode.qr(),
+                      barcode: Barcode.qrCode(),
                       data: s.code,
                       width: w * 0.30,
                       height: w * 0.30,
                     ),
                     pw.SizedBox(height: 2),
                     pw.BarcodeWidget(
-                      barcode: pw.Barcode.code128(),
+                      barcode: Barcode.code128(),
                       data: s.code,
                       width: w * 0.82,
                       height: 12,

@@ -61,6 +61,7 @@ class AcademicYears extends Table {
   TextColumn get closedAt => text().nullable()();
 }
 
+@DataClassName('SchoolClass')
 class SchoolClasses extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get yearId =>
@@ -68,9 +69,9 @@ class SchoolClasses extends Table {
   TextColumn get grade => text().withLength(min: 1, max: 60)();
   TextColumn get section => text().withLength(min: 1, max: 30)();
   @override
-  List<Set<Column<Object>>> get uniqueKeys => <Set<Column<Object>>>{
+  List<Set<Column<Object>>> get uniqueKeys => <Set<Column<Object>>>[
         <Column<Object>>{yearId, grade, section},
-      };
+      ];
 }
 
 class Students extends Table {
@@ -86,9 +87,9 @@ class Students extends Table {
   TextColumn get photoPath => text().nullable()();
   TextColumn get createdAt => text()();
   @override
-  List<Set<Column<Object>>> get uniqueKeys => <Set<Column<Object>>>{
+  List<Set<Column<Object>>> get uniqueKeys => <Set<Column<Object>>>[
         <Column<Object>>{yearId, seq},
-      };
+      ];
 }
 
 class Badges extends Table {
@@ -112,9 +113,9 @@ class Sessions extends Table {
   TextColumn get openedAt => text()();
   TextColumn get closedAt => text().nullable()();
   @override
-  List<Set<Column<Object>>> get uniqueKeys => <Set<Column<Object>>>{
+  List<Set<Column<Object>>> get uniqueKeys => <Set<Column<Object>>>[
         <Column<Object>>{classId, date},
-      };
+      ];
 }
 
 class AttendanceRows extends Table {
@@ -131,9 +132,9 @@ class AttendanceRows extends Table {
   IntColumn get sessionId => integer().nullable()();
   TextColumn get note => text().nullable()();
   @override
-  List<Set<Column<Object>>> get uniqueKeys => <Set<Column<Object>>>{
+  List<Set<Column<Object>>> get uniqueKeys => <Set<Column<Object>>>[
         <Column<Object>>{studentId, date},
-      };
+      ];
 }
 
 class ScanEvents extends Table {
@@ -211,7 +212,7 @@ class AppDb extends _$AppDb {
           ?.value;
 
   Future<void> setSetting(String key, String value) async =>
-      into(settings).insertOnDuplicateUpdate(
+      into(settings).insertOnConflictUpdate(
         Setting(key: key, value: value),
       );
 
@@ -220,6 +221,11 @@ class AppDb extends _$AppDb {
       };
 
   // ---------- سنوات ----------
+
+  Stream<AcademicYear?> watchActiveYear() =>
+      (select(academicYears)
+            ..where((y) => y.active.equals(true) & y.closed.equals(false)))
+          .watchSingleOrNull();
 
   Future<AcademicYear?> activeYear() async =>
       (select(academicYears)..where((y) => y.active.equals(true) & y.closed.equals(false)))
@@ -243,33 +249,24 @@ class AppDb extends _$AppDb {
     int? sessionId,
     String? note,
   }) async =>
-      into(attendanceRows).insertOnDuplicateUpdate(
-        AttendanceRow(
+      into(attendanceRows).insertOnConflictUpdate(
+        AttendanceRowsCompanion(
           id: const Value.absent(),
-          yearId: yearId,
-          classId: classId,
-          studentId: studentId,
-          date: date,
-          status: status,
-          source: source,
+          yearId: Value(yearId),
+          classId: Value(classId),
+          studentId: Value(studentId),
+          date: Value(date),
+          status: Value(status),
+          source: Value(source),
           sessionId: Value(sessionId),
           note: Value(note),
         ),
       );
 
   Future<bool> isOnLeave(int studentId, String date) async {
-    final List<Leave> leaves = await (select(leaves)
-          ..where((l) =>
-              l.studentId.equals(studentId) &
-              l.start.equals(date) &
-              l.end.equals(date)))
-        .get();
-    if (leaves.isNotEmpty) {
-      return true;
-    }
-    final List<Leave> all =
+    final List<Leave> covering =
         await (select(leaves)..where((l) => l.studentId.equals(studentId))).get();
-    return all.any((Leave l) =>
+    return covering.any((Leave l) =>
         l.start.compareTo(date) <= 0 && l.end.compareTo(date) >= 0);
   }
 

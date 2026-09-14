@@ -89,7 +89,7 @@ String reshapeArabic(String input, {bool deleteHarakat = true}) {
     }
     // لام-ألف
     if (cp == 0x0644 && i + 1 < cps.length && _lamAlef.containsKey(cps[i + 1])) {
-      final int prev = _prevArabic(cps, i);
+      final int? prev = _prevArabic(cps, i);
       final bool joinsPrev = prev != null && _joinsNext(prev);
       out.writeCharCode(_lamAlef[cps[i + 1]]![joinsPrev ? 1 : 0]);
       i++;

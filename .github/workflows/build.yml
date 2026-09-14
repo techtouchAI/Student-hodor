@@ -9,6 +9,9 @@ concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: write
+
 jobs:
   verify:
     name: Analyze & Test
@@ -27,16 +30,28 @@ jobs:
           java-version: 17
 
       - name: Pub get
-        run: flutter pub get
+        run: set -o pipefail; flutter pub get 2>&1 | tee ci_pub.log
 
       - name: Codegen (drift)
-        run: dart run build_runner build --delete-conflicting-outputs
+        run: set -o pipefail; dart run build_runner build --delete-conflicting-outputs 2>&1 | tee ci_codegen.log
 
       - name: Analyze (zero warnings policy)
-        run: flutter analyze --fatal-warnings
+        run: set -o pipefail; flutter analyze --fatal-warnings 2>&1 | tee ci_analyze.log
 
       - name: Unit & widget tests
-        run: flutter test --reporters expanded
+        run: set -o pipefail; flutter test --reporters expanded 2>&1 | tee ci_test.log
+
+      - name: Commit diagnostics on failure
+        if: failure()
+        run: |
+          git config user.name "ci-bot"
+          git config user.email "ci@users.noreply.github.com"
+          mkdir -p ci-diagnostics
+          cp ci_*.log ci-diagnostics/ 2>/dev/null || true
+          echo "run=${{ github.run_id }} job=verify" > ci-diagnostics/last_failure.txt
+          git add ci-diagnostics
+          git commit -m "ci: verify diagnostics [skip ci]" || true
+          git push origin "HEAD:${{ github.ref_name }}" || true
 
   apk:
     name: Build APK
@@ -81,10 +96,10 @@ jobs:
           fi
 
       - name: Build universal release APK
-        run: flutter build apk --release
+        run: set -o pipefail; flutter build apk --release 2>&1 | tee ci_build.log
 
       - name: Build per-ABI splits
-        run: flutter build apk --release --split-per-abi
+        run: set -o pipefail; flutter build apk --release --split-per-abi 2>&1 | tee ci_build_splits.log
 
       - name: Checksums
         run: |
@@ -108,3 +123,15 @@ jobs:
           name: release-keystore-bootstrap
           path: tools/keystore/student_hodor.jks
           retention-days: 90
+
+      - name: Commit diagnostics on failure
+        if: failure()
+        run: |
+          git config user.name "ci-bot"
+          git config user.email "ci@users.noreply.github.com"
+          mkdir -p ci-diagnostics
+          cp ci_*.log ci-diagnostics/ 2>/dev/null || true
+          echo "run=${{ github.run_id }} job=apk" > ci-diagnostics/last_failure.txt
+          git add ci-diagnostics
+          git commit -m "ci: apk diagnostics [skip ci]" || true
+          git push origin "HEAD:${{ github.ref_name }}" || true

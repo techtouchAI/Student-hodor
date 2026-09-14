@@ -1,33 +1,9 @@
   compiling builders/aot
-  39s compiling builders/aot
+  40s compiling builders/aot
 W These options have been removed and were ignored: --delete-conflicting-outputs
   0s drift_dev on 136 inputs; lib/app.dart
   13s drift_dev on 136 inputs: 1 output; spent 9s analyzing, 2s resolving, 2s sdk; lib/core/arabic_shaping.dart
-W drift_dev on lib/data/db.dart:
-  line 71, column 33 of package:student_hodor/data/db.dart: This must return a set list literal!
-     ╷
-  71 │   List<Set<Column<Object>>> get uniqueKeys => <Set<Column<Object>>>{
-     │                                 ^^^^^^^^^^
-     ╵
-W drift_dev on lib/data/db.dart:
-  line 89, column 33 of package:student_hodor/data/db.dart: This must return a set list literal!
-     ╷
-  89 │   List<Set<Column<Object>>> get uniqueKeys => <Set<Column<Object>>>{
-     │                                 ^^^^^^^^^^
-     ╵
-W drift_dev on lib/data/db.dart:
-  line 115, column 33 of package:student_hodor/data/db.dart: This must return a set list literal!
-      ╷
-  115 │   List<Set<Column<Object>>> get uniqueKeys => <Set<Column<Object>>>{
-      │                                 ^^^^^^^^^^
-      ╵
-W drift_dev on lib/data/db.dart:
-  line 134, column 33 of package:student_hodor/data/db.dart: This must return a set list literal!
-      ╷
-  134 │   List<Set<Column<Object>>> get uniqueKeys => <Set<Column<Object>>>{
-      │                                 ^^^^^^^^^^
-      ╵
-  15s drift_dev on 136 inputs: 38 output, 3 no-op; spent 11s analyzing, 2s resolving, 2s sdk; lib/data/reports_service.dart
+  14s drift_dev on 136 inputs: 38 output, 3 no-op; spent 11s analyzing, 2s resolving, 2s sdk; lib/data/reports_service.dart
   15s drift_dev on 136 inputs: 34 skipped, 65 output, 37 no-op; spent 11s analyzing, 2s resolving, 2s sdk
   0s source_gen:combining_builder on 68 inputs; lib/app.dart
   0s source_gen:combining_builder on 68 inputs: 34 skipped, 1 output, 33 no-op

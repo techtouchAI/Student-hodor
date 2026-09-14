@@ -174,7 +174,7 @@ class AuditLogs extends Table {
 }
 
 @DriftDatabase(
-  tables: {
+  tables: <Type>[
     Settings,
     AcademicYears,
     SchoolClasses,
@@ -186,7 +186,7 @@ class AuditLogs extends Table {
     Leaves,
     Holidays,
     AuditLogs,
-  },
+  ],
 )
 class AppDb extends _$AppDb {
   AppDb() : super(_openConnection());

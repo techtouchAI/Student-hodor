@@ -13,7 +13,7 @@ Future<int> _seed(AppDb db) async {
         ),
       );
   final int cls = await db.into(db.schoolClasses).insert(
-        const SchoolClassesCompanion(
+        SchoolClassesCompanion(
           yearId: Value(year),
           grade: const Value('السادس'),
           section: const Value('أ'),

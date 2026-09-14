@@ -7,22 +7,14 @@ Analyzing Student-hodor...
    info • Missing a required trailing comma. Try adding a trailing comma • lib/data/db.dart:270:67 • require_trailing_commas
    info • Missing a required trailing comma. Try adding a trailing comma • lib/data/db.dart:325:60 • require_trailing_commas
    info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • lib/data/db.dart:338:18 • prefer_const_constructors
-  error • The class 'pw.EdgeInsets' doesn't have an unnamed constant constructor. Try calling a different constructor • lib/features/badges/badge_print.dart:53:25 • const_with_undefined_constructor_default
-  error • The class 'pw.EdgeInsets' doesn't have an unnamed constant constructor. Try calling a different constructor • lib/features/badges/badge_print.dart:96:30 • const_with_undefined_constructor_default
-  error • The class 'pw.EdgeInsets' doesn't have an unnamed constant constructor. Try calling a different constructor • lib/features/badges/badge_print.dart:116:32 • const_with_undefined_constructor_default
    info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/classes/classes_screen.dart:92:16 • use_build_context_synchronously
    info • Missing a required trailing comma. Try adding a trailing comma • lib/features/classes/classes_screen.dart:128:54 • require_trailing_commas
-  error • Undefined class 'Cell'. Try changing the name to the name of an existing class, or creating a class with the name 'Cell' • lib/features/export/excel_builder.dart:189:13 • undefined_class
-   info • Type could be non-nullable. Try changing the type to be non-nullable • lib/features/export/excel_builder.dart:189:18 • unnecessary_nullable_for_final_variable_declarations
+   info • The import of 'dart:typed_data' is unnecessary because all of the used elements are also provided by the import of 'package:drift/drift.dart'. Try removing the import directive • lib/features/export/excel_builder.dart:5:8 • unnecessary_import
    info • Missing a required trailing comma. Try adding a trailing comma • lib/features/export/pdf_report.dart:113:74 • require_trailing_commas
-  error • The named parameter 'rows' isn't defined. Try correcting the name to an existing named parameter's name, or defining a named parameter with the name 'rows' • lib/features/export/pdf_report.dart:184:49 • undefined_named_parameter
+warning • Unused import: 'package:drift/drift.dart'. Try removing the import directive • lib/features/home/home_screen.dart:4:8 • unused_import
    info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/home/home_screen.dart:51:7 • use_build_context_synchronously
    info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/home/home_screen.dart:56:16 • use_build_context_synchronously
    info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/home/home_screen.dart:74:7 • use_build_context_synchronously
-  error • 'Column' isn't a function. Try correcting the name to match an existing function, or define a method or function named 'Column' • lib/features/home/home_screen.dart:101:26 • invocation_of_non_function
-  error • The name 'Column' is defined in the libraries 'package:drift/src/dsl/dsl.dart (via package:drift/drift.dart)' and 'package:flutter/src/widgets/basic.dart (via package:flutter/material.dart)'. Try using 'as prefix' for one of the import directives, or hiding the name from all but one of the imports • lib/features/home/home_screen.dart:101:26 • ambiguous_import
-  error • 'Column' isn't a function. Try correcting the name to match an existing function, or define a method or function named 'Column' • lib/features/home/home_screen.dart:198:18 • invocation_of_non_function
-  error • The name 'Column' is defined in the libraries 'package:drift/src/dsl/dsl.dart (via package:drift/drift.dart)' and 'package:flutter/src/widgets/basic.dart (via package:flutter/material.dart)'. Try using 'as prefix' for one of the import directives, or hiding the name from all but one of the imports • lib/features/home/home_screen.dart:198:18 • ambiguous_import
    info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/leaves/leaves_screen.dart:98:16 • use_build_context_synchronously
   error • 'Column' isn't a function. Try correcting the name to match an existing function, or define a method or function named 'Column' • lib/features/onboarding/onboarding_screen.dart:86:22 • invocation_of_non_function
   error • The name 'Column' is defined in the libraries 'package:drift/src/dsl/dsl.dart (via package:drift/drift.dart)' and 'package:flutter/src/widgets/basic.dart (via package:flutter/material.dart)'. Try using 'as prefix' for one of the import directives, or hiding the name from all but one of the imports • lib/features/onboarding/onboarding_screen.dart:86:22 • ambiguous_import
@@ -30,10 +22,8 @@ Analyzing Student-hodor...
    info • Missing a required trailing comma. Try adding a trailing comma • lib/features/reports/student_report_screen.dart:249:67 • require_trailing_commas
    info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/scan/scan_screen.dart:171:18 • use_build_context_synchronously
    info • Missing a required trailing comma. Try adding a trailing comma • lib/features/scan/scan_screen.dart:310:50 • require_trailing_commas
-   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/settings/settings_screen.dart:116:18 • use_build_context_synchronously
-   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/settings/settings_screen.dart:250:24 • use_build_context_synchronously
-  error • The method 'Value' isn't defined for the type '_HolidaysEditor'. Try correcting the name to the name of an existing method, or defining a method named 'Value' • lib/features/settings/settings_screen.dart:271:27 • undefined_method
-  error • The method 'Value' isn't defined for the type '_HolidaysEditor'. Try correcting the name to the name of an existing method, or defining a method named 'Value' • lib/features/settings/settings_screen.dart:272:28 • undefined_method
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/settings/settings_screen.dart:117:18 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/settings/settings_screen.dart:251:24 • use_build_context_synchronously
    info • Missing an 'await' for the 'Future' computed by this expression. Try adding an 'await' or wrapping the expression with 'unawaited' • lib/features/students/students_screen.dart:96:5 • unawaited_futures
    info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/students/students_screen.dart:121:16 • use_build_context_synchronously
    info • Missing a required trailing comma. Try adding a trailing comma • lib/features/students/students_screen.dart:189:77 • require_trailing_commas
@@ -43,7 +33,5 @@ Analyzing Student-hodor...
    info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • test/close_session_test.dart:8:9 • prefer_const_constructors
    info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • test/close_session_test.dart:30:24 • prefer_const_constructors
    info • Use 'const' for final variables initialized to a constant value. Try replacing 'final' with 'const' • test/close_session_test.dart:44:5 • prefer_const_declarations
-  error • Arguments of a constant creation must be constant expressions. Try making the argument a valid constant, or use 'new' to call the constructor • test/close_session_test.dart:70:31 • const_with_non_constant_argument
-  error • The name 'isNull' is defined in the libraries 'package:drift/src/runtime/query_builder/query_builder.dart (via package:drift/drift.dart)' and 'package:matcher/src/core_matchers.dart (via package:flutter_test/flutter_test.dart)'. Try using 'as prefix' for one of the import directives, or hiding the name from all but one of the imports • test/close_session_test.dart:88:55 • ambiguous_import
 
-45 issues found. (ran in 16.1s)
+33 issues found. (ran in 15.8s)

@@ -335,7 +335,7 @@ class AppDb extends _$AppDb {
       into(auditLogs).insert(
         AuditLogsCompanion(
           at: Value(_now()),
-          actor: Value('local'),
+          actor: const Value('local'),
           action: Value(action),
           details: Value(details),
         ),

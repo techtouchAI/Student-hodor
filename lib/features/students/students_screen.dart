@@ -93,7 +93,7 @@ class _StudentsState extends ConsumerState<StudentsScreen> {
     if (!mounted) {
       return;
     }
-    showDialog<void>(
+    await showDialog<void>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
         title: const Text('رمز الباج الفعال'),

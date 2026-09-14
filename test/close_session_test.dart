@@ -5,7 +5,7 @@ import 'package:student_hodor/data/db.dart';
 
 Future<int> _seed(AppDb db) async {
   final int year = await db.into(db.academicYears).insert(
-        AcademicYearsCompanion(
+        const AcademicYearsCompanion(
           name: const Value('2026-2027'),
           start: const Value('2026-09-01'),
           end: const Value('2027-06-30'),
@@ -13,7 +13,7 @@ Future<int> _seed(AppDb db) async {
         ),
       );
   final int cls = await db.into(db.schoolClasses).insert(
-        SchoolClassesCompanion(
+        const SchoolClassesCompanion(
           yearId: Value(year),
           grade: const Value('السادس'),
           section: const Value('أ'),
@@ -41,7 +41,7 @@ void main() {
     final int cls = await _seed(db);
     final List<Student> roster =
         await (db.select(db.students)..where((s) => s.classId.equals(cls))).get();
-    final String date = '2026-09-13';
+    const String date = '2026-09-13';
 
     // طالب 1 حاضر بالمسح، طالب 2 بإجازة، طالب 3 بلا تسجيل.
     await db.upsertAttendance(

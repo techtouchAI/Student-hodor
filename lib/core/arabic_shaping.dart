@@ -174,7 +174,7 @@ String toVisualOrder(String shaped) {
     final bool rtl = _isRtlCp(cp);
     final bool digit = _isDigitCp(cp);
     // الأرقام مقطع مستقل لا يُعكس داخلياً
-    final bool? kind = digit ? false : (rtl ? true : (currentRtl == null ? null : currentRtl));
+    final bool? kind = digit ? false : (rtl ? true : currentRtl);
     if (currentRtl == null) {
       currentRtl = kind ?? false;
       current.add(cp);

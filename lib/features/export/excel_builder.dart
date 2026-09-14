@@ -2,8 +2,6 @@
 /// باتجاه RTL، مع مجاميع ونسب، وشهر واحد لكل ورقة.
 library;
 
-import 'dart:typed_data';
-
 import 'package:archive/archive.dart';
 import 'package:drift/drift.dart' hide Column;
 import 'package:excel/excel.dart';

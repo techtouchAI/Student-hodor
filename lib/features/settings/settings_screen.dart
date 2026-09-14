@@ -87,7 +87,9 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
 
   Future<void> _backup() async {
     final String path = await BackupService(ref.read(dbProvider)).exportFile();
-    await Share.shareXFiles(<XFile>[XFile(path)]);
+    await SharePlus.instance.share(
+          ShareParams(files: <XFile>[XFile(path)]),
+        );
   }
 
   Future<void> _restoreOrMerge(bool merge) async {

@@ -88,7 +88,9 @@ class _ExportState extends ConsumerState<ExportScreen> {
           '${tmp.path}/hodor-${DateTime.now().millisecondsSinceEpoch}.xlsx',
         );
         await f.writeAsBytes(bytes);
-        await Share.shareXFiles(<XFile>[XFile(f.path)]);
+        await SharePlus.instance.share(
+          ShareParams(files: <XFile>[XFile(f.path)]),
+        );
       } else {
         final pw.Font regular =
             pw.Font.ttf(await rootBundle.load('assets/fonts/Tajawal-Regular.ttf'));

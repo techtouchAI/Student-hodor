@@ -1,0 +1,110 @@
+name: build-apk
+
+on:
+  push:
+    branches: [arena/01a0a1b9-student-hodor, main]
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Analyze & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Codegen (drift)
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Analyze (zero warnings policy)
+        run: flutter analyze --fatal-warnings
+
+      - name: Unit & widget tests
+        run: flutter test --reporters expanded
+
+  apk:
+    name: Build APK
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Codegen (drift)
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Bootstrap release keystore if absent (K1)
+        run: |
+          if [ ! -f tools/keystore/student_hodor.jks ]; then
+            mkdir -p tools/keystore
+            keytool -genkeypair -v \
+              -keystore tools/keystore/student_hodor.jks \
+              -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 \
+              -alias student_hodor \
+              -storepass studenthodor -keypass studenthodor \
+              -dname "CN=Student Hodor, OU=Schools, O=TechTouch, C=IQ"
+            echo "KEYSTORE_BOOTSTRAPPED=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: Generate gradle wrapper if absent
+        run: |
+          if [ ! -f android/gradlew ]; then
+            cd android && gradle wrapper --gradle-version 8.10.2 --distribution-type bin
+          fi
+
+      - name: Build universal release APK
+        run: flutter build apk --release
+
+      - name: Build per-ABI splits
+        run: flutter build apk --release --split-per-abi
+
+      - name: Checksums
+        run: |
+          cd build/app/outputs/flutter-apk
+          sha256sum *.apk > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Upload APK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: student-hodor-apk
+          path: |
+            build/app/outputs/flutter-apk/*.apk
+            build/app/outputs/flutter-apk/SHA256SUMS.txt
+          retention-days: 30
+
+      - name: Upload bootstrap keystore (one-time)
+        if: env.KEYSTORE_BOOTSTRAPPED == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-keystore-bootstrap
+          path: tools/keystore/student_hodor.jks
+          retention-days: 90

@@ -1,7 +1,7 @@
 /// أدوات التقويم المدرسي: أيام الدوام، العطل، الأشهر العربية، الهجري.
 library;
 
-import 'package:hijri_converter/hijri_converter.dart';
+import 'hijri.dart';
 
 class SchoolTime {
   const SchoolTime._();
@@ -71,11 +71,14 @@ class SchoolTime {
     return '$g ـ ${hijriString(d)}';
   }
 
-  /// تاريخ هجري (أم القرى) أو نص فارغ عند أي تعذر.
+  /// تاريخ هجري جدولي للعرض، أو نص فارغ عند أي تعذر.
   static String hijriString(DateTime d) {
     try {
-      final HijriDate h = HijriConverter.gregorianToHijri(d);
-      return '${h.day}/${h.month}/${h.year} هـ';
+      final HijriDate h = Hijri.fromGregorian(d);
+      if (h.month < 1 || h.month > 12 || h.day < 1 || h.day > 30) {
+        return '';
+      }
+      return '${h.day} ${h.monthName} ${h.year} هـ';
     } catch (_) {
       return '';
     }

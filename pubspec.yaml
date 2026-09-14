@@ -46,7 +46,6 @@ dependencies:
 
   # تواريخ
   intl: ^0.19.0
-  hijri_converter: ^1.0.0
 
   # معلومات الإصدار
   package_info_plus: ^8.0.0

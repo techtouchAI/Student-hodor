@@ -5,8 +5,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'features/badges/badges_screen.dart';
+import 'features/classes/classes_screen.dart';
+import 'features/export/export_screen.dart';
 import 'features/home/home_screen.dart';
+import 'features/leaves/leaves_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
+import 'features/reports/reports_screen.dart';
+import 'features/scan/scan_screen.dart';
+import 'features/settings/settings_screen.dart';
+import 'features/students/students_screen.dart';
+import 'features/years/years_screen.dart';
 import 'state/providers.dart';
 
 final GoRouter router = GoRouter(
@@ -15,6 +24,33 @@ final GoRouter router = GoRouter(
     GoRoute(path: '/', builder: (_, __) => const _SplashGate()),
     GoRoute(path: '/onboarding', builder: (_, __) => const OnboardingScreen()),
     GoRoute(path: '/home', builder: (_, __) => const HomeScreen()),
+    GoRoute(path: '/classes', builder: (_, __) => const ClassesScreen()),
+    GoRoute(path: '/leaves', builder: (_, __) => const LeavesScreen()),
+    GoRoute(path: '/reports', builder: (_, __) => const ReportsScreen()),
+    GoRoute(path: '/export', builder: (_, __) => const ExportScreen()),
+    GoRoute(path: '/years', builder: (_, __) => const YearsScreen()),
+    GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
+    GoRoute(
+      path: '/students',
+      builder: (_, GoRouterState st) => StudentsScreen(
+        classId: int.parse(st.uri.queryParameters['class'] ?? '0'),
+        title: Uri.decodeComponent(st.uri.queryParameters['title'] ?? ''),
+      ),
+    ),
+    GoRoute(
+      path: '/badges',
+      builder: (_, GoRouterState st) => BadgesScreen(
+        classId: int.parse(st.uri.queryParameters['class'] ?? '0'),
+        title: Uri.decodeComponent(st.uri.queryParameters['title'] ?? ''),
+      ),
+    ),
+    GoRoute(
+      path: '/scan',
+      builder: (_, GoRouterState st) => ScanScreen(
+        classId: int.parse(st.uri.queryParameters['class'] ?? '0'),
+        title: Uri.decodeComponent(st.uri.queryParameters['title'] ?? ''),
+      ),
+    ),
   ],
 );
 

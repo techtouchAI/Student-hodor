@@ -27,12 +27,9 @@ Analyzing Student-hodor...
    info • Unnecessary 'const' keyword. Try removing the keyword • test/close_session_test.dart:10:18 • unnecessary_const
    info • Unnecessary 'const' keyword. Try removing the keyword • test/close_session_test.dart:11:16 • unnecessary_const
    info • Unnecessary 'const' keyword. Try removing the keyword • test/close_session_test.dart:12:19 • unnecessary_const
-  error • Arguments of a constant creation must be constant expressions. Try making the argument a valid constant, or use 'new' to call the constructor • test/close_session_test.dart:17:25 • const_with_non_constant_argument
-   info • Unnecessary 'const' keyword. Try removing the keyword • test/close_session_test.dart:18:18 • unnecessary_const
-   info • Unnecessary 'const' keyword. Try removing the keyword • test/close_session_test.dart:19:20 • unnecessary_const
    info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • test/close_session_test.dart:30:24 • prefer_const_constructors
    info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • test/close_session_test.dart:59:20 • prefer_const_constructors
    info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • test/close_session_test.dart:60:18 • prefer_const_constructors
    info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • test/close_session_test.dart:70:19 • prefer_const_constructors
 
-34 issues found. (ran in 16.8s)
+31 issues found. (ran in 16.6s)

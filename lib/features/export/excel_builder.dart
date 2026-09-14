@@ -186,7 +186,7 @@ class ExcelBuilder {
         .cell(CellIndex.indexByString('B3'))
         .value = TextCellValue('اسم الطالب');
     for (int day = 1; day <= 31; day++) {
-      final Cell c = sheet.cell(
+      final Data c = sheet.cell(
         CellIndex.indexByColumnRow(columnIndex: 2 + day, rowIndex: 2),
       );
       c.value = TextCellValue('$day');

@@ -181,7 +181,7 @@ class PdfReport {
               ],
             ),
             build: (pw.Context c) => <pw.Widget>[
-              pw.Table(columnWidths: _widths(), rows: rows),
+              pw.Table(columnWidths: _widths(), children: rows),
             ],
           ),
         );

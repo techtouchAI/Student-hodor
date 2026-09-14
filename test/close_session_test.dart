@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart' hide isNotNull;
+import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:student_hodor/data/db.dart';
@@ -67,7 +67,7 @@ void main() {
           SessionsCompanion(
             yearId: const Value(1),
             classId: Value(cls),
-            date: const Value(date),
+            date: Value(date),
             openedAt: const Value('2026-09-13T07:30:00'),
           ),
         );

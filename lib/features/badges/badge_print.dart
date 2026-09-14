@@ -50,7 +50,7 @@ class BadgePrint {
       doc.addPage(
         pw.Page(
           pageFormat: format,
-          margin: const pw.EdgeInsets(all: 12),
+          margin: const pw.EdgeInsets.all(12),
           build: (pw.Context context) => pw.Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -93,7 +93,7 @@ class BadgePrint {
           crossAxisAlignment: pw.CrossAxisAlignment.stretch,
           children: <pw.Widget>[
             pw.Container(
-              padding: const pw.EdgeInsets(vertical: 4, horizontal: 3),
+              padding: const pw.EdgeInsets.symmetric(vertical: 4, horizontal: 3),
               decoration: const pw.BoxDecoration(color: PdfColors.teal800),
               child: pw.Column(
                 children: <pw.Widget>[
@@ -113,7 +113,7 @@ class BadgePrint {
             pw.Container(height: 1.6, color: PdfColors.amber800),
             pw.Expanded(
               child: pw.Padding(
-                padding: const pw.EdgeInsets(all: 4),
+                padding: const pw.EdgeInsets.all(4),
                 child: pw.Column(
                   children: <pw.Widget>[
                     if (s.photoBytes != null && s.photoBytes!.isNotEmpty)

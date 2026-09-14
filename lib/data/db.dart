@@ -174,7 +174,7 @@ class AuditLogs extends Table {
 }
 
 @DriftDatabase(
-  tables: <Type>{
+  tables: {
     Settings,
     AcademicYears,
     SchoolClasses,

@@ -1,89 +1,65 @@
-[INFO] Generating build script...
-[INFO] Generating build script completed, took 258ms
-
-[INFO] Precompiling build script......
-[INFO] Precompiling build script... completed, took 4.9s
-
-[INFO] Initializing inputs
-[INFO] Building new asset graph...
-[INFO] Building new asset graph completed, took 1.3s
-
-[INFO] Checking for unexpected pre-existing outputs....
-[INFO] Checking for unexpected pre-existing outputs. completed, took 0ms
-
-[INFO] Running build...
-[INFO] Generating SDK summary...
-[INFO] 2.0s elapsed, 0/16 actions completed.
-[INFO] 4.1s elapsed, 0/16 actions completed.
-[WARNING] drift_dev on lib/data/years_service.dart:
-Your current `analyzer` version may not fully support your current SDK version.
-
-Analyzer language version: 3.4.0
-SDK language version: 3.13.0
-
-Please update to the latest `analyzer` version (14.4.0) by running
-`flutter packages upgrade`.
-
-If you are not getting the latest version by running the above command, you
-can try adding a constraint like the following to your pubspec to start
-diagnosing why you can't get the latest version:
-
-dev_dependencies:
-  analyzer: ^14.4.0
-
-[INFO] Generating SDK summary completed, took 5.8s
-
-[INFO] 6.9s elapsed, 14/61 actions completed.
-[INFO] 7.9s elapsed, 32/70 actions completed.
-[INFO] 10.9s elapsed, 36/70 actions completed.
-[SEVERE] drift_dev on lib/data/db.dart:
-
-line 1, column 6069 of package:student_hodor/data/db.dart: Could not resolve annotation for `class AppDb`.
-   ╷
-1  │ ┌ @DriftDatabase(
-2  │ │   tables: <Type>{
-3  │ │     Settings,
-4  │ │     AcademicYears,
-5  │ │     SchoolClasses,
-6  │ │     Students,
-7  │ │     Badges,
-8  │ │     Sessions,
-9  │ │     AttendanceRows,
-10 │ │     ScanEvents,
-11 │ │     Leaves,
-12 │ │     Holidays,
-13 │ │     AuditLogs,
-14 │ │   },
-15 │ └ )
-   ╵
-[INFO] 12.7s elapsed, 48/82 actions completed.
-[INFO] 13.7s elapsed, 73/98 actions completed.
-[INFO] 20.0s elapsed, 75/100 actions completed.
-[INFO] 22.6s elapsed, 79/101 actions completed.
-[INFO] 26.2s elapsed, 124/138 actions completed.
-[SEVERE] drift_dev on lib/data/db.dart:
-
-line 1, column 6069 of package:student_hodor/data/db.dart: Could not resolve annotation for `class AppDb`.
-   ╷
-1  │ ┌ @DriftDatabase(
-2  │ │   tables: <Type>{
-3  │ │     Settings,
-4  │ │     AcademicYears,
-5  │ │     SchoolClasses,
-6  │ │     Students,
-7  │ │     Badges,
-8  │ │     Sessions,
-9  │ │     AttendanceRows,
-10 │ │     ScanEvents,
-11 │ │     Leaves,
-12 │ │     Holidays,
-13 │ │     AuditLogs,
-14 │ │   },
-15 │ └ )
-   ╵
-[INFO] Running build completed, took 27.1s
-
-[INFO] Caching finalized dependency graph...
-[INFO] Caching finalized dependency graph completed, took 86ms
-
-[SEVERE] Failed after 27.2s
+  compiling builders/aot
+  40s compiling builders/aot
+W These options have been removed and were ignored: --delete-conflicting-outputs
+  0s drift_dev on 136 inputs; lib/app.dart
+  13s drift_dev on 136 inputs: 1 output; spent 10s analyzing, 2s resolving, 2s sdk; lib/core/arabic_shaping.dart
+E drift_dev on lib/data/db.dart:
+  line 1, column 6069 of package:student_hodor/data/db.dart: Could not resolve annotation for `class AppDb`.
+  Error: A value of type 'Set<Type>' can't be assigned to a parameter of type 'List<Type>' in a const constructor.
+     ╷
+  1  │ ┌ @DriftDatabase(
+  2  │ │   tables: {
+  3  │ │     Settings,
+  4  │ │     AcademicYears,
+  5  │ │     SchoolClasses,
+  6  │ │     Students,
+  7  │ │     Badges,
+  8  │ │     Sessions,
+  9  │ │     AttendanceRows,
+  10 │ │     ScanEvents,
+  11 │ │     Leaves,
+  12 │ │     Holidays,
+  13 │ │     AuditLogs,
+  14 │ │   },
+  15 │ └ )
+     ╵
+E drift_dev on lib/data/db.dart:
+  BuildStepCompletedException: Attempt to use a BuildStep after it has completed
+E drift_dev on lib/data/db.dart:
+  BuildStepCompletedException: Attempt to use a BuildStep after it has completed
+E drift_dev on lib/data/db.dart:
+  BuildStepCompletedException: Attempt to use a BuildStep after it has completed
+E drift_dev on lib/data/db.dart:
+  BuildStepCompletedException: Attempt to use a BuildStep after it has completed
+E drift_dev on lib/data/db.dart:
+  line 1, column 6069 of package:student_hodor/data/db.dart: Could not resolve annotation for `class AppDb`.
+  Error: A value of type 'Set<Type>' can't be assigned to a parameter of type 'List<Type>' in a const constructor.
+     ╷
+  1  │ ┌ @DriftDatabase(
+  2  │ │   tables: {
+  3  │ │     Settings,
+  4  │ │     AcademicYears,
+  5  │ │     SchoolClasses,
+  6  │ │     Students,
+  7  │ │     Badges,
+  8  │ │     Sessions,
+  9  │ │     AttendanceRows,
+  10 │ │     ScanEvents,
+  11 │ │     Leaves,
+  12 │ │     Holidays,
+  13 │ │     AuditLogs,
+  14 │ │   },
+  15 │ └ )
+     ╵
+E drift_dev on lib/data/db.dart:
+  BuildStepCompletedException: Attempt to use a BuildStep after it has completed
+E drift_dev on lib/data/db.dart:
+  BuildStepCompletedException: Attempt to use a BuildStep after it has completed
+E drift_dev on lib/data/db.dart:
+  BuildStepCompletedException: Attempt to use a BuildStep after it has completed
+E drift_dev on lib/data/db.dart:
+  BuildStepCompletedException: Attempt to use a BuildStep after it has completed
+  14s drift_dev on 136 inputs: 34 skipped, 62 output, 40 no-op; spent 10s analyzing, 2s resolving, 2s sdk
+  0s source_gen:combining_builder on 68 inputs; lib/app.dart
+  0s source_gen:combining_builder on 68 inputs: 34 skipped, 34 no-op
+  Failed to build with build_runner/aot in 55s; wrote 62 outputs.

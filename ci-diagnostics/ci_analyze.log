@@ -16,8 +16,6 @@ warning • Unused import: 'package:drift/drift.dart'. Try removing the import d
    info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/home/home_screen.dart:56:16 • use_build_context_synchronously
    info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/home/home_screen.dart:74:7 • use_build_context_synchronously
    info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/leaves/leaves_screen.dart:98:16 • use_build_context_synchronously
-  error • 'Column' isn't a function. Try correcting the name to match an existing function, or define a method or function named 'Column' • lib/features/onboarding/onboarding_screen.dart:86:22 • invocation_of_non_function
-  error • The name 'Column' is defined in the libraries 'package:drift/src/dsl/dsl.dart (via package:drift/drift.dart)' and 'package:flutter/src/widgets/basic.dart (via package:flutter/material.dart)'. Try using 'as prefix' for one of the import directives, or hiding the name from all but one of the imports • lib/features/onboarding/onboarding_screen.dart:86:22 • ambiguous_import
    info • Missing a required trailing comma. Try adding a trailing comma • lib/features/reports/student_report_screen.dart:109:62 • require_trailing_commas
    info • Missing a required trailing comma. Try adding a trailing comma • lib/features/reports/student_report_screen.dart:249:67 • require_trailing_commas
    info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/scan/scan_screen.dart:171:18 • use_build_context_synchronously
@@ -34,4 +32,4 @@ warning • Unused import: 'package:drift/drift.dart'. Try removing the import d
    info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • test/close_session_test.dart:30:24 • prefer_const_constructors
    info • Use 'const' for final variables initialized to a constant value. Try replacing 'final' with 'const' • test/close_session_test.dart:44:5 • prefer_const_declarations
 
-33 issues found. (ran in 15.8s)
+31 issues found. (ran in 13.0s)

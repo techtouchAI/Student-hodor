@@ -1,0 +1,3 @@
+Resolving dependencies...
+Because student_hodor depends on hijri_converter any which doesn't exist (could not find package hijri_converter at https://pub.dev), version solving failed.
+Failed to update packages.

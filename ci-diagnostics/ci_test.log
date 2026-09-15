@@ -1,61 +1,131 @@
-00:00 +0: loading /home/runner/work/Student-hodor/Student-hodor/test/close_session_test.dart
-00:00 +0: /home/runner/work/Student-hodor/Student-hodor/test/close_session_test.dart: إقفال الجلسة يولّد غياباً لمن لم يُسجّل ويحترم الإجازة
-00:00 +1: loading /home/runner/work/Student-hodor/Student-hodor/test/hijri_test.dart
-00:00 +1: /home/runner/work/Student-hodor/Student-hodor/test/hijri_test.dart: نطاقات سليمة لسنة كاملة
-00:00 +2: /home/runner/work/Student-hodor/Student-hodor/test/hijri_test.dart: تسلسل الأيام متصل (لا قفزات)
-00:00 +2 -1: /home/runner/work/Student-hodor/Student-hodor/test/hijri_test.dart: تسلسل الأيام متصل (لا قفزات) [E]
+00:00 +0: loading /home/runner/work/Student-hodor/Student-hodor/test/month_key_test.dart
+00:00 +0: /home/runner/work/Student-hodor/Student-hodor/test/month_key_test.dart: monthsBetweenKeys يحل السنة الميلادية الصحيحة لأشهر عابرة
+00:00 +1: /home/runner/work/Student-hodor/Student-hodor/test/month_key_test.dart: isValidDay يميز أشهر 30/31 يوماً وشباط
+00:00 +2: /home/runner/work/Student-hodor/Student-hodor/test/month_key_test.dart: sanitizeSheetName: بلا محارف ممنوعة وبقص آمن
+00:00 +3: loading /home/runner/work/Student-hodor/Student-hodor/test/leave_sync_test.dart
+00:00 +3: /home/runner/work/Student-hodor/Student-hodor/test/leave_sync_test.dart: إضافة إجازة تحوّل الغياب التلقائي إلى إجازة وحذفها يعيده
+00:00 +3 -1: /home/runner/work/Student-hodor/Student-hodor/test/leave_sync_test.dart: إضافة إجازة تحوّل الغياب التلقائي إلى إجازة وحذفها يعيده [E]
+  SqliteException(2067): while executing statement, UNIQUE constraint failed: attendance_rows.student_id, attendance_rows.date, constraint failed (code 2067)
+    Causing statement: INSERT INTO "attendance_rows" ("year_id", "class_id", "student_id", "date", "status", "source", "session_id", "note") VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT("id") DO UPDATE SET "year_id" = ?, "class_id" = ?, "student_id" = ?, "date" = ?, "status" = ?, "source" = ?, "session_id" = ?, "note" = ?, parameters: 1, 1, 1, 2026-09-13, 2, 2, null, leave-sync, 1, 1, 1, 2026-09-13, 2, 2, null, leave-sync
+  package:sqlite3/src/implementation/exception.dart 101:3                throwException
+  package:sqlite3/src/implementation/statement.dart 52:5                 StatementImplementation.throwStatementException
+  package:sqlite3/src/implementation/statement.dart 100:7                StatementImplementation._execute
+  package:sqlite3/src/implementation/statement.dart 305:5                StatementImplementation.executeWith
+  package:sqlite3/src/statement.dart 94:12                               CommonPreparedStatement.execute
+  package:drift/src/sqlite3/database.dart 155:14                         Sqlite3Delegate.runWithArgsSync
+  package:drift/native.dart 440:7                                        _NativeDelegate.runInsert.<fn>
+  dart:async                                                             new Future.sync
+  package:drift/native.dart 439:19                                       _NativeDelegate.runInsert
+  package:drift/src/runtime/executor/helpers/engines.dart 110:19         _BaseExecutor.runInsert.<fn>
+  package:drift/src/runtime/executor/helpers/engines.dart 64:20          _BaseExecutor._synchronized
+  package:drift/src/runtime/executor/helpers/engines.dart 107:12         _BaseExecutor.runInsert
+  package:drift/src/runtime/query_builder/statements/insert.dart 77:26   InsertStatement.insert.<fn>
+  package:drift/src/runtime/api/connection_user.dart 172:16              DatabaseConnectionUser.doWhenOpened.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                             new Future.sync
+  package:drift/native.dart 439:19                                       _NativeDelegate.runInsert
+  package:drift/src/runtime/executor/helpers/engines.dart 110:19         _BaseExecutor.runInsert.<fn>
+  package:drift/src/runtime/executor/helpers/engines.dart 64:20          _BaseExecutor._synchronized
+  package:drift/src/runtime/executor/helpers/engines.dart 107:12         _BaseExecutor.runInsert
+  package:drift/src/runtime/query_builder/statements/insert.dart 77:26   InsertStatement.insert.<fn>
+  package:drift/src/runtime/api/connection_user.dart 172:16              DatabaseConnectionUser.doWhenOpened.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                             Future.then
+  package:drift/src/runtime/api/connection_user.dart 170:50              DatabaseConnectionUser.doWhenOpened
+  package:drift/src/runtime/api/connection_user.dart 781:19              InternalConnectionUserApi.withCurrentExecutor
+  package:drift/src/runtime/query_builder/statements/insert.dart 76:27   InsertStatement.insert
+  package:drift/src/runtime/query_builder/statements/insert.dart 200:12  InsertStatement.insertOnConflictUpdate
+  package:student_hodor/data/db.dart 467:28                              AppDb.upsertAttendance
+  package:student_hodor/data/db.dart 520:19                              AppDb.syncLeaveToAttendance.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                             _CustomZone.registerUnaryCallback
+  package:student_hodor/data/db.dart 502:29                              AppDb.syncLeaveToAttendance.<fn>
+  package:drift/src/runtime/api/connection_user.dart 519:38              DatabaseConnectionUser.transaction.<fn>.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                             _CustomZone.registerUnaryCallback
+  package:drift/src/runtime/api/connection_user.dart 517:9               DatabaseConnectionUser.transaction.<fn>.<fn>
+  dart:async                                                             runZoned
+  package:drift/src/runtime/api/connection_user.dart 659:12              DatabaseConnectionUser._runConnectionZoned
+  package:drift/src/runtime/api/connection_user.dart 514:14              DatabaseConnectionUser.transaction.<fn>
+  package:drift/src/runtime/api/connection_user.dart 172:16              DatabaseConnectionUser.doWhenOpened.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                             Future.then
+  package:drift/src/runtime/api/connection_user.dart 170:50              DatabaseConnectionUser.doWhenOpened
+  package:drift/src/runtime/api/connection_user.dart 510:27              DatabaseConnectionUser.transaction
+  package:student_hodor/data/db.dart 501:7                               AppDb.syncLeaveToAttendance
+  test/leave_sync_test.dart 53:32                                        main.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                             _CustomZone.registerUnaryCallback
+  test/leave_sync_test.dart 41:32                                        main.<fn>
+  
+00:00 +3 -1: /home/runner/work/Student-hodor/Student-hodor/test/leave_sync_test.dart: لا تلمس السجلات اليدوية أو المسوحة
+00:00 +4 -1: /home/runner/work/Student-hodor/Student-hodor/test/leave_sync_test.dart: الفهارس تُنشأ عند إنشاء قاعدة جديدة
+00:00 +5 -1: loading /home/runner/work/Student-hodor/Student-hodor/test/close_session_test.dart
+00:01 +5 -1: /home/runner/work/Student-hodor/Student-hodor/test/close_session_test.dart: إقفال الجلسة يولّد غياباً لمن لم يُسجّل ويحترم الإجازة
+00:01 +6 -1: loading /home/runner/work/Student-hodor/Student-hodor/test/hijri_test.dart
+00:01 +6 -1: /home/runner/work/Student-hodor/Student-hodor/test/hijri_test.dart: نطاقات سليمة لسنة كاملة
+00:01 +7 -1: /home/runner/work/Student-hodor/Student-hodor/test/hijri_test.dart: تسلسل الأيام متصل (لا قفزات)
+00:01 +8 -1: /home/runner/work/Student-hodor/Student-hodor/test/hijri_test.dart: نص العرض يحتوي اسم شهر هجري
+00:01 +9 -1: loading /home/runner/work/Student-hodor/Student-hodor/test/seq_and_badge_test.dart
+00:02 +9 -1: /home/runner/work/Student-hodor/Student-hodor/test/seq_and_badge_test.dart: تسلسل السنة فريد عبر صفين ورموز البادجات لا تتصادم
+00:02 +9 -2: /home/runner/work/Student-hodor/Student-hodor/test/seq_and_badge_test.dart: تسلسل السنة فريد عبر صفين ورموز البادجات لا تتصادم [E]
+  Expected: not null
+    Actual: <null>
+  
+  package:matcher                                     expect
+  package:flutter_test/src/widget_tester.dart 473:18  expect
+  test/seq_and_badge_test.dart 50:7                   main.<fn>
+  
+00:02 +9 -2: /home/runner/work/Student-hodor/Student-hodor/test/seq_and_badge_test.dart: بدل فاقد: إبطال القديم وإصدار رمز مختلف صالح للقراءة
+00:02 +9 -3: /home/runner/work/Student-hodor/Student-hodor/test/seq_and_badge_test.dart: بدل فاقد: إبطال القديم وإصدار رمز مختلف صالح للقراءة [E]
+  Expected: <2>
+    Actual: <null>
+  
+  package:matcher                                     expect
+  package:flutter_test/src/widget_tester.dart 473:18  expect
+  test/seq_and_badge_test.dart 74:5                   main.<fn>
+  
+00:02 +9 -3: loading /home/runner/work/Student-hodor/Student-hodor/test/badge_code_test.dart
+00:03 +9 -3: /home/runner/work/Student-hodor/Student-hodor/test/badge_code_test.dart: رمز المدرسة حتمي لنفس الاسم ومختلف لاسم آخر
+00:03 +10 -3: /home/runner/work/Student-hodor/Student-hodor/test/badge_code_test.dart: دورة make/parse سليمة
+00:03 +10 -4: /home/runner/work/Student-hodor/Student-hodor/test/badge_code_test.dart: دورة make/parse سليمة [E]
+  Expected: not null
+    Actual: <null>
+  
+  package:matcher                                     expect
+  package:flutter_test/src/widget_tester.dart 473:18  expect
+  test/badge_code_test.dart 17:5                      main.<fn>
+  
+00:03 +10 -4: /home/runner/work/Student-hodor/Student-hodor/test/badge_code_test.dart: رمز تالف يُرفض (checksum)
+00:03 +11 -4: /home/runner/work/Student-hodor/Student-hodor/test/badge_code_test.dart: نص عشوائي لا يُقبل
+00:03 +12 -4: /home/runner/work/Student-hodor/Student-hodor/test/badge_code_test.dart: نسخة البدل الفاقد تُشفَّر وتُفك ولا تكسر الرموز القديمة
+00:03 +12 -5: /home/runner/work/Student-hodor/Student-hodor/test/badge_code_test.dart: نسخة البدل الفاقد تُشفَّر وتُفك ولا تكسر الرموز القديمة [E]
   Expected: <1>
-    Actual: <0>
-  at 2026-03-20 00:00:00.000
+    Actual: <null>
   
   package:matcher                                     expect
   package:flutter_test/src/widget_tester.dart 473:18  expect
-  test/hijri_test.dart 23:7                           main.<fn>
+  test/badge_code_test.dart 46:5                      main.<fn>
   
-00:00 +2 -1: /home/runner/work/Student-hodor/Student-hodor/test/hijri_test.dart: نص العرض يحتوي اسم شهر هجري
-00:00 +3 -1: loading /home/runner/work/Student-hodor/Student-hodor/test/badge_code_test.dart
-00:01 +3 -1: /home/runner/work/Student-hodor/Student-hodor/test/badge_code_test.dart: رمز المدرسة حتمي لنفس الاسم ومختلف لاسم آخر
-00:01 +4 -1: /home/runner/work/Student-hodor/Student-hodor/test/badge_code_test.dart: دورة make/parse سليمة
-00:01 +5 -1: /home/runner/work/Student-hodor/Student-hodor/test/badge_code_test.dart: رمز تالف يُرفض (checksum)
-00:01 +6 -1: /home/runner/work/Student-hodor/Student-hodor/test/badge_code_test.dart: نص عشوائي لا يُقبل
-00:01 +7 -1: loading /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart
-00:01 +7 -1: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: تشكيل سياقي: محمد
-00:01 +7 -2: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: تشكيل سياقي: محمد [E]
-  Expected: 'ﻧﺤﺪ'
-    Actual: 'ﻧﺤﻨﺪ'
-     Which: is different.
-            Expected: ﻧﺤﺪ
-              Actual: ﻧﺤﻨﺪ
-                        ^
-             Differ at offset 2
-  
-  package:matcher                                     expect
-  package:flutter_test/src/widget_tester.dart 473:18  expect
-  test/arabic_shaping_test.dart 6:5                   main.<fn>
-  
-00:01 +7 -2: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: لام-ألف نهائية بعد حرف متصل: سلام
-00:01 +8 -2: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: لام-ألف معزولة في بداية الكلمة: لام
-00:01 +9 -2: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: حروف لا تتصل بما بعدها: أداء
-00:01 +10 -2: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: التشكيل يُحذف افتراضياً ويبقى اختيارياً
-00:01 +11 -2: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: الترتيب البصري يبقي الأرقام متسلسلة ويضعها بموضعها
-00:01 +12 -2: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: نص لاتيني داخل سياق عربي لا ينكسر
-00:01 +12 -3: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: نص لاتيني داخل سياق عربي لا ينكسر [E]
-  Expected: true
-    Actual: <false>
-  
-  package:matcher                                     expect
-  package:flutter_test/src/widget_tester.dart 473:18  expect
-  test/arabic_shaping_test.dart 39:5                  main.<fn>
-  
-00:01 +12 -3: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: arabicForPdf لا يرمي على نص فارغ أو أرقام فقط
-00:01 +13 -3: loading /home/runner/work/Student-hodor/Student-hodor/test/school_time_test.dart
-00:02 +13 -3: /home/runner/work/Student-hodor/Student-hodor/test/school_time_test.dart: الجمعة والسبت خارج أيام الدوام الافتراضية
-00:02 +14 -3: /home/runner/work/Student-hodor/Student-hodor/test/school_time_test.dart: العطلة تمنع اعتبار اليوم يوم دوام
-00:02 +15 -3: /home/runner/work/Student-hodor/Student-hodor/test/school_time_test.dart: keysBetween شامل الطرفين
-00:02 +16 -3: /home/runner/work/Student-hodor/Student-hodor/test/school_time_test.dart: parseKey يعكس dateKey
-00:02 +17 -3: Some tests failed.
+00:03 +12 -5: loading /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart
+00:03 +12 -5: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: تشكيل سياقي: محمد
+00:03 +13 -5: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: لام-ألف نهائية بعد حرف متصل: سلام
+00:03 +14 -5: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: لام-ألف معزولة في بداية الكلمة: لام
+00:03 +15 -5: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: حروف لا تتصل بما بعدها: أداء
+00:03 +16 -5: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: التشكيل يُحذف افتراضياً ويبقى اختيارياً
+00:03 +17 -5: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: الترتيب البصري يبقي الأرقام متسلسلة ويضعها بموضعها
+00:03 +18 -5: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: نص لاتيني داخل سياق عربي لا ينكسر
+00:03 +19 -5: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: arabicForPdf لا يرمي على نص فارغ أو أرقام فقط
+00:03 +20 -5: loading /home/runner/work/Student-hodor/Student-hodor/test/school_time_test.dart
+00:04 +20 -5: /home/runner/work/Student-hodor/Student-hodor/test/school_time_test.dart: الجمعة والسبت خارج أيام الدوام الافتراضية
+00:04 +21 -5: /home/runner/work/Student-hodor/Student-hodor/test/school_time_test.dart: العطلة تمنع اعتبار اليوم يوم دوام
+00:04 +22 -5: /home/runner/work/Student-hodor/Student-hodor/test/school_time_test.dart: keysBetween شامل الطرفين
+00:04 +23 -5: /home/runner/work/Student-hodor/Student-hodor/test/school_time_test.dart: parseKey يعكس dateKey
+00:04 +24 -5: Some tests failed.
 
 Failing tests:
-  /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: تشكيل سياقي: محمد
-  /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: نص لاتيني داخل سياق عربي لا ينكسر
-  /home/runner/work/Student-hodor/Student-hodor/test/hijri_test.dart: تسلسل الأيام متصل (لا قفزات)
+  /home/runner/work/Student-hodor/Student-hodor/test/badge_code_test.dart: دورة make/parse سليمة
+  /home/runner/work/Student-hodor/Student-hodor/test/badge_code_test.dart: نسخة البدل الفاقد تُشفَّر وتُفك ولا تكسر الرموز القديمة
+  /home/runner/work/Student-hodor/Student-hodor/test/leave_sync_test.dart: إضافة إجازة تحوّل الغياب التلقائي إلى إجازة وحذفها يعيده
+  /home/runner/work/Student-hodor/Student-hodor/test/seq_and_badge_test.dart: بدل فاقد: إبطال القديم وإصدار رمز مختلف صالح للقراءة
+  /home/runner/work/Student-hodor/Student-hodor/test/seq_and_badge_test.dart: تسلسل السنة فريد عبر صفين ورموز البادجات لا تتصادم

@@ -92,7 +92,12 @@ jobs:
       - name: Generate gradle wrapper if absent
         run: |
           if [ ! -f android/gradlew ]; then
-            cd android && gradle wrapper --gradle-version 8.10.2 --distribution-type bin
+            WRAP_DIR="$(mktemp -d)"
+            cd "$WRAP_DIR"
+            gradle wrapper --gradle-version 8.10.2 --distribution-type bin
+            cp -r "$WRAP_DIR/gradle" "$WRAP_DIR/gradlew" "$WRAP_DIR/gradlew.bat" "$GITHUB_WORKSPACE/android/"
+            cd "$GITHUB_WORKSPACE"
+            chmod +x android/gradlew
           fi
 
       - name: Build universal release APK

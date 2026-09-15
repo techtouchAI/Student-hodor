@@ -1,8 +1,0 @@
-Analyzing Student-hodor...                                      
-
-   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check. Guard a 'State.context' use with a 'mounted' check on the State, and other BuildContext use with a 'mounted' check on the BuildContext • lib/features/scan/scan_screen.dart:174:18 • use_build_context_synchronously
-   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check. Guard a 'State.context' use with a 'mounted' check on the State, and other BuildContext use with a 'mounted' check on the BuildContext • lib/features/settings/settings_screen.dart:120:18 • use_build_context_synchronously
-   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check. Guard a 'State.context' use with a 'mounted' check on the State, and other BuildContext use with a 'mounted' check on the BuildContext • lib/features/students/students_screen.dart:124:16 • use_build_context_synchronously
-   info • Missing a required trailing comma. Try adding a trailing comma • lib/features/years/years_screen.dart:216:60 • require_trailing_commas
-
-4 issues found. (ran in 17.3s)

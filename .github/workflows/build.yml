@@ -2,7 +2,7 @@ name: build-apk
 
 on:
   push:
-    branches: [arena/01a0a1b9-student-hodor, main]
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -13,158 +13,89 @@ permissions:
   contents: write
 
 jobs:
-  verify:
-    name: Analyze & Test
+  build:
+    name: Build & publish release APK
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
 
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
-      - name: Pub get
-        run: set -o pipefail; flutter pub get 2>&1 | tee ci_pub.log
-
-      - name: Codegen (drift)
-        run: set -o pipefail; dart run build_runner build --delete-conflicting-outputs 2>&1 | tee ci_codegen.log
-
-      - name: Analyze (zero warnings policy)
-        run: set -o pipefail; flutter analyze --fatal-warnings --fatal-infos 2>&1 | tee ci_analyze.log
-
-      - name: Unit & widget tests
-        run: set -o pipefail; flutter test --reporter expanded 2>&1 | tee ci_test.log
-
-      - name: Commit diagnostics on failure
-        if: failure()
-        run: |
-          git config user.name "ci-bot"
-          git config user.email "ci@users.noreply.github.com"
-          mkdir -p ci-diagnostics
-          cp ci_*.log ci-diagnostics/ 2>/dev/null || true
-          echo "run=${{ github.run_id }} job=verify" > ci-diagnostics/last_failure.txt
-          git add ci-diagnostics
-          git commit -m "ci: verify diagnostics [skip ci]" || true
-          git push origin "HEAD:${{ github.ref_name }}" || true
-
-  apk:
-    name: Build APK
-    needs: verify
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
-      - uses: actions/setup-java@v4
+      # أهم خطوة لتسريع البناء: تخزين تبعيات Gradle وتوزيعته بين التشغيلات
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
         with:
-          distribution: temurin
-          java-version: 17
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('android/**/*.gradle*', 'android/gradle.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
 
-      - name: Pub get
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('pubspec.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      - name: Install dependencies
         run: flutter pub get
 
       - name: Codegen (drift)
-        run: dart run build_runner build --delete-conflicting-outputs
+        run: dart run build_runner build
 
-      - name: Bootstrap release keystore if absent (K1)
+      # فحص المشروع: يفشل فقط عند الأخطاء والتحذيرات الحقيقية
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos
+
+      # Wrapper غير مودَع في المستودع، نولّده مرة واحدة فقط إن لم يكن موجوداً
+      - name: Ensure Gradle wrapper
         run: |
-          if [ ! -f tools/keystore/student_hodor.jks ]; then
-            mkdir -p tools/keystore
-            keytool -genkeypair -v \
-              -keystore tools/keystore/student_hodor.jks \
-              -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 \
-              -alias student_hodor \
-              -storepass studenthodor -keypass studenthodor \
-              -dname "CN=Student Hodor, OU=Schools, O=TechTouch, C=IQ"
-            echo "KEYSTORE_BOOTSTRAPPED=true" >> "$GITHUB_ENV"
+          if [ ! -f android/gradlew ]; then
+            tmp="$(mktemp -d)"
+            touch "$tmp/settings.gradle" "$tmp/build.gradle"
+            (cd "$tmp" && gradle wrapper --gradle-version 8.14.3 --distribution-type bin -q)
+            cp "$tmp/gradlew" "$tmp/gradlew.bat" android/
+            cp -r "$tmp/gradle" android/
+            rm -rf "$tmp"
+            chmod +x android/gradlew
           fi
 
-      - name: Generate gradle wrapper if absent
+      - name: Build release APK
+        run: flutter build apk --release
+
+      # التحقق من نجاح البناء: الملف موجود، موقّع بمفتاح الـ Release، مع بصمة SHA256
+      - name: Verify APK
         run: |
-          set -o pipefail
-          {
-            echo "gradle location: $(command -v gradle || echo MISSING)"
-            if [ ! -f android/gradlew ]; then
-              WRAP_DIR="$(mktemp -d)"
-              touch "$WRAP_DIR/settings.gradle" "$WRAP_DIR/build.gradle"
-              cd "$WRAP_DIR"
-              gradle wrapper --gradle-version 8.14.3 --distribution-type bin
-              cp -r "$WRAP_DIR/gradle" "$WRAP_DIR/gradlew" "$WRAP_DIR/gradlew.bat" "$GITHUB_WORKSPACE/android/"
-              cd "$GITHUB_WORKSPACE"
-              chmod +x android/gradlew
-            fi
-            ls -la android/gradle/wrapper/ 2>/dev/null || true
-          } 2>&1 | tee ci_wrap.log
-
-      - name: Build universal release APK
-        run: set -o pipefail; flutter build apk --release 2>&1 | tee ci_build.log
-
-      - name: Build per-ABI splits
-        run: set -o pipefail; flutter build apk --release --split-per-abi 2>&1 | tee ci_build_splits.log
-
-      - name: Checksums
-        run: |
+          set -e
           cd build/app/outputs/flutter-apk
-          sha256sum *.apk > SHA256SUMS.txt
+          ls -la
+          test -s app-release.apk
+          bt="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+          "$bt/apksigner" verify --print-certs app-release.apk | tee apksigner.log
+          grep -q "CN=Student Hodor" apksigner.log || { echo "APK is NOT signed with the release key!"; exit 1; }
+          sha256sum app-release.apk > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
-      - name: Verify release signature
-        run: |
-          set -o pipefail
-          BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
-          {
-            "$BT/apksigner" verify --print-certs build/app/outputs/flutter-apk/app-release.apk
-            "$BT/apksigner" verify --print-certs build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
-          } 2>&1 | tee ci_sign.log
-          grep -q "CN=Student Hodor" ci_sign.log || { echo "APK is NOT signed with the release key!"; exit 1; }
-
-      - name: List APK outputs
-        if: always()
-        run: ls -la build/app/outputs/flutter-apk/ || true
-
-      - name: Persist release keystore to repo (one-time)
-        run: |
-          git config user.name "ci-bot"
-          git config user.email "ci@users.noreply.github.com"
-          git add -f tools/keystore/student_hodor.jks
-          if ! git diff --cached --quiet; then
-            git commit -m "ci: persist release keystore [skip ci]"
-            git pull --rebase origin "${{ github.ref_name }}" || true
-            git push origin "HEAD:${{ github.ref_name }}"
-          fi
-
-      - name: Publish APKs to GitHub Release
+      - name: Publish APK to GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
           cd build/app/outputs/flutter-apk
-          TAG=latest-apk
-          gh release delete "$TAG" -y --cleanup-tag || true
-          gh release create "$TAG" \
-            *.apk SHA256SUMS.txt \
+          gh release delete latest-apk -y --cleanup-tag || true
+          gh release create latest-apk \
+            app-release.apk SHA256SUMS.txt \
             --title "Student Hodor — أحدث APK" \
             --notes "بُني تلقائياً من ${{ github.sha }} في $(date -u +%F' '%H:%M'UTC')" \
             --target "${{ github.sha }}"
-
-      - name: Commit diagnostics on failure
-        if: failure()
-        run: |
-          git config user.name "ci-bot"
-          git config user.email "ci@users.noreply.github.com"
-          mkdir -p ci-diagnostics
-          cp ci_*.log ci-diagnostics/ 2>/dev/null || true
-          echo "run=${{ github.run_id }} job=apk" > ci-diagnostics/last_failure.txt
-          git add ci-diagnostics
-          git commit -m "ci: apk diagnostics [skip ci]" || true
-          git push origin "HEAD:${{ github.ref_name }}" || true

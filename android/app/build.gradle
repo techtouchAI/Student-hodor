@@ -35,9 +35,9 @@ android {
 
     signingConfigs {
         release {
-            def storeFile = rootProject.file("../tools/keystore/student_hodor.jks")
-            if (storeFile.exists()) {
-                storeFile = storeFile
+            def ksFile = rootProject.file("../tools/keystore/student_hodor.jks")
+            if (ksFile.exists()) {
+                storeFile = ksFile
                 storePassword = keystoreProperties.getProperty("storePassword", "studenthodor")
                 keyAlias = keystoreProperties.getProperty("keyAlias", "student_hodor")
                 keyPassword = keystoreProperties.getProperty("keyPassword", "studenthodor")
@@ -47,8 +47,7 @@ android {
 
     buildTypes {
         release {
-            def storeFile = rootProject.file("../tools/keystore/student_hodor.jks")
-            signingConfig = storeFile.exists() ? signingConfigs.release : signingConfigs.debug
+            signingConfig = rootProject.file("../tools/keystore/student_hodor.jks").exists() ? signingConfigs.release : signingConfigs.debug
             minifyEnabled = false
             shrinkResources = false
         }

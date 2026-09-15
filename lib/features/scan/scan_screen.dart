@@ -88,7 +88,7 @@ class _ScanState extends ConsumerState<ScanScreen> {
       _debounce[raw] = DateTime.now();
       final ScanOutcome o =
           await ScanService(ref.read(dbProvider)).handleScan(session: session, raw: raw);
-      if (await Vibration.hasVibrator() ?? false) {
+      if (await Vibration.hasVibrator()) {
         await Vibration.vibrate(duration: o.isSuccess ? 90 : 220);
       }
       if (mounted) {

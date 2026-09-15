@@ -94,11 +94,11 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _restoreOrMerge(bool merge) async {
-    final FilePickerResult? res = await FilePicker.platform.pickFiles(
+    final List<PlatformFile> picked = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: const <String>['json'],
     );
-    final String? path = res?.files.single.path;
+    final String? path = picked.isEmpty ? null : picked.single.path;
     if (path == null) {
       return;
     }

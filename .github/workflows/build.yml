@@ -2,7 +2,7 @@ name: build-apk
 
 on:
   push:
-    branches: [main]
+    branches: [arena/01a0a683-student-hodor, main]
   workflow_dispatch:
 
 concurrency:
@@ -57,6 +57,9 @@ jobs:
       # فحص المشروع: يفشل فقط عند الأخطاء والتحذيرات الحقيقية
       - name: Analyze
         run: flutter analyze --no-fatal-infos
+
+      - name: Test
+        run: flutter test
 
       # Wrapper غير مودَع في المستودع، نولّده مرة واحدة فقط إن لم يكن موجوداً
       - name: Ensure Gradle wrapper

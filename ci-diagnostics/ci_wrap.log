@@ -11,13 +11,19 @@ Here are the highlights of this release:
 For more details see https://docs.gradle.org/9.7.1/release-notes.html
 
 Starting a Gradle Daemon (subsequent builds will be faster)
-> Task :wrapper
+> Task :wrapper FAILED
 
-BUILD SUCCESSFUL in 29s
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':wrapper' (registered by plugin 'org.gradle.wrapper').
+> Test of distribution url https://services.gradle.org/distributions/gradle-8.14.0-bin.zip failed. Please check the values set with --gradle-distribution-url and --gradle-version.
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 13s
 1 actionable task: 1 executed
-Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.7.1/userguide/configuration_cache_enabling.html
-total 60
-drwxr-xr-x 2 runner runner  4096 Sep 15 04:07 .
-drwxr-xr-x 3 runner runner  4096 Sep 15 04:07 ..
--rw-r--r-- 1 runner runner 47505 Sep 15 04:07 gradle-wrapper.jar
--rw-r--r-- 1 runner runner   282 Sep 15 04:07 gradle-wrapper.properties

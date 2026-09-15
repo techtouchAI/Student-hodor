@@ -14,11 +14,8 @@ Analyzing Student-hodor...
    info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/leaves/leaves_screen.dart:98:16 • use_build_context_synchronously
    info • Missing a required trailing comma. Try adding a trailing comma • lib/features/reports/student_report_screen.dart:109:62 • require_trailing_commas
    info • Missing a required trailing comma. Try adding a trailing comma • lib/features/reports/student_report_screen.dart:249:67 • require_trailing_commas
-warning • The left operand can't be null, so the right operand is never executed. Try removing the operator and the right operand • lib/features/scan/scan_screen.dart:91:44 • dead_null_aware_expression
    info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/scan/scan_screen.dart:171:18 • use_build_context_synchronously
    info • Missing a required trailing comma. Try adding a trailing comma • lib/features/scan/scan_screen.dart:310:50 • require_trailing_commas
-  error • Undefined class 'FilePickerResult'. Try changing the name to the name of an existing class, or creating a class with the name 'FilePickerResult' • lib/features/settings/settings_screen.dart:97:11 • undefined_class
-  error • The getter 'platform' isn't defined for the type 'FilePicker'. Try importing the library that defines 'platform', correcting the name to the name of an existing getter, or defining a getter or field named 'platform' • lib/features/settings/settings_screen.dart:97:52 • undefined_getter
    info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/settings/settings_screen.dart:117:18 • use_build_context_synchronously
    info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/settings/settings_screen.dart:251:24 • use_build_context_synchronously
    info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/students/students_screen.dart:121:16 • use_build_context_synchronously
@@ -35,4 +32,4 @@ warning • The left operand can't be null, so the right operand is never execut
    info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • test/close_session_test.dart:60:18 • prefer_const_constructors
    info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • test/close_session_test.dart:70:19 • prefer_const_constructors
 
-34 issues found. (ran in 13.5s)
+31 issues found. (ran in 13.3s)

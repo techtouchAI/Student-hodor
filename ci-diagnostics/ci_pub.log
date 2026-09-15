@@ -80,7 +80,7 @@ Downloading packages...
 + mime 2.1.0
 + mobile_scanner 5.2.3 (7.4.2 available)
 + native_toolchain_c 0.19.4
-+ objective_c 9.6.1
+! objective_c 9.6.1 (overridden)
 + package_config 3.0.0
 + package_info_plus 8.3.1 (10.2.1 available)
 + package_info_plus_platform_interface 3.2.1 (4.1.0 available)
@@ -145,7 +145,7 @@ Downloading packages...
 + xml 6.6.1 (7.0.1 available)
 + yaml 3.1.4
 + yaml_edit 2.2.4
-Changed 145 dependencies!
+Changed 144 dependencies!
 29 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
 Upgrading analysis_options.yaml to exclude build and platform directories.

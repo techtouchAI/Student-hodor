@@ -89,7 +89,7 @@ class _HomeState extends ConsumerState<HomeScreen> {
   ) async {
     final (int, String)? p = await _pickClass(context, db);
     if (p != null && context.mounted) {
-      context.push('$route?class=${p.$1}&title=${Uri.encodeComponent(p.$2)}');
+      await context.push('$route?class=${p.$1}&title=${Uri.encodeComponent(p.$2)}');
     }
   }
 
@@ -99,7 +99,7 @@ class _HomeState extends ConsumerState<HomeScreen> {
       return;
     }
     if (pin == null || pin.isEmpty || ref.read(pinUnlockedProvider)) {
-      context.push(route);
+      await context.push(route);
       return;
     }
     final TextEditingController c = TextEditingController();
@@ -122,7 +122,7 @@ class _HomeState extends ConsumerState<HomeScreen> {
     );
     if (entered == pin && context.mounted) {
       ref.read(pinUnlockedProvider.notifier).state = true;
-      context.push(route);
+      await context.push(route);
     } else if (entered != null && context.mounted) {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('رمز غير صحيح')));
@@ -246,7 +246,7 @@ class _HomeState extends ConsumerState<HomeScreen> {
         );
       }
     } else if (choice == 'reset') {
-      context.push('/years');
+      await context.push('/years');
     }
   }
 

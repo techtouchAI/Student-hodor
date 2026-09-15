@@ -101,7 +101,7 @@ class BadgePrint {
                   pw.Container(
                     width: 16,
                     height: 16,
-                    decoration: const pw.BoxDecoration(
+                    decoration: pw.BoxDecoration(
                       color: PdfColors.white,
                       shape: pw.BoxShape.circle,
                       border: pw.Border.all(color: PdfColors.amber800, width: 1.2),

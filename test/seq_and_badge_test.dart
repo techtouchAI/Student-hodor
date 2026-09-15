@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:student_hodor/core/badge_code.dart';
@@ -63,16 +63,18 @@ void main() {
           ),
         );
     final int id = await db.addStudent(yearId: y, classId: c, fullName: 'علي حسن');
-    final Badge? first = await db.activeBadgeOf(id);
-    expect(first, isNotNull);
-    final Badge? second = await db.reissueBadge(id);
-    expect(second, isNotNull);
-    expect(second!.code, isNot(first!.code));
+    final Badge? firstMaybe = await db.activeBadgeOf(id);
+    expect(firstMaybe, isNotNull);
+    final Badge first = firstMaybe!;
+    final Badge? secondMaybe = await db.reissueBadge(id);
+    expect(secondMaybe, isNotNull);
+    final Badge second = secondMaybe!;
+    expect(second.code, isNot(first.code));
     expect(second.version, 2);
     expect(BadgeCode.parse(second.code)?.version, 2);
     expect((await db.activeBadgeOf(id))?.id, second.id);
     final Badge old =
-        await (db.select(db.badges)..where((x) => x.id.equals(first!.id)))
+        await (db.select(db.badges)..where((x) => x.id.equals(first.id)))
             .getSingle();
     expect(old.status, 1);
     // الرمز القديم يبقى صالح الصيغة لكنه مبطل في القاعدة.

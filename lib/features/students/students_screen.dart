@@ -51,14 +51,16 @@ class _StudentsState extends ConsumerState<StudentsScreen> {
             itemCount: list.length,
             itemBuilder: (BuildContext context, int i) {
               final Student s = list[i];
-              final String? photo = s.photoPath;
-              final bool hasPhoto =
-                  photo != null && File(photo).existsSync();
+              final String? photoPath = s.photoPath;
+              final File? photoFile = photoPath == null ||
+                      !File(photoPath).existsSync()
+                  ? null
+                  : File(photoPath);
               return ListTile(
                 leading: CircleAvatar(
                   backgroundImage:
-                      hasPhoto ? FileImage(File(photo!)) : null,
-                  child: hasPhoto ? null : const Icon(Icons.person),
+                      photoFile == null ? null : FileImage(photoFile),
+                  child: photoFile == null ? const Icon(Icons.person) : null,
                 ),
                 title: Text(s.fullName),
                 subtitle: Text('رقم الطالب: ${s.seq}'),

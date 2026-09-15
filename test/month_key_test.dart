@@ -24,8 +24,10 @@ void main() {
   });
 
   test('sanitizeSheetName: بلا محارف ممنوعة وبقص آمن', () {
-    expect(ExcelBuilder.sanitizeSheetName('السادس-أ-آذار').length,
-        lessThanOrEqualTo(31));
+    expect(
+      ExcelBuilder.sanitizeSheetName('السادس-أ-آذار').length,
+      lessThanOrEqualTo(31),
+    );
     expect(ExcelBuilder.sanitizeSheetName('a/b?c*d[e]f:g'), 'a-b-c-d-e-f-g');
     expect(ExcelBuilder.sanitizeSheetName(''), 'sheet');
     expect(ExcelBuilder.sanitizeSheetName('x' * 40).length, 27);

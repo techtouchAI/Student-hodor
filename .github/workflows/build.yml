@@ -36,7 +36,7 @@ jobs:
         run: set -o pipefail; dart run build_runner build --delete-conflicting-outputs 2>&1 | tee ci_codegen.log
 
       - name: Analyze (zero warnings policy)
-        run: set -o pipefail; flutter analyze --fatal-warnings --no-fatal-infos 2>&1 | tee ci_analyze.log
+        run: set -o pipefail; flutter analyze --fatal-warnings --fatal-infos 2>&1 | tee ci_analyze.log
 
       - name: Unit & widget tests
         run: set -o pipefail; flutter test --reporter expanded 2>&1 | tee ci_test.log

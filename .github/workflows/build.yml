@@ -39,7 +39,7 @@ jobs:
         run: set -o pipefail; flutter analyze --fatal-warnings --no-fatal-infos 2>&1 | tee ci_analyze.log
 
       - name: Unit & widget tests
-        run: set -o pipefail; flutter test --reporters expanded 2>&1 | tee ci_test.log
+        run: set -o pipefail; flutter test --reporter expanded 2>&1 | tee ci_test.log
 
       - name: Commit diagnostics on failure
         if: failure()

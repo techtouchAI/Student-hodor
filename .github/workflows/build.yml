@@ -109,6 +109,18 @@ jobs:
           fi
           echo "Download: https://github.com/${{ github.repository }}/releases/tags/$tag"
 
+      # التأكد النهائي: تنزيل الـ APK المنشور فعلياً ومطابقة بصمته
+      - name: Verify published APK downloads
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          rm -rf /tmp/verify && mkdir -p /tmp/verify
+          gh release download latest-apk -p 'app-release.apk' -p 'SHA256SUMS.txt' --dir /tmp/verify
+          cd /tmp/verify
+          sha256sum -c SHA256SUMS.txt
+          echo "Published APK download verified OK"
+
       # نسخة احتياطية مرفقة بالتشغيل — لا تعرقل النشر إذا امتلأت حصة التخزين
       - name: Upload APK artifact
         if: always()

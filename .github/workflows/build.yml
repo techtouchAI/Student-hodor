@@ -90,15 +90,30 @@ jobs:
           sha256sum app-release.apk > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
+      # ضمان توفر الـ APK دائماً: مرفق مباشرة في صفحة التشغيل
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/flutter-apk/SHA256SUMS.txt
+
+      # نشر بدون حذف/إعادة إنشاء التاغ (تجنّب كسر روابط التنزيل)
       - name: Publish APK to GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
           cd build/app/outputs/flutter-apk
-          gh release delete latest-apk -y --cleanup-tag || true
-          gh release create latest-apk \
-            app-release.apk SHA256SUMS.txt \
-            --title "Student Hodor — أحدث APK" \
-            --notes "بُني تلقائياً من ${{ github.sha }} في $(date -u +%F' '%H:%M'UTC')" \
-            --target "${{ github.sha }}"
+          tag=latest-apk
+          title="Student Hodor — أحدث APK"
+          notes="بُني تلقائياً من ${{ github.sha }} في $(date -u +%F' '%H:%M'UTC')"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" app-release.apk SHA256SUMS.txt --clobber
+            gh release edit "$tag" --title "$title" --notes "$notes"
+          else
+            gh release create "$tag" app-release.apk SHA256SUMS.txt \
+              --title "$title" --notes "$notes" --target "${{ github.sha }}"
+          fi
+          echo "Download: https://github.com/${{ github.repository }}/releases/tags/$tag"

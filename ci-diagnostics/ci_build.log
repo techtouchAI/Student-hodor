@@ -20,37 +20,8 @@ Alternatively, use the flag "--android-skip-build-dependency-validation" to bypa
 Potential fix: Your project's KGP version is typically defined in the plugins block of the `settings.gradle` file (/home/runner/work/Student-hodor/Student-hodor/android/settings.gradle), by a plugin with the id of org.jetbrains.kotlin.android. 
 If you don't see a plugins block, your project was likely created with an older template version, in which case it is most likely defined in the top-level build.gradle file (/home/runner/work/Student-hodor/Student-hodor/android/build.gradle) by the ext.kotlin_version property.
 
-Warning: The plugin android_file_picker requires Android SDK version 36 or higher.
-For more information about build configuration, see https://flutter.dev/to/review-gradle-config.
-Warning: The plugin device_info_plus requires Android SDK version 36 or higher.
-For more information about build configuration, see https://flutter.dev/to/review-gradle-config.
-Warning: The plugin flutter_plugin_android_lifecycle requires Android SDK version 36 or higher.
-For more information about build configuration, see https://flutter.dev/to/review-gradle-config.
-Warning: The plugin image_picker_android requires Android SDK version 36 or higher.
-For more information about build configuration, see https://flutter.dev/to/review-gradle-config.
-Warning: The plugin package_info_plus requires Android SDK version 36 or higher.
-For more information about build configuration, see https://flutter.dev/to/review-gradle-config.
-Warning: The plugin share_plus requires Android SDK version 36 or higher.
-For more information about build configuration, see https://flutter.dev/to/review-gradle-config.
-Warning: The plugin wakelock_plus requires Android SDK version 36 or higher.
-For more information about build configuration, see https://flutter.dev/to/review-gradle-config.
 Expected to find fonts for (packages/cupertino_icons/CupertinoIcons, MaterialIcons), but found (MaterialIcons). This usually means you are referring to font families in an IconData class but not including them in the assets section of your pubspec.yaml, are missing the package that would include them, or are missing "uses-material-design: true".
 Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 6200 bytes (99.6% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
-Your project is configured to compile against Android SDK 35, but the following plugin(s) require to be compiled against a higher Android SDK version:
-- android_file_picker compiles against Android SDK 36
-- device_info_plus compiles against Android SDK 36
-- flutter_plugin_android_lifecycle compiles against Android SDK 36
-- image_picker_android compiles against Android SDK 36
-- package_info_plus compiles against Android SDK 36
-- share_plus compiles against Android SDK 36
-- wakelock_plus compiles against Android SDK 36
-Fix this issue by compiling against the highest Android SDK version (they are backward compatible).
-Add the following to /home/runner/work/Student-hodor/Student-hodor/android/app/build.gradle:
-
-    android {
-        compileSdk = 36
-        ...
-    }
 Checking the license for package CMake 3.22.1 in /usr/local/lib/android/sdk/licenses
 License for package CMake 3.22.1 accepted.
 Preparing "Install CMake 3.22.1 v.3.22.1".
@@ -58,73 +29,14 @@ Preparing "Install CMake 3.22.1 v.3.22.1".
 Installing CMake 3.22.1 in /usr/local/lib/android/sdk/cmake/3.22.1
 "Install CMake 3.22.1 v.3.22.1" complete.
 "Install CMake 3.22.1 v.3.22.1" finished.
+Caught exception: Already watching path: /home/runner/work/Student-hodor/Student-hodor/android
 
 FAILURE: Build failed with an exception.
 
 * What went wrong:
-Execution failed for task ':app:checkReleaseAarMetadata'.
-> A failure occurred while executing com.android.build.gradle.internal.tasks.CheckAarMetadataWorkAction
-   > 4 issues were found when checking AAR metadata:
-
-       1.  Dependency 'androidx.activity:activity:1.13.0' requires libraries and applications that
-           depend on it to compile against version 36 or later of the
-           Android APIs.
-
-           :app is currently compiled against android-35.
-
-           Recommended action: Update this project to use a newer compileSdk
-           of at least 36, for example 36.
-
-           Note that updating a library or application's compileSdk (which
-           allows newer APIs to be used) can be done separately from updating
-           targetSdk (which opts the app in to new runtime behavior) and
-           minSdk (which determines which devices the app can be installed
-           on).
-
-       2.  Dependency 'androidx.core:core-ktx:1.18.0' requires libraries and applications that
-           depend on it to compile against version 36 or later of the
-           Android APIs.
-
-           :app is currently compiled against android-35.
-
-           Recommended action: Update this project to use a newer compileSdk
-           of at least 36, for example 36.
-
-           Note that updating a library or application's compileSdk (which
-           allows newer APIs to be used) can be done separately from updating
-           targetSdk (which opts the app in to new runtime behavior) and
-           minSdk (which determines which devices the app can be installed
-           on).
-
-       3.  Dependency 'androidx.core:core:1.18.0' requires libraries and applications that
-           depend on it to compile against version 36 or later of the
-           Android APIs.
-
-           :app is currently compiled against android-35.
-
-           Recommended action: Update this project to use a newer compileSdk
-           of at least 36, for example 36.
-
-           Note that updating a library or application's compileSdk (which
-           allows newer APIs to be used) can be done separately from updating
-           targetSdk (which opts the app in to new runtime behavior) and
-           minSdk (which determines which devices the app can be installed
-           on).
-
-       4.  Dependency 'androidx.navigationevent:navigationevent-android:1.0.0' requires libraries and applications that
-           depend on it to compile against version 36 or later of the
-           Android APIs.
-
-           :app is currently compiled against android-35.
-
-           Recommended action: Update this project to use a newer compileSdk
-           of at least 36, for example 36.
-
-           Note that updating a library or application's compileSdk (which
-           allows newer APIs to be used) can be done separately from updating
-           targetSdk (which opts the app in to new runtime behavior) and
-           minSdk (which determines which devices the app can be installed
-           on).
+Execution failed for task ':app:packageRelease'.
+> A failure occurred while executing com.android.build.gradle.tasks.PackageAndroidArtifact$IncrementalSplitterRunnable
+   > SigningConfig "release" is missing required property "storeFile".
 
 * Try:
 > Run with --stacktrace option to get the stack trace.
@@ -132,6 +44,6 @@ Execution failed for task ':app:checkReleaseAarMetadata'.
 > Run with --scan to get full insights.
 > Get more help at https://help.gradle.org.
 
-BUILD FAILED in 7m 25s
-Running Gradle task 'assembleRelease'...                          446.4s
+BUILD FAILED in 8m 54s
+Running Gradle task 'assembleRelease'...                          535.9s
 Gradle task assembleRelease failed with exit code 1

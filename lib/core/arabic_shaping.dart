@@ -152,6 +152,9 @@ bool _isRtlCp(int cp) {
 bool _isDigitCp(int cp) =>
     (cp >= 0x0030 && cp <= 0x0039) || (cp >= 0x0660 && cp <= 0x0669);
 
+bool _isLatinCp(int cp) =>
+    (cp >= 0x0041 && cp <= 0x005A) || (cp >= 0x0061 && cp <= 0x007A);
+
 /// يحوّل نصاً مُشكّلاً (أو خاماً) إلى ترتيب العرض البصري لسياق RTL:
 /// - المقاطع العربية تُعكس حرفياً.
 /// - مقاطع الأرقام/اللاتينية تحتفظ بترتيبها الداخلي وتوضع بموضعها الصحيح.
@@ -172,9 +175,9 @@ String toVisualOrder(String shaped) {
 
   for (final int cp in cps) {
     final bool rtl = _isRtlCp(cp);
-    final bool digit = _isDigitCp(cp);
-    // الأرقام مقطع مستقل لا يُعكس داخلياً
-    final bool? kind = digit ? false : (rtl ? true : currentRtl);
+    // الأرقام واللاتينية مقطع LTR مستقل لا يُعكس داخلياً
+    final bool? kind =
+        (_isDigitCp(cp) || _isLatinCp(cp)) ? false : (rtl ? true : currentRtl);
     if (currentRtl == null) {
       currentRtl = kind ?? false;
       current.add(cp);

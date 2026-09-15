@@ -3,7 +3,7 @@ import 'package:student_hodor/core/arabic_shaping.dart';
 
 void main() {
   test('تشكيل سياقي: محمد', () {
-    expect(reshapeArabic('محمد'), '\uFEE7\uFEA4\uFEAA');
+    expect(reshapeArabic('محمد'), '\uFEE7\uFEA4\uFEE8\uFEAA');
   });
 
   test('لام-ألف نهائية بعد حرف متصل: سلام', () {

@@ -25,8 +25,22 @@ class HijriDate {
     'ذو الحجة',
   ];
 
-  /// رقم يوم متسلسل في التقويم الهجري (للاختبارات والمقارنات).
-  int get dayNumber => (year - 1) * 354 + (month - 1) * 29 + day;
+  static bool isLeapYear(int y) => (11 * y + 14) % 30 < 11;
+
+  static int monthLength(int y, int m) =>
+      m == 12 && isLeapYear(y) ? 30 : (m % 2 == 1 ? 30 : 29);
+
+  /// رقم يوم متسلسل في التقويم الجدولي (للاختبارات والمقارنات).
+  int get dayNumber {
+    int n = 0;
+    for (int y = 1; y < year; y++) {
+      n += isLeapYear(y) ? 355 : 354;
+    }
+    for (int m = 1; m < month; m++) {
+      n += monthLength(year, m);
+    }
+    return n + day;
+  }
 
   String get monthName => monthNames[month - 1];
 

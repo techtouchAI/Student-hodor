@@ -32,4 +32,4 @@ Analyzing Student-hodor...
    info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • test/close_session_test.dart:60:18 • prefer_const_constructors
    info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • test/close_session_test.dart:70:19 • prefer_const_constructors
 
-31 issues found. (ran in 16.6s)
+31 issues found. (ran in 13.0s)

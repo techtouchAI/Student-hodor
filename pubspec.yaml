@@ -67,3 +67,8 @@ flutter:
         - asset: assets/fonts/Tajawal-Regular.ttf
         - asset: assets/fonts/Tajawal-Bold.ttf
           weight: 700
+
+# تجاوز موثق: objective_c القديم (9.6.1) يفشل بناؤه مع Dart في Flutter 3.47
+# (Architecture.arm64e). يُرفع القيد لأحدث نسخة متوافقة حتى تحديث الحزم الأم.
+dependency_overrides:
+  objective_c: any

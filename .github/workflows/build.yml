@@ -118,6 +118,16 @@ jobs:
           sha256sum *.apk > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
+      - name: Verify release signature
+        run: |
+          set -o pipefail
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+          {
+            "$BT/apksigner" verify --print-certs build/app/outputs/flutter-apk/app-release.apk
+            "$BT/apksigner" verify --print-certs build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+          } 2>&1 | tee ci_sign.log
+          grep -q "CN=Student Hodor" ci_sign.log || { echo "APK is NOT signed with the release key!"; exit 1; }
+
       - name: List APK outputs
         if: always()
         run: ls -la build/app/outputs/flutter-apk/ || true

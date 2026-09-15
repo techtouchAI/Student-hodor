@@ -90,16 +90,7 @@ jobs:
           sha256sum app-release.apk > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
-      # ضمان توفر الـ APK دائماً: مرفق مباشرة في صفحة التشغيل
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release-apk
-          path: |
-            build/app/outputs/flutter-apk/app-release.apk
-            build/app/outputs/flutter-apk/SHA256SUMS.txt
-
-      # نشر بدون حذف/إعادة إنشاء التاغ (تجنّب كسر روابط التنزيل)
+      # النشر أولًا (التسليم الأساسي) — تحديث بدون حذف/إعادة إنشاء التاغ
       - name: Publish APK to GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -117,3 +108,15 @@ jobs:
               --title "$title" --notes "$notes" --target "${{ github.sha }}"
           fi
           echo "Download: https://github.com/${{ github.repository }}/releases/tags/$tag"
+
+      # نسخة احتياطية مرفقة بالتشغيل — لا تعرقل النشر إذا امتلأت حصة التخزين
+      - name: Upload APK artifact
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          retention-days: 3
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/flutter-apk/SHA256SUMS.txt

@@ -1,0 +1,66 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file("../tools/keystore/keystore.properties")
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+}
+
+android {
+    namespace = "iq.techtouch.student_hodor"
+    compileSdk = 35
+    ndkVersion = flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_17.toString()
+    }
+
+    defaultConfig {
+        applicationId = "iq.techtouch.student_hodor"
+        minSdk = 21
+        targetSdk = 35
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+        multiDexEnabled = true
+    }
+
+    signingConfigs {
+        release {
+            def storeFile = rootProject.file("../tools/keystore/student_hodor.jks")
+            if (storeFile.exists()) {
+                storeFile = storeFile
+                storePassword = keystoreProperties.getProperty("storePassword", "studenthodor")
+                keyAlias = keystoreProperties.getProperty("keyAlias", "student_hodor")
+                keyPassword = keystoreProperties.getProperty("keyPassword", "studenthodor")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            def storeFile = rootProject.file("../tools/keystore/student_hodor.jks")
+            signingConfig = storeFile.exists() ? signingConfigs.release : signingConfigs.debug
+            minifyEnabled = false
+            shrinkResources = false
+        }
+    }
+
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging = false
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}

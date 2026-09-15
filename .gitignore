@@ -1,0 +1,33 @@
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+pubspec.lock
+.fvm/
+flutter_version
+
+# Android
+android/.gradle/
+android/local.properties
+android/app/.cxx/
+android/captures/
+android/gradlew
+android/gradlew.bat
+android/gradle/wrapper/gradle-wrapper.jar
+*.jks
+!tools/keystore/student_hodor.jks
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+
+# Arena / caches
+.arena/
+.cache/
+node_modules/

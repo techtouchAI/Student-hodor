@@ -1,0 +1,38 @@
+Analyzing Student-hodor...                                      
+
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/app.dart:95:13 • use_build_context_synchronously
+   info • Missing a required trailing comma. Try adding a trailing comma • lib/app.dart:95:61 • require_trailing_commas
+   info • Missing a required trailing comma. Try adding a trailing comma • lib/data/backup_service.dart:145:80 • require_trailing_commas
+   info • Missing a required trailing comma. Try adding a trailing comma • lib/data/db.dart:270:67 • require_trailing_commas
+   info • Missing a required trailing comma. Try adding a trailing comma • lib/data/db.dart:325:60 • require_trailing_commas
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/classes/classes_screen.dart:92:16 • use_build_context_synchronously
+   info • Missing a required trailing comma. Try adding a trailing comma • lib/features/classes/classes_screen.dart:128:54 • require_trailing_commas
+   info • Missing a required trailing comma. Try adding a trailing comma • lib/features/export/pdf_report.dart:113:74 • require_trailing_commas
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/home/home_screen.dart:50:7 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/home/home_screen.dart:55:16 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/home/home_screen.dart:73:7 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/leaves/leaves_screen.dart:98:16 • use_build_context_synchronously
+   info • Missing a required trailing comma. Try adding a trailing comma • lib/features/reports/student_report_screen.dart:109:62 • require_trailing_commas
+   info • Missing a required trailing comma. Try adding a trailing comma • lib/features/reports/student_report_screen.dart:249:67 • require_trailing_commas
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/scan/scan_screen.dart:171:18 • use_build_context_synchronously
+   info • Missing a required trailing comma. Try adding a trailing comma • lib/features/scan/scan_screen.dart:310:50 • require_trailing_commas
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/settings/settings_screen.dart:117:18 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/settings/settings_screen.dart:251:24 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/students/students_screen.dart:121:16 • use_build_context_synchronously
+   info • Missing a required trailing comma. Try adding a trailing comma • lib/features/students/students_screen.dart:189:77 • require_trailing_commas
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/years/years_screen.dart:185:16 • use_build_context_synchronously
+   info • Missing a required trailing comma. Try adding a trailing comma • lib/features/years/years_screen.dart:211:60 • require_trailing_commas
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/years/years_screen.dart:287:7 • use_build_context_synchronously
+   info • Unnecessary 'const' keyword. Try removing the keyword • test/close_session_test.dart:9:17 • unnecessary_const
+   info • Unnecessary 'const' keyword. Try removing the keyword • test/close_session_test.dart:10:18 • unnecessary_const
+   info • Unnecessary 'const' keyword. Try removing the keyword • test/close_session_test.dart:11:16 • unnecessary_const
+   info • Unnecessary 'const' keyword. Try removing the keyword • test/close_session_test.dart:12:19 • unnecessary_const
+  error • Arguments of a constant creation must be constant expressions. Try making the argument a valid constant, or use 'new' to call the constructor • test/close_session_test.dart:17:25 • const_with_non_constant_argument
+   info • Unnecessary 'const' keyword. Try removing the keyword • test/close_session_test.dart:18:18 • unnecessary_const
+   info • Unnecessary 'const' keyword. Try removing the keyword • test/close_session_test.dart:19:20 • unnecessary_const
+   info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • test/close_session_test.dart:30:24 • prefer_const_constructors
+   info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • test/close_session_test.dart:59:20 • prefer_const_constructors
+   info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • test/close_session_test.dart:60:18 • prefer_const_constructors
+   info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • test/close_session_test.dart:70:19 • prefer_const_constructors
+
+34 issues found. (ran in 16.8s)

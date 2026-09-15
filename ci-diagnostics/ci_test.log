@@ -1,3 +1,26 @@
-Could not find an option named "--reporters".
+../../../.pub-cache/hosted/pub.dev/objective_c-9.6.1/hook/build.dart:222:16: Error: Member not found: 'arm64e'.
+  Architecture.arm64e: 'arm64e-apple-darwin',
+               ^^^^^^
+../../../.pub-cache/hosted/pub.dev/objective_c-9.6.1/hook/build.dart:231:16: Error: Member not found: 'arm64e'.
+  Architecture.arm64e: {
+               ^^^^^^
+Bad state: Generating kernel failed!
 
-Run 'flutter -h' (or 'flutter <command> -h') for available flutter commands and options.
+Building native assets for package:objective_c failed.
+Compilation of hook returned with exit code: 254.
+To reproduce run:
+/opt/hostedtoolcache/flutter/stable-3.47.4-x64/flutter/bin/cache/dart-sdk/bin/dart compile kernel --packages=/home/runner/work/Student-hodor/Student-hodor/.dart_tool/package_config.json --output=/home/runner/work/Student-hodor/Student-hodor/.dart_tool/hooks_runner/objective_c/6b4ebf10e7/hook.dill --depfile=/home/runner/work/Student-hodor/Student-hodor/.dart_tool/hooks_runner/objective_c/6b4ebf10e7/hook.dill.d /home/runner/.pub-cache/hosted/pub.dev/objective_c-9.6.1/hook/build.dart
+stderr:
+../../../.pub-cache/hosted/pub.dev/objective_c-9.6.1/hook/build.dart:222:16: Error: Member not found: 'arm64e'.
+  Architecture.arm64e: 'arm64e-apple-darwin',
+               ^^^^^^
+../../../.pub-cache/hosted/pub.dev/objective_c-9.6.1/hook/build.dart:231:16: Error: Member not found: 'arm64e'.
+  Architecture.arm64e: {
+               ^^^^^^
+Bad state: Generating kernel failed!
+
+stdout:
+Compiling /home/runner/.pub-cache/hosted/pub.dev/objective_c-9.6.1/hook/build.dart to kernel file /home/runner/work/Student-hodor/Student-hodor/.dart_tool/hooks_runner/objective_c/6b4ebf10e7/hook.dill.
+
+
+Building native assets failed. See the logs for more details.

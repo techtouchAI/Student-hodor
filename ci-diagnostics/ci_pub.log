@@ -80,7 +80,7 @@ Downloading packages...
 + mime 2.1.0
 + mobile_scanner 5.2.3 (7.4.2 available)
 + native_toolchain_c 0.19.4
-+ objective_c 9.6.0
++ objective_c 9.6.1
 + package_config 3.0.0
 + package_info_plus 8.3.1 (10.2.1 available)
 + package_info_plus_platform_interface 3.2.1 (4.1.0 available)

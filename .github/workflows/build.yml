@@ -98,7 +98,7 @@ jobs:
               WRAP_DIR="$(mktemp -d)"
               touch "$WRAP_DIR/settings.gradle" "$WRAP_DIR/build.gradle"
               cd "$WRAP_DIR"
-              gradle wrapper --gradle-version 8.14.0 --distribution-type bin
+              gradle wrapper --gradle-version 8.14.3 --distribution-type bin
               cp -r "$WRAP_DIR/gradle" "$WRAP_DIR/gradlew" "$WRAP_DIR/gradlew.bat" "$GITHUB_WORKSPACE/android/"
               cd "$GITHUB_WORKSPACE"
               chmod +x android/gradlew

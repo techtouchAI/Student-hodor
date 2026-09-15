@@ -91,14 +91,19 @@ jobs:
 
       - name: Generate gradle wrapper if absent
         run: |
-          if [ ! -f android/gradlew ]; then
-            WRAP_DIR="$(mktemp -d)"
-            cd "$WRAP_DIR"
-            gradle wrapper --gradle-version 8.10.2 --distribution-type bin
-            cp -r "$WRAP_DIR/gradle" "$WRAP_DIR/gradlew" "$WRAP_DIR/gradlew.bat" "$GITHUB_WORKSPACE/android/"
-            cd "$GITHUB_WORKSPACE"
-            chmod +x android/gradlew
-          fi
+          set -o pipefail
+          {
+            echo "gradle location: $(command -v gradle || echo MISSING)"
+            if [ ! -f android/gradlew ]; then
+              WRAP_DIR="$(mktemp -d)"
+              cd "$WRAP_DIR"
+              gradle wrapper --gradle-version 8.10.2 --distribution-type bin
+              cp -r "$WRAP_DIR/gradle" "$WRAP_DIR/gradlew" "$WRAP_DIR/gradlew.bat" "$GITHUB_WORKSPACE/android/"
+              cd "$GITHUB_WORKSPACE"
+              chmod +x android/gradlew
+            fi
+            ls -la android/gradle/wrapper/ 2>/dev/null || true
+          } 2>&1 | tee ci_wrap.log
 
       - name: Build universal release APK
         run: set -o pipefail; flutter build apk --release 2>&1 | tee ci_build.log

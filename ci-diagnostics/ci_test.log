@@ -4,6 +4,7 @@
 ../../../.pub-cache/hosted/pub.dev/objective_c-9.6.1/hook/build.dart:231:16: Error: Member not found: 'arm64e'.
   Architecture.arm64e: {
                ^^^^^^
+
 Bad state: Generating kernel failed!
 
 Building native assets for package:objective_c failed.

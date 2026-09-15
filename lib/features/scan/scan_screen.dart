@@ -167,6 +167,9 @@ class _ScanState extends ConsumerState<ScanScreen> {
     if (session.closedAt == null) {
       final List<(Student, int?)> matrix = await _matrix(db, session);
       final int missing = matrix.where((e) => e.$2 == null).length;
+      if (!context.mounted) {
+        return;
+      }
       final bool? ok = await showDialog<bool>(
         context: context,
         builder: (BuildContext context) => AlertDialog(
@@ -305,9 +308,11 @@ class _Header extends StatelessWidget {
       builder: (BuildContext context, AsyncSnapshot<List<AttendanceRow>> snap) {
         final List<AttendanceRow> rows = snap.data ?? <AttendanceRow>[];
         final int present = rows
-            .where((AttendanceRow r) =>
-                r.status == AttendanceStatus.present ||
-                r.status == AttendanceStatus.late)
+            .where(
+              (AttendanceRow r) =>
+                  r.status == AttendanceStatus.present ||
+                  r.status == AttendanceStatus.late,
+            )
             .length;
         return StreamBuilder<int>(
           stream: (db.selectOnly(db.students)

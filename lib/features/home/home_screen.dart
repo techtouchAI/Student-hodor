@@ -46,6 +46,9 @@ class HomeScreen extends ConsumerWidget {
 
   Future<void> _openPin(BuildContext context, WidgetRef ref, String route) async {
     final String? pin = await ref.read(dbProvider).setting('pin');
+    if (!context.mounted) {
+      return;
+    }
     if (pin == null || pin.isEmpty || ref.read(pinUnlockedProvider)) {
       context.go(route);
       return;
@@ -68,7 +71,7 @@ class HomeScreen extends ConsumerWidget {
         ],
       ),
     );
-    if (entered == pin) {
+    if (entered == pin && context.mounted) {
       ref.read(pinUnlockedProvider.notifier).state = true;
       context.go(route);
     } else if (entered != null && context.mounted) {

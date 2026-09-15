@@ -88,6 +88,9 @@ class ClassesScreen extends ConsumerWidget {
         TextEditingController(text: c?.grade ?? '');
     final TextEditingController section =
         TextEditingController(text: c?.section ?? '');
+    if (!context.mounted) {
+      return;
+    }
     final bool? ok = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
@@ -122,10 +125,12 @@ class ClassesScreen extends ConsumerWidget {
     }
     if (c == null) {
       final SchoolClass? existing = await (db.select(db.schoolClasses)
-            ..where((x) =>
-                x.yearId.equals(year.id) &
-                x.grade.equals(grade.text.trim()) &
-                x.section.equals(section.text.trim())))
+            ..where(
+              (x) =>
+                  x.yearId.equals(year.id) &
+                  x.grade.equals(grade.text.trim()) &
+                  x.section.equals(section.text.trim()),
+            ))
           .getSingleOrNull();
       if (existing != null) {
         if (context.mounted) {

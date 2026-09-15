@@ -91,8 +91,11 @@ class _SplashGate extends ConsumerWidget {
       ),
       data: (Map<String, String> s) {
         final bool configured = (s['school_name'] ?? '').isNotEmpty;
-        Future<void>(() =>
-            context.go(configured ? '/home' : '/onboarding'));
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (context.mounted) {
+            context.go(configured ? '/home' : '/onboarding');
+          }
+        });
         return const Scaffold(body: Center(child: CircularProgressIndicator()));
       },
     );

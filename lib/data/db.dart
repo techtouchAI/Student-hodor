@@ -266,8 +266,9 @@ class AppDb extends _$AppDb {
   Future<bool> isOnLeave(int studentId, String date) async {
     final List<Leave> covering =
         await (select(leaves)..where((l) => l.studentId.equals(studentId))).get();
-    return covering.any((Leave l) =>
-        l.start.compareTo(date) <= 0 && l.end.compareTo(date) >= 0);
+    return covering.any(
+      (Leave l) => l.start.compareTo(date) <= 0 && l.end.compareTo(date) >= 0,
+    );
   }
 
   /// إقفال جلسة اليوم: كل طالب بلا تسجيل وبلا إجازة => غائب. عملية ذرّية.
@@ -320,9 +321,12 @@ class AppDb extends _$AppDb {
 
   /// إعادة فتح جلسة مقفلة: يحذف السجلات المولّدة تلقائياً فقط.
   Future<void> reopenSession(int sessionId) async => transaction<void>(() async {
-        await (delete(attendanceRows)..where((a) =>
-                a.sessionId.equals(sessionId) &
-                a.source.equals(AttendanceSource.autoClose)))
+        await (delete(attendanceRows)
+              ..where(
+                (a) =>
+                    a.sessionId.equals(sessionId) &
+                    a.source.equals(AttendanceSource.autoClose),
+              ))
             .go();
         await (update(sessions)..where((s) => s.id.equals(sessionId)))
             .write(const SessionsCompanion(closedAt: Value.absent()));

@@ -141,8 +141,10 @@ class BackupService {
     for (final Map<String, Object?> r in _list(v)) {
       final SessionsCompanion c = Session.fromJson(r).toCompanion(false);
       final Session? existing = await (db.select(db.sessions)
-            ..where((s) =>
-                s.classId.equals(c.classId.value) & s.date.equals(c.date.value)))
+            ..where(
+              (s) =>
+                  s.classId.equals(c.classId.value) & s.date.equals(c.date.value),
+            ))
           .getSingleOrNull();
       if (existing == null) {
         await db.into(db.sessions).insert(c);

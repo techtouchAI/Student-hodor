@@ -94,6 +94,9 @@ class LeavesScreen extends ConsumerWidget {
     DateTime end = DateTime.now();
     int type = 0;
     final TextEditingController reason = TextEditingController();
+    if (!context.mounted) {
+      return;
+    }
     final bool? ok = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) => StatefulBuilder(

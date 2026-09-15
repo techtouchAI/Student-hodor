@@ -105,8 +105,10 @@ class _StudentReportState extends ConsumerState<StudentReportScreen> {
                           workWeekdays: weekdays,
                           holidayKeys: holidays,
                         ),
-                        builder: (BuildContext context,
-                            AsyncSnapshot<List<DayCell>> snap) {
+                        builder: (
+                          BuildContext context,
+                          AsyncSnapshot<List<DayCell>> snap,
+                        ) {
                           final List<DayCell> cells = snap.data ?? <DayCell>[];
                           return Wrap(
                             spacing: 4,
@@ -245,8 +247,10 @@ class _JourneyCard extends StatelessWidget {
   Widget build(BuildContext context) =>
       FutureBuilder<List<(AcademicYear, StatusTotals)>>(
         future: reports.studentJourney(student),
-        builder: (BuildContext context,
-            AsyncSnapshot<List<(AcademicYear, StatusTotals)>> snap) {
+        builder: (
+          BuildContext context,
+          AsyncSnapshot<List<(AcademicYear, StatusTotals)>> snap,
+        ) {
           final List<(AcademicYear, StatusTotals)> journey =
               snap.data ?? <(AcademicYear, StatusTotals)>[];
           return Card(

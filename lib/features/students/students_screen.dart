@@ -117,6 +117,9 @@ class _StudentsState extends ConsumerState<StudentsScreen> {
     final TextEditingController name =
         TextEditingController(text: s?.fullName ?? '');
     String? photoPath = s?.photoPath;
+    if (!context.mounted) {
+      return;
+    }
     final bool? ok = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) => StatefulBuilder(
@@ -185,8 +188,10 @@ class _StudentsState extends ConsumerState<StudentsScreen> {
     final List<Student> same = await (db.select(db.students)
           ..where((t) => t.classId.equals(widget.classId)))
         .get();
-    final bool dup = same.any((Student t) =>
-        normalizeName(t.fullName) == normalizeName(trimmed) && t.id != s?.id);
+    final bool dup = same.any(
+      (Student t) =>
+          normalizeName(t.fullName) == normalizeName(trimmed) && t.id != s?.id,
+    );
     if (dup && mounted) {
       final bool? force = await showDialog<bool>(
         context: context,

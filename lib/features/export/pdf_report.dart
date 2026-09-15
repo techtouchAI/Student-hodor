@@ -109,8 +109,9 @@ class PdfReport {
         for (final Student s in sc.students) {
           final Map<String, int> byDate = <String, int>{
             for (final AttendanceRow r in await (db.select(db.attendanceRows)
-                  ..where((a) =>
-                      a.studentId.equals(s.id) & a.yearId.equals(year.id)))
+                  ..where(
+                    (a) => a.studentId.equals(s.id) & a.yearId.equals(year.id),
+                  ))
                 .get())
               r.date: r.status,
           };

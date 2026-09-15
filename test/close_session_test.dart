@@ -6,10 +6,10 @@ import 'package:student_hodor/data/db.dart';
 Future<int> _seed(AppDb db) async {
   final int year = await db.into(db.academicYears).insert(
         const AcademicYearsCompanion(
-          name: const Value('2026-2027'),
-          start: const Value('2026-09-01'),
-          end: const Value('2027-06-30'),
-          active: const Value(true),
+          name: Value('2026-2027'),
+          start: Value('2026-09-01'),
+          end: Value('2027-06-30'),
+          active: Value(true),
         ),
       );
   final int cls = await db.into(db.schoolClasses).insert(
@@ -27,7 +27,7 @@ Future<int> _seed(AppDb db) async {
             fullName: Value('طالب $i'),
             personKey: Value('p$i'),
             seq: Value(i),
-            createdAt: Value('2026-09-01T08:00:00'),
+            createdAt: const Value('2026-09-01T08:00:00'),
           ),
         );
   }
@@ -56,8 +56,8 @@ void main() {
           LeavesCompanion(
             yearId: const Value(1),
             studentId: Value(roster[1].id),
-            start: Value(date),
-            end: Value(date),
+            start: const Value(date),
+            end: const Value(date),
             type: const Value(0),
             createdAt: const Value('2026-09-13T07:00:00'),
           ),
@@ -67,7 +67,7 @@ void main() {
           SessionsCompanion(
             yearId: const Value(1),
             classId: Value(cls),
-            date: Value(date),
+            date: const Value(date),
             openedAt: const Value('2026-09-13T07:30:00'),
           ),
         );

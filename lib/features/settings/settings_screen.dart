@@ -113,6 +113,9 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
         );
       }
     } else {
+      if (!context.mounted) {
+        return;
+      }
       final bool? ok = await showDialog<bool>(
         context: context,
         builder: (BuildContext context) => AlertDialog(
@@ -244,6 +247,9 @@ class _HolidaysEditor extends StatelessWidget {
               lastDate: DateTime(2045),
             );
             if (d == null) {
+              return;
+            }
+            if (!context.mounted) {
               return;
             }
             final TextEditingController title = TextEditingController();

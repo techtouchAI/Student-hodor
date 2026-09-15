@@ -181,6 +181,9 @@ class YearsScreen extends ConsumerWidget {
     final Map<int, int?> mapping = <int, int?>{
       for (final SchoolClass c in fromClasses) c.id: null,
     };
+    if (!context.mounted) {
+      return;
+    }
     final bool? ok = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) => StatefulBuilder(
@@ -205,7 +208,9 @@ class YearsScreen extends ConsumerWidget {
                 ),
                 FutureBuilder<List<SchoolClass>>(
                   future: (db.select(db.schoolClasses)
-                        ..where((c) => c.yearId.equals(to.id)))
+                        ..where(
+                          (c) => c.yearId.equals(to.id),
+                        ))
                       .get(),
                   builder: (BuildContext context,
                       AsyncSnapshot<List<SchoolClass>> snap) {
@@ -281,6 +286,9 @@ class YearsScreen extends ConsumerWidget {
       'سيُمحى كل شيء (طلاب، حضور، سنوات). سيُنشأ ملف نسخ احتياطي إجباري أولاً.',
     );
     if (sure1 != true) {
+      return;
+    }
+    if (!context.mounted) {
       return;
     }
     final bool? sure2 = await _confirm(

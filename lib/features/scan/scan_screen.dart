@@ -167,7 +167,7 @@ class _ScanState extends ConsumerState<ScanScreen> {
     if (session.closedAt == null) {
       final List<(Student, int?)> matrix = await _matrix(db, session);
       final int missing = matrix.where((e) => e.$2 == null).length;
-      if (!context.mounted) {
+      if (!mounted) {
         return;
       }
       final bool? ok = await showDialog<bool>(

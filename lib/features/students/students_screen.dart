@@ -117,7 +117,7 @@ class _StudentsState extends ConsumerState<StudentsScreen> {
     final TextEditingController name =
         TextEditingController(text: s?.fullName ?? '');
     String? photoPath = s?.photoPath;
-    if (!context.mounted) {
+    if (!mounted) {
       return;
     }
     final bool? ok = await showDialog<bool>(

@@ -212,8 +212,10 @@ class YearsScreen extends ConsumerWidget {
                           (c) => c.yearId.equals(to.id),
                         ))
                       .get(),
-                  builder: (BuildContext context,
-                      AsyncSnapshot<List<SchoolClass>> snap) {
+                  builder: (
+                    BuildContext context,
+                    AsyncSnapshot<List<SchoolClass>> snap,
+                  ) {
                     final List<SchoolClass> toClasses =
                         snap.data ?? <SchoolClass>[];
                     return Column(

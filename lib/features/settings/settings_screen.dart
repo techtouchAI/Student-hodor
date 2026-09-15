@@ -113,7 +113,7 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
         );
       }
     } else {
-      if (!context.mounted) {
+      if (!mounted) {
         return;
       }
       final bool? ok = await showDialog<bool>(

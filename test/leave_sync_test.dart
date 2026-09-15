@@ -94,6 +94,33 @@ void main() {
     expect(row?.status, AttendanceStatus.absent);
   });
 
+  test('upsertAttendance يحدّث السجل القائم ولا يكرره', () async {
+    final AppDb db = AppDb.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final (int cls, int stu) = await _seed(db);
+    await db.upsertAttendance(
+      yearId: 1,
+      classId: cls,
+      studentId: stu,
+      date: _date,
+      status: AttendanceStatus.present,
+      source: AttendanceSource.scan,
+    );
+    await db.upsertAttendance(
+      yearId: 1,
+      classId: cls,
+      studentId: stu,
+      date: _date,
+      status: AttendanceStatus.late,
+      source: AttendanceSource.manual,
+    );
+    final List<AttendanceRow> rows =
+        await db.attendanceForClassDate(cls, _date);
+    expect(rows.length, 1);
+    expect(rows.single.status, AttendanceStatus.late);
+    expect(rows.single.source, AttendanceSource.manual);
+  });
+
   test('الفهارس تُنشأ عند إنشاء قاعدة جديدة', () async {
     final AppDb db = AppDb.forTesting(NativeDatabase.memory());
     addTearDown(db.close);

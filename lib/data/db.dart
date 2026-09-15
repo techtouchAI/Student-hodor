@@ -454,6 +454,9 @@ class AppDb extends _$AppDb {
           .getSingleOrNull();
 
   /// تسجيل/تحديث حالة حضور لطالب في تاريخ (idempotent).
+  ///
+  /// ملاحظة: `insertOnConflictUpdate` يستهدف القيد الفريد الأساسي (id) فقط،
+  /// لذا يُنفَّذ الإدراج أو التحديث صراحةً وفق القيد الفريد (studentId, date).
   Future<void> upsertAttendance({
     required int yearId,
     required int classId,
@@ -463,10 +466,11 @@ class AppDb extends _$AppDb {
     required int source,
     int? sessionId,
     String? note,
-  }) async =>
-      into(attendanceRows).insertOnConflictUpdate(
+  }) async {
+    final AttendanceRow? existing = await attendanceOf(studentId, date);
+    if (existing == null) {
+      await into(attendanceRows).insert(
         AttendanceRowsCompanion(
-          id: const Value.absent(),
           yearId: Value(yearId),
           classId: Value(classId),
           studentId: Value(studentId),
@@ -477,6 +481,19 @@ class AppDb extends _$AppDb {
           note: Value(note),
         ),
       );
+      return;
+    }
+    await (update(attendanceRows)..where((a) => a.id.equals(existing.id))).write(
+      AttendanceRowsCompanion(
+        yearId: Value(yearId),
+        classId: Value(classId),
+        status: Value(status),
+        source: Value(source),
+        sessionId: Value(sessionId),
+        note: Value(note),
+      ),
+    );
+  }
 
   /// هل يغطي الطالبَ إجازةٌ في هذا التاريخ؟ (فلترة SQL لا تحميل الذاكرة).
   Future<bool> isOnLeave(int studentId, String date) async =>

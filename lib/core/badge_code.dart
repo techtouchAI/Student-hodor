@@ -57,7 +57,8 @@ class BadgeCode {
     if (m == null) {
       return null;
     }
-    final String body = code.substring(0, 16);
+    // الجسم = SH-مدرسة3-تسلسل4-سنة2 (14 خانة) وخانة التحقق بعدها مباشرة.
+    final String body = code.substring(0, 14);
     if (_alphabet[_checksum(body)] != m.group(4)) {
       return null;
     }

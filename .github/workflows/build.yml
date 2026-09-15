@@ -96,6 +96,7 @@ jobs:
             echo "gradle location: $(command -v gradle || echo MISSING)"
             if [ ! -f android/gradlew ]; then
               WRAP_DIR="$(mktemp -d)"
+              touch "$WRAP_DIR/settings.gradle" "$WRAP_DIR/build.gradle"
               cd "$WRAP_DIR"
               gradle wrapper --gradle-version 8.10.2 --distribution-type bin
               cp -r "$WRAP_DIR/gradle" "$WRAP_DIR/gradlew" "$WRAP_DIR/gradlew.bat" "$GITHUB_WORKSPACE/android/"

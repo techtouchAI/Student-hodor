@@ -1,18 +1,12 @@
 Resolving dependencies...
-    Because vibration >=1.8.3 <1.9.0 depends on device_info_plus >=9.0.2 <11.0.0 and vibration >=1.8.0 <1.8.3 depends on device_info_plus ^9.0.2, vibration >=1.8.0 <1.9.0 requires device_info_plus >=9.0.2 <11.0.0.
-    And because vibration >=1.9.0 <2.0.1 depends on vibration_platform_interface ^0.0.1, vibration >=1.8.0 <2.0.1 requires device_info_plus >=9.0.2 <11.0.0 or vibration_platform_interface ^0.0.1.
-    And because vibration_platform_interface <0.0.2 depends on device_info_plus >=9.0.2 <11.0.0 and vibration_platform_interface >=0.0.2 <0.1.1 depends on device_info_plus >=9.0.2 <12.0.0, vibration >=1.8.0 <2.0.1 requires device_info_plus >=9.0.2 <12.0.0.
-(1) So, because device_info_plus >=11.3.2 <13.0.0 depends on win32 ^5.11.0 and device_info_plus >=9.0.0 <11.3.2 depends on win32_registry ^1.1.0, vibration >=1.8.0 <2.0.1 requires win32 ^5.11.0 or win32_registry ^1.1.0.
-
-    Because win32_registry >=1.1.0 <1.1.1 depends on win32 ^4.0.0 and win32_registry >=1.1.1 <1.1.2 depends on win32 ^5.0.0, win32_registry >=1.1.0 <1.1.2 requires win32 ^4.0.0 or ^5.0.0.
-    And because win32_registry >=1.1.2 <1.1.3 depends on win32 ^5.0.7 and win32_registry >=1.1.3 <1.1.4 depends on win32 ^5.4.0, win32_registry >=1.1.0 <1.1.4 requires win32 ^4.0.0 or >=5.0.0 <6.0.0.
-    And because win32_registry >=1.1.4 <1.1.5 depends on win32 ^5.5.1 and win32_registry ^1.1.5 depends on win32 ^5.5.4, win32_registry ^1.1.0 requires win32 ^4.0.0 or >=5.0.0 <6.0.0.
-    And because vibration >=1.8.0 <2.0.1 requires win32 ^5.11.0 or win32_registry ^1.1.0 (1), vibration >=1.8.0 <2.0.1 requires win32 ^4.0.0 or >=5.0.0 <6.0.0.
-    Because share_plus >=13.0.0 <13.1.0 depends on win32 ^6.0.0 and share_plus >=13.1.0 depends on win32 ^6.0.1, share_plus >=13.0.0 requires win32 ^6.0.0.
-    Thus, share_plus >=13.0.0 is incompatible with vibration >=1.8.0 <2.0.1.
-    So, because student_hodor depends on both share_plus ^13.0.0 and vibration ^1.8.0, version solving failed.
+Because file_picker >=7.1.0 <8.0.6 depends on win32 ^5.1.1 and file_picker >=8.0.6 <8.3.3 depends on win32 ^5.5.1, file_picker >=7.1.0 <8.3.3 requires win32 ^5.1.1.
+And because file_picker >=8.3.3 <12.0.0-beta.1 depends on win32 ^5.9.0, file_picker >=7.1.0 <12.0.0-beta.1 requires win32 ^5.1.1.
+Because share_plus >=13.0.0 <13.1.0 depends on win32 ^6.0.0 and share_plus >=13.1.0 depends on win32 ^6.0.1, share_plus >=13.0.0 requires win32 ^6.0.0.
+Thus, share_plus >=13.0.0 is incompatible with file_picker >=7.1.0 <12.0.0-beta.1.
+So, because student_hodor depends on both file_picker ^8.0.0 and share_plus ^13.0.0, version solving failed.
 
 
-You can try the following suggestion to make the pubspec resolve:
+You can try one of the following suggestions to make the pubspec resolve:
+* Try upgrading your constraint on file_picker: flutter pub add file_picker:^13.0.0
 * Consider downgrading your constraint on share_plus: flutter pub add share_plus:^12.0.2
 Failed to update packages.

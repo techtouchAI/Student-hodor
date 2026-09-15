@@ -1,4 +1,5 @@
-/// إدارة الإجازات: إضافة/حذف مع نوع وسبب، تنعكس أصفر في التقارير.
+/// إدارة الإجازات: إضافة/حذف مع نوع وسبب، تنعكس أصفر في التقارير وتصحّح
+/// سجلات الحضور المولّدة تلقائياً داخل نطاق الإجازة.
 library;
 
 import 'package:drift/drift.dart' hide Column;
@@ -11,11 +12,64 @@ import '../../state/providers.dart';
 
 const List<String> leaveTypeNames = <String>['مرضية', 'عرضية', 'طارئة'];
 
-class LeavesScreen extends ConsumerWidget {
+class LeavesScreen extends ConsumerStatefulWidget {
   const LeavesScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LeavesScreen> createState() => _LeavesState();
+}
+
+class _LeavesState extends ConsumerState<LeavesScreen> {
+  late final Stream<List<Leave>> _leaves;
+  late final Stream<List<Student>> _students;
+
+  @override
+  void initState() {
+    super.initState();
+    final AppDb db = ref.read(dbProvider);
+    _leaves = (db.select(db.leaves)
+          ..orderBy(<OrderClauseGenerator<Leaves>>[
+            (Leaves l) => OrderingTerm.desc(l.start),
+          ]))
+        .watch();
+    _students = db.select(db.students).watch();
+  }
+
+  Future<void> _remove(Leave l) async {
+    final AppDb db = ref.read(dbProvider);
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: const Text('حذف إجازة'),
+        content: Text('سيُعاد احتساب أيام ${l.start} → ${l.end} غياباً إن كانت مغلقة.'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('تراجع'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) {
+      return;
+    }
+    await (db.delete(db.leaves)..where((x) => x.id.equals(l.id))).go();
+    await db.syncLeaveToAttendance(
+      studentId: l.studentId,
+      start: l.start,
+      end: l.end,
+      added: false,
+    );
+    await db.logAudit('leave_delete', 'id=${l.id}');
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final AppDb db = ref.watch(dbProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('الإجازات')),
@@ -31,43 +85,47 @@ class LeavesScreen extends ConsumerWidget {
           if (year == null) {
             return const Center(child: Text('لا سنة فعّالة'));
           }
-          return StreamBuilder<List<Leave>>(
-            stream: (db.select(db.leaves)
-                  ..where((l) => l.yearId.equals(year.id))
-                  ..orderBy(<OrderClauseGenerator<Leaves>>[
-                    (Leaves l) => OrderingTerm.desc(l.start),
-                  ]))
-                .watch(),
-            builder: (BuildContext context, AsyncSnapshot<List<Leave>> snap) {
-              final List<Leave> leaves = snap.data ?? <Leave>[];
-              if (leaves.isEmpty) {
-                return const Center(child: Text('لا إجازات مسجلة'));
-              }
-              return ListView.builder(
-                itemCount: leaves.length,
-                itemBuilder: (BuildContext context, int i) {
-                  final Leave l = leaves[i];
-                  return FutureBuilder<Student?>(
-                    future: (db.select(db.students)
-                          ..where((s) => s.id.equals(l.studentId)))
-                        .getSingleOrNull(),
-                    builder: (BuildContext context, AsyncSnapshot<Student?> ss) =>
-                        ListTile(
-                      title: Text(ss.data?.fullName ?? '…'),
-                      subtitle: Text(
-                        '${l.start} → ${l.end} • ${leaveTypeNames[l.type]}'
-                        '${l.reason.isEmpty ? '' : ' • ${l.reason}'}',
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete),
-                        onPressed: () async {
-                          await (db.delete(db.leaves)
-                                ..where((x) => x.id.equals(l.id)))
-                              .go();
-                          await db.logAudit('leave_delete', 'id=${l.id}');
-                        },
-                      ),
-                    ),
+          return StreamBuilder<List<Student>>(
+            stream: _students,
+            builder: (
+              BuildContext context,
+              AsyncSnapshot<List<Student>> ns,
+            ) {
+              final Map<int, String> names = <int, String>{
+                for (final Student s in ns.data ?? <Student>[]) s.id: s.fullName,
+              };
+              return StreamBuilder<List<Leave>>(
+                stream: _leaves,
+                builder: (
+                  BuildContext context,
+                  AsyncSnapshot<List<Leave>> snap,
+                ) {
+                  final List<Leave> leaves = <Leave>[
+                    for (final Leave l in snap.data ?? <Leave>[])
+                      if (l.yearId == year.id) l,
+                  ];
+                  if (leaves.isEmpty) {
+                    return const Center(child: Text('لا إجازات مسجلة'));
+                  }
+                  return ListView.builder(
+                    itemCount: leaves.length,
+                    itemBuilder: (BuildContext context, int i) {
+                      final Leave l = leaves[i];
+                      return ListTile(
+                        leading: const CircleAvatar(
+                          child: Icon(Icons.beach_access),
+                        ),
+                        title: Text(names[l.studentId] ?? 'طالب محذوف'),
+                        subtitle: Text(
+                          '${l.start} → ${l.end} • ${leaveTypeNames[l.type]}'
+                          '${l.reason.isEmpty ? '' : ' • ${l.reason}'}',
+                        ),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete),
+                          onPressed: () => _remove(l),
+                        ),
+                      );
+                    },
                   );
                 },
               );
@@ -87,6 +145,11 @@ class LeavesScreen extends ConsumerWidget {
     final List<Student> students =
         await (db.select(db.students)..where((s) => s.yearId.equals(year.id))).get();
     if (students.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('لا طلاب في السنة الفعّالة بعد')),
+        );
+      }
       return;
     }
     Student? picked = students.first;
@@ -107,6 +170,7 @@ class LeavesScreen extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 DropdownButtonFormField<Student>(
+                  key: ValueKey<Student?>(picked),
                   initialValue: picked,
                   items: <DropdownMenuItem<Student>>[
                     for (final Student s in students)
@@ -151,6 +215,7 @@ class LeavesScreen extends ConsumerWidget {
                   },
                 ),
                 DropdownButtonFormField<int>(
+                  key: ValueKey<int>(type),
                   initialValue: type,
                   items: <DropdownMenuItem<int>>[
                     for (int i = 0; i < leaveTypeNames.length; i++)
@@ -183,17 +248,30 @@ class LeavesScreen extends ConsumerWidget {
     if (ok != true || stu == null || start.isAfter(end)) {
       return;
     }
+    final String startKey = SchoolTime.dateKey(start);
+    final String endKey = SchoolTime.dateKey(end);
     await db.into(db.leaves).insert(
           LeavesCompanion(
             yearId: Value(year.id),
             studentId: Value(stu.id),
-            start: Value(SchoolTime.dateKey(start)),
-            end: Value(SchoolTime.dateKey(end)),
+            start: Value(startKey),
+            end: Value(endKey),
             type: Value(type),
             reason: Value(reason.text.trim()),
             createdAt: Value(DateTime.now().toIso8601String()),
           ),
         );
-    await db.logAudit('leave_add', '${stu.fullName} ${SchoolTime.dateKey(start)}');
+    final int synced = await db.syncLeaveToAttendance(
+      studentId: stu.id,
+      start: startKey,
+      end: endKey,
+      added: true,
+    );
+    await db.logAudit('leave_add', '${stu.fullName} $startKey');
+    if (context.mounted && synced > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('صُحّحت $synced سجلاً من غياب إلى إجازة')),
+      );
+    }
   }
 }

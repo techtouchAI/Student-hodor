@@ -1,44 +1,15 @@
-/// التقارير: حالة الصف لليوم، الإنذار المبكر، وملف الطالب التفصيلي.
+/// التقارير: حالة الصف لليوم، الإنذار المبكر بعتبتين، وملف الطالب التفصيلي.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../core/attendance_labels.dart';
 import '../../core/school_time.dart';
 import '../../data/db.dart';
 import '../../data/reports_service.dart';
 import '../../state/providers.dart';
-import 'student_report_screen.dart';
-
-Color statusColor(int? status) {
-  switch (status) {
-    case AttendanceStatus.present:
-      return Colors.green;
-    case AttendanceStatus.absent:
-      return Colors.red;
-    case AttendanceStatus.leave:
-      return Colors.amber;
-    case AttendanceStatus.late:
-      return Colors.orange;
-    default:
-      return Colors.grey;
-  }
-}
-
-String statusName(int? status) {
-  switch (status) {
-    case AttendanceStatus.present:
-      return 'حاضر';
-    case AttendanceStatus.absent:
-      return 'غائب';
-    case AttendanceStatus.leave:
-      return 'إجازة';
-    case AttendanceStatus.late:
-      return 'متأخر';
-    default:
-      return '—';
-  }
-}
 
 class ReportsScreen extends ConsumerStatefulWidget {
   const ReportsScreen({super.key});
@@ -82,7 +53,7 @@ class _ReportsState extends ConsumerState<ReportsScreen> {
                     firstDate: DateTime(2015),
                     lastDate: DateTime(2040),
                   );
-                  if (d != null) {
+                  if (d != null && mounted) {
                     setState(() => _date = SchoolTime.dateKey(d));
                   }
                 },
@@ -122,6 +93,7 @@ class _ClassPicker extends StatelessWidget {
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: DropdownButtonFormField<int?>(
+              key: ValueKey<int?>(classId),
               initialValue: classId,
               decoration: const InputDecoration(
                 labelText: 'الصف (اتركه فارغاً لقائمة الإنذار المبكر)',
@@ -141,7 +113,8 @@ class _ClassPicker extends StatelessWidget {
       );
 }
 
-class _ClassDayList extends StatelessWidget {
+/// كشف صف ليوم: مستقبل يُحسب مرة لكل تغيّر مدخلات (لا في كل بناء).
+class _ClassDayList extends StatefulWidget {
   const _ClassDayList({required this.db, required this.classId, required this.date});
 
   final AppDb db;
@@ -149,12 +122,37 @@ class _ClassDayList extends StatelessWidget {
   final String date;
 
   @override
+  State<_ClassDayList> createState() => _ClassDayListState();
+}
+
+class _ClassDayListState extends State<_ClassDayList> {
+  late Future<List<(Student, int?)>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = ReportsService(widget.db).classDayMatrix(widget.classId, widget.date);
+  }
+
+  @override
+  void didUpdateWidget(_ClassDayList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.classId != widget.classId || oldWidget.date != widget.date) {
+      _future =
+          ReportsService(widget.db).classDayMatrix(widget.classId, widget.date);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) => FutureBuilder<List<(Student, int?)>>(
-        future: ReportsService(db).classDayMatrix(classId, date),
+        future: _future,
         builder: (BuildContext context, AsyncSnapshot<List<(Student, int?)>> snap) {
           final List<(Student, int?)> matrix = snap.data ?? <(Student, int?)>[];
+          if (snap.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
           if (matrix.isEmpty) {
-            return const Center(child: Text('لا طلاب'));
+            return const Center(child: Text('لا طلاب في هذا الصف'));
           }
           return ListView.builder(
             itemCount: matrix.length,
@@ -163,17 +161,14 @@ class _ClassDayList extends StatelessWidget {
               return ListTile(
                 leading: CircleAvatar(
                   backgroundColor: statusColor(st),
-                  child: Text(statusName(st).characters.first),
-                ),
-                title: Text(s.fullName),
-                subtitle: Text(statusName(st)),
-                onTap: () => Navigator.push<void>(
-                  context,
-                  MaterialPageRoute<void>(
-                    builder: (BuildContext context) =>
-                        StudentReportScreen(student: s),
+                  child: Text(
+                    statusLetter(st),
+                    style: const TextStyle(color: Colors.white),
                   ),
                 ),
+                title: Text(s.fullName),
+                subtitle: Text(statusHint(st)),
+                onTap: () => context.push('/student/${s.id}'),
               );
             },
           );
@@ -181,22 +176,40 @@ class _ClassDayList extends StatelessWidget {
       );
 }
 
-class _AlertsList extends StatelessWidget {
+/// الإنذار المبكر بعتبتين: تحذير (الأولى) وخطر (الثانية).
+class _AlertsList extends StatefulWidget {
   const _AlertsList({required this.db, required this.year});
 
   final AppDb db;
   final AcademicYear year;
 
   @override
+  State<_AlertsList> createState() => _AlertsListState();
+}
+
+class _AlertsListState extends State<_AlertsList> {
+  late Future<Map<String, String>> _settings;
+
+  @override
+  void initState() {
+    super.initState();
+    _settings = widget.db.effectiveSettings();
+  }
+
+  @override
   Widget build(BuildContext context) => FutureBuilder<Map<String, String>>(
-        future: db.allSettings(),
+        future: _settings,
         builder: (BuildContext context, AsyncSnapshot<Map<String, String>> ss) {
           final double t1 =
               double.tryParse(ss.data?['alert_threshold_1'] ?? '10') ?? 10;
+          final double t2 =
+              double.tryParse(ss.data?['alert_threshold_2'] ?? '15') ?? 15;
           return FutureBuilder<List<(Student, StatusTotals)>>(
-            future: ReportsService(db).alerts(year.id, t1),
-            builder:
-                (BuildContext context, AsyncSnapshot<List<(Student, StatusTotals)>> snap) {
+            future: ReportsService(widget.db).alerts(widget.year.id, t1),
+            builder: (
+              BuildContext context,
+              AsyncSnapshot<List<(Student, StatusTotals)>> snap,
+            ) {
               final List<(Student, StatusTotals)> list =
                   snap.data ?? <(Student, StatusTotals)>[];
               if (list.isEmpty) {
@@ -208,23 +221,22 @@ class _AlertsList extends StatelessWidget {
                 itemCount: list.length,
                 itemBuilder: (BuildContext context, int i) {
                   final (Student s, StatusTotals t) = list[i];
+                  final double pct = t.recorded == 0
+                      ? 0
+                      : t.absent * 100 / t.recorded;
+                  final bool danger = pct >= t2;
                   return ListTile(
-                    leading: const CircleAvatar(
-                      backgroundColor: Colors.red,
-                      child: Icon(Icons.warning_amber, color: Colors.white),
+                    leading: CircleAvatar(
+                      backgroundColor: danger ? Colors.red : Colors.orange,
+                      child: const Icon(Icons.warning_amber, color: Colors.white),
                     ),
                     title: Text(s.fullName),
                     subtitle: Text(
                       'غياب ${t.absent} من ${t.recorded} '
-                      '(${(t.absent * 100 / t.recorded).toStringAsFixed(1)}%)',
+                      '(${pct.toStringAsFixed(1)}%)'
+                      '${danger ? ' — تجاوز الحد الثاني' : ' — تجاوز الحد الأول'}',
                     ),
-                    onTap: () => Navigator.push<void>(
-                      context,
-                      MaterialPageRoute<void>(
-                        builder: (BuildContext context) =>
-                            StudentReportScreen(student: s),
-                      ),
-                    ),
+                    onTap: () => context.push('/student/${s.id}'),
                   );
                 },
               );

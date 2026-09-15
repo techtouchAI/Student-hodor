@@ -27,27 +27,40 @@ class BadgesScreen extends ConsumerStatefulWidget {
 
 class _BadgesState extends ConsumerState<BadgesScreen> {
   bool _fontsReady = false;
+  String? _fontsError;
+  Future<List<BadgeSpec>>? _specsFuture;
 
   @override
   void initState() {
     super.initState();
     _loadFonts();
+    _reload();
+  }
+
+  void _reload() {
+    setState(() => _specsFuture = _specs(ref.read(dbProvider)));
   }
 
   Future<void> _loadFonts() async {
-    final pw.Font regular =
-        pw.Font.ttf(await rootBundle.load('assets/fonts/Tajawal-Regular.ttf'));
-    final pw.Font bold =
-        pw.Font.ttf(await rootBundle.load('assets/fonts/Tajawal-Bold.ttf'));
-    BadgePrint.registerFonts(regular, bold);
-    if (mounted) {
-      setState(() => _fontsReady = true);
+    try {
+      final pw.Font regular =
+          pw.Font.ttf(await rootBundle.load('assets/fonts/Tajawal-Regular.ttf'));
+      final pw.Font bold =
+          pw.Font.ttf(await rootBundle.load('assets/fonts/Tajawal-Bold.ttf'));
+      BadgePrint.registerFonts(regular, bold);
+      if (mounted) {
+        setState(() => _fontsReady = true);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _fontsError = '$e');
+      }
     }
   }
 
   Future<List<BadgeSpec>> _specs(AppDb db) async {
     final AcademicYear? year = await db.activeYear();
-    final Map<String, String> settings = await db.allSettings();
+    final Map<String, String> settings = await db.effectiveSettings();
     if (year == null) {
       return <BadgeSpec>[];
     }
@@ -59,9 +72,7 @@ class _BadgesState extends ConsumerState<BadgesScreen> {
         .get();
     final List<BadgeSpec> out = <BadgeSpec>[];
     for (final Student s in students) {
-      final Badge? b = await (db.select(db.badges)
-            ..where((x) => x.studentId.equals(s.id) & x.status.equals(0)))
-          .getSingleOrNull();
+      final Badge? b = await db.activeBadgeOf(s.id);
       if (b == null) {
         continue;
       }
@@ -103,11 +114,15 @@ class _BadgesState extends ConsumerState<BadgesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final AppDb db = ref.watch(dbProvider);
     return Scaffold(
       appBar: AppBar(
         title: Text('بادجات ${widget.title}'),
         actions: <Widget>[
+          IconButton(
+            tooltip: 'تحديث',
+            icon: const Icon(Icons.refresh),
+            onPressed: _reload,
+          ),
           IconButton(
             tooltip: 'طباعة ورقة A4',
             icon: const Icon(Icons.print),
@@ -115,31 +130,70 @@ class _BadgesState extends ConsumerState<BadgesScreen> {
           ),
         ],
       ),
-      body: FutureBuilder<List<BadgeSpec>>(
-        future: _specs(db),
-        builder: (BuildContext context, AsyncSnapshot<List<BadgeSpec>> snap) {
-          final List<BadgeSpec> specs = snap.data ?? <BadgeSpec>[];
-          if (specs.isEmpty) {
-            return const Center(child: Text('لا طلاب في هذا الصف بعد'));
-          }
-          return GridView.builder(
-            padding: const EdgeInsets.all(16),
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 300,
-              childAspectRatio: 0.63,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
+      body: _fontsError != null
+          ? Center(child: Text('تعذر تحميل الخط: $_fontsError'))
+          : FutureBuilder<List<BadgeSpec>>(
+              future: _specsFuture,
+              builder: (
+                BuildContext context,
+                AsyncSnapshot<List<BadgeSpec>> snap,
+              ) {
+                if (snap.connectionState != ConnectionState.done) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final List<BadgeSpec> specs = snap.data ?? <BadgeSpec>[];
+                if (specs.isEmpty) {
+                  return const Center(child: Text('لا طلاب في هذا الصف بعد'));
+                }
+                return GridView.builder(
+                  padding: const EdgeInsets.all(16),
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 300,
+                    childAspectRatio: 0.63,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
+                  itemCount: specs.length,
+                  itemBuilder: (BuildContext context, int i) {
+                    final BadgeSpec spec = specs[i];
+                    return InkWell(
+                      onTap: () => _preview(spec),
+                      onLongPress: () => _printSingle(spec),
+                      child: BadgeWidget(spec: spec),
+                    );
+                  },
+                );
+              },
             ),
-            itemCount: specs.length,
-            itemBuilder: (BuildContext context, int i) {
-              final BadgeSpec spec = specs[i];
-              return InkWell(
-                onLongPress: () => _printSingle(spec),
-                child: BadgeWidget(spec: spec),
-              );
-            },
-          );
-        },
+    );
+  }
+
+  Future<void> _preview(BadgeSpec spec) async {
+    await showDialog<void>(
+      context: context,
+      builder: (BuildContext context) => Dialog(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                BadgeWidget(spec: spec, width: 320),
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _printSingle(spec);
+                  },
+                  icon: const Icon(Icons.print),
+                  label: const Text('طباعة بطاقة مفردة'),
+                ),
+                const SizedBox(height: 6),
+                const Text('اضغط مطولاً على أي باج للطباعة المباشرة'),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

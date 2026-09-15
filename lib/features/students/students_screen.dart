@@ -1,4 +1,4 @@
-/// إدارة الطلاب: إدراج/تعديل/صورة + توليد باج تلقائي برمز checksum.
+/// إدارة الطلاب: إدراج/تعديل/حذف + صورة دائمة + باج تلقائي برمز فريد.
 library;
 
 import 'dart:io';
@@ -6,17 +6,13 @@ import 'dart:io';
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart' hide Badge;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../core/badge_code.dart';
+import '../../core/name_utils.dart';
 import '../../data/db.dart';
+import '../../data/photo_store.dart';
 import '../../state/providers.dart';
-
-/// تطبيع الاسم: إزالة تشكيل/تطويل/مسافات زائدة لكشف التكرار.
-String normalizeName(String s) => s
-    .replaceAll(RegExp(r'[\u064B-\u0652\u0640]'), '')
-    .replaceAll(RegExp(r'\s+'), ' ')
-    .trim();
 
 class StudentsScreen extends ConsumerStatefulWidget {
   const StudentsScreen({super.key, required this.classId, required this.title});
@@ -49,31 +45,45 @@ class _StudentsState extends ConsumerState<StudentsScreen> {
         builder: (BuildContext context, AsyncSnapshot<List<Student>> snap) {
           final List<Student> list = snap.data ?? <Student>[];
           if (list.isEmpty) {
-            return const Center(child: Text('لا طلاب بعد'));
+            return const Center(child: Text('لا طلاب بعد — أضف أول طالب'));
           }
           return ListView.builder(
             itemCount: list.length,
             itemBuilder: (BuildContext context, int i) {
               final Student s = list[i];
+              final String? photo = s.photoPath;
+              final bool hasPhoto =
+                  photo != null && File(photo).existsSync();
               return ListTile(
                 leading: CircleAvatar(
-                  backgroundImage: s.photoPath != null && File(s.photoPath!).existsSync()
-                      ? FileImage(File(s.photoPath!))
-                      : null,
-                  child: s.photoPath == null ? const Icon(Icons.person) : null,
+                  backgroundImage:
+                      hasPhoto ? FileImage(File(photo!)) : null,
+                  child: hasPhoto ? null : const Icon(Icons.person),
                 ),
                 title: Text(s.fullName),
-                subtitle: Text('تسلسل: ${s.seq}'),
+                subtitle: Text('رقم الطالب: ${s.seq}'),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
                     IconButton(
+                      tooltip: 'الباج والرمز',
                       icon: const Icon(Icons.badge),
-                      onPressed: () => _showCode(s),
+                      onPressed: () => _showBadge(s),
                     ),
                     IconButton(
+                      tooltip: 'ملف الحضور',
+                      icon: const Icon(Icons.assessment),
+                      onPressed: () => context.push('/student/${s.id}'),
+                    ),
+                    IconButton(
+                      tooltip: 'تعديل',
                       icon: const Icon(Icons.edit),
                       onPressed: () => _edit(s),
+                    ),
+                    IconButton(
+                      tooltip: 'حذف',
+                      icon: const Icon(Icons.delete),
+                      onPressed: () => _delete(s),
                     ),
                   ],
                 ),
@@ -85,27 +95,109 @@ class _StudentsState extends ConsumerState<StudentsScreen> {
     );
   }
 
-  Future<void> _showCode(Student s) async {
+  Future<void> _showBadge(Student s) async {
     final AppDb db = ref.read(dbProvider);
-    final Badge? badge = await (db.select(db.badges)
-          ..where((b) => b.studentId.equals(s.id) & b.status.equals(0)))
-        .getSingleOrNull();
+    final Badge? badge = await db.activeBadgeOf(s.id);
     if (!mounted) {
       return;
     }
     await showDialog<void>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
-        title: const Text('رمز الباج الفعال'),
-        content: Text(badge?.code ?? 'لا يوجد باج'),
+        title: const Text('الباج الفعال'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text('الرمز: ${badge?.code ?? 'لا يوجد باج'}'),
+            if (badge != null && badge.version > 1)
+              Text('نسخة بدل فاقد: ${badge.version}'),
+          ],
+        ),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('إغلاق'),
           ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _reissue(s);
+            },
+            child: const Text('بدل فاقد (رمز جديد)'),
+          ),
         ],
       ),
     );
+  }
+
+  Future<void> _reissue(Student s) async {
+    final AppDb db = ref.read(dbProvider);
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: const Text('إصدار باج بدل فاقد'),
+        content: Text(
+          'سيُبطل الباج الحالي لـ«${s.fullName}» ويُصدر باج برمز جديد؛ '
+          'الباج القديم لن يُقرأ بعد الآن.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('تراجع'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('إصدار'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) {
+      return;
+    }
+    final Badge? row = await db.reissueBadge(s.id);
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('الرمز الجديد: ${row?.code ?? '-'}')),
+    );
+  }
+
+  Future<void> _delete(Student s) async {
+    final AppDb db = ref.read(dbProvider);
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: const Text('حذف طالب'),
+        content: Text(
+          'سيُحذف «${s.fullName}» مع باجاته وسجلات حضوره وإجازاته. '
+          'لا يمكن التراجع. متابعة؟',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('تراجع'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) {
+      return;
+    }
+    final String? photo = s.photoPath;
+    await db.deleteStudent(s.id);
+    await PhotoStore.deleteIfExists(photo);
+    if (mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('حُذف ${s.fullName}')));
+    }
   }
 
   Future<void> _edit(Student? s) async {
@@ -117,13 +209,16 @@ class _StudentsState extends ConsumerState<StudentsScreen> {
     final TextEditingController name =
         TextEditingController(text: s?.fullName ?? '');
     String? photoPath = s?.photoPath;
+    final String? originalPhoto = s?.photoPath;
     if (!mounted) {
       return;
     }
     final bool? ok = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) => StatefulBuilder(
-        builder: (BuildContext context, StateSetter setSt) => AlertDialog(
+        builder: (BuildContext context, StateSetter setSt) {
+        final String? cur = photoPath;
+        return AlertDialog(
           title: Text(s == null ? 'إضافة طالب' : 'تعديل طالب'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -136,9 +231,9 @@ class _StudentsState extends ConsumerState<StudentsScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
-                  if (photoPath != null)
+                  if (cur != null && File(cur).existsSync())
                     Image.file(
-                      File(photoPath!),
+                      File(cur),
                       width: 64,
                       height: 64,
                       fit: BoxFit.cover,
@@ -163,6 +258,11 @@ class _StudentsState extends ConsumerState<StudentsScreen> {
                       }
                     },
                   ),
+                  if (cur != null)
+                    IconButton(
+                      icon: const Icon(Icons.remove_circle_outline),
+                      onPressed: () => setSt(() => photoPath = null),
+                    ),
                 ],
               ),
             ],
@@ -177,7 +277,8 @@ class _StudentsState extends ConsumerState<StudentsScreen> {
               child: const Text('حفظ'),
             ),
           ],
-        ),
+        );
+        },
       ),
     );
     final String trimmed = name.text.trim();
@@ -214,43 +315,42 @@ class _StudentsState extends ConsumerState<StudentsScreen> {
         return;
       }
     }
-    if (s == null) {
-      final int seq = same.fold<int>(0, (int m, Student t) => t.seq > m ? t.seq : m) + 1;
-      final String school = await db.setting('school_name') ?? '';
-      final int yearShort = int.tryParse(year.start.substring(2, 4)) ?? 0;
-      final int id = await db.into(db.students).insert(
-            StudentsCompanion(
-              yearId: Value(year.id),
-              classId: Value(widget.classId),
-              fullName: Value(trimmed),
-              personKey: Value(normalizeName(trimmed)),
-              seq: Value(seq),
-              photoPath: Value(photoPath),
-              createdAt: Value(DateTime.now().toIso8601String()),
-            ),
-          );
-      await db.into(db.badges).insert(
-            BadgesCompanion(
-              studentId: Value(id),
-              code: Value(
-                BadgeCode.make(
-                  schoolName: school,
-                  sequence: seq,
-                  yearShort: yearShort,
-                ),
-              ),
-              issuedAt: Value(DateTime.now().toIso8601String()),
-            ),
-          );
-      await db.logAudit('student_add', trimmed);
-    } else {
-      await (db.update(db.students)..where((t) => t.id.equals(s.id))).write(
-        StudentsCompanion(
-          fullName: Value(trimmed),
-          photoPath: Value(photoPath),
-        ),
-      );
-      await db.logAudit('student_edit', trimmed);
+    try {
+      if (s == null) {
+        final String? stored = await PhotoStore.copy(photoPath);
+        await db.addStudent(
+          yearId: year.id,
+          classId: widget.classId,
+          fullName: trimmed,
+          photoPath: stored,
+        );
+      } else {
+        String? stored = s.photoPath;
+        if (photoPath != originalPhoto) {
+          if (photoPath == null) {
+            await PhotoStore.deleteIfExists(originalPhoto);
+            stored = null;
+          } else {
+            stored = await PhotoStore.copy(photoPath);
+            if (stored != originalPhoto) {
+              await PhotoStore.deleteIfExists(originalPhoto);
+            }
+          }
+        }
+        await (db.update(db.students)..where((t) => t.id.equals(s.id))).write(
+          StudentsCompanion(
+            fullName: Value(trimmed),
+            photoPath: Value(stored),
+          ),
+        );
+        await db.logAudit('student_edit', trimmed);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذر الحفظ: $e')),
+        );
+      }
     }
   }
 }

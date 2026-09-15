@@ -70,6 +70,9 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
     await db.setSetting('alert_threshold_2', '15');
     await db.logAudit('onboarding', yearName);
     ref.invalidate(settingsProvider);
+    ref.invalidate(effectiveSettingsProvider);
+    ref.invalidate(currentYearProvider);
+    ref.invalidate(yearEndedProvider);
     if (mounted) {
       context.go('/home');
     }

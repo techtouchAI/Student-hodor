@@ -1,4 +1,4 @@
-/// الإعدادات: مدرسة/مدير/أيام الدوام/هجري/حدود الإنذار/PIN/عطل/نسخ ودمج.
+/// الإعدادات: مدرسة/مدير/أيام الدوام/هجري/حدود الإنذار/نافذة التأخر/PIN/عطل/نسخ ودمج.
 library;
 
 import 'dart:io';
@@ -22,43 +22,65 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsState extends ConsumerState<SettingsScreen> {
-  late TextEditingController _school;
-  late TextEditingController _director;
-  late TextEditingController _t1;
-  late TextEditingController _t2;
-  late TextEditingController _pin;
-  Set<int> _weekdays = SchoolTime.defaultWorkWeekdays;
+  final TextEditingController _school = TextEditingController();
+  final TextEditingController _director = TextEditingController();
+  final TextEditingController _t1 = TextEditingController(text: '10');
+  final TextEditingController _t2 = TextEditingController(text: '15');
+  final TextEditingController _pin = TextEditingController();
+  final TextEditingController _dayStart = TextEditingController(text: '08:00');
+  final TextEditingController _lateAfter = TextEditingController(text: '15');
+  // نسخة قابلة للتعديل: المجموعة الافتراضية const ولا تقبل الإضافة.
+  Set<int> _weekdays = <int>{...SchoolTime.defaultWorkWeekdays};
   bool _hijri = true;
   bool _loaded = false;
+  String? _loadError;
 
   @override
   void initState() {
     super.initState();
-    _school = TextEditingController();
-    _director = TextEditingController();
-    _t1 = TextEditingController(text: '10');
-    _t2 = TextEditingController(text: '15');
-    _pin = TextEditingController();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _school.dispose();
+    _director.dispose();
+    _t1.dispose();
+    _t2.dispose();
+    _pin.dispose();
+    _dayStart.dispose();
+    _lateAfter.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
-    final Map<String, String> s = await ref.read(dbProvider).allSettings();
-    if (!mounted) {
-      return;
+    try {
+      final Map<String, String> s =
+          await ref.read(dbProvider).effectiveSettings();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _school.text = s['school_name'] ?? '';
+        _director.text = s['director_name'] ?? '';
+        _t1.text = s['alert_threshold_1'] ?? '10';
+        _t2.text = s['alert_threshold_2'] ?? '15';
+        _pin.text = s['pin'] ?? '';
+        _dayStart.text = s['day_start'] ?? '08:00';
+        _lateAfter.text = s['late_after_minutes'] ?? '15';
+        _hijri = s['show_hijri'] == '1';
+        _weekdays = <int>{
+          for (final String w in (s['work_weekdays'] ?? '7,1,2,3,4').split(','))
+            int.tryParse(w) ?? 0,
+        };
+        _loaded = true;
+        _loadError = null;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loadError = '$e');
+      }
     }
-    setState(() {
-      _school.text = s['school_name'] ?? '';
-      _director.text = s['director_name'] ?? '';
-      _t1.text = s['alert_threshold_1'] ?? '10';
-      _t2.text = s['alert_threshold_2'] ?? '15';
-      _pin.text = s['pin'] ?? '';
-      _hijri = s['show_hijri'] == '1';
-      _weekdays = <int>{
-        for (final String w in (s['work_weekdays'] ?? '7,1,2,3,4').split(','))
-          int.tryParse(w) ?? 0,
-      };
-      _loaded = true;
-    });
   }
 
   Future<void> _save() async {
@@ -68,10 +90,13 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
     await db.setSetting('alert_threshold_1', _t1.text.trim());
     await db.setSetting('alert_threshold_2', _t2.text.trim());
     await db.setSetting('pin', _pin.text.trim());
+    await db.setSetting('day_start', _dayStart.text.trim());
+    await db.setSetting('late_after_minutes', _lateAfter.text.trim());
     await db.setSetting('show_hijri', _hijri ? '1' : '0');
     await db.setSetting('work_weekdays', _weekdays.join(','));
     await db.logAudit('settings_save', '');
     ref.invalidate(settingsProvider);
+    ref.invalidate(effectiveSettingsProvider);
     if (mounted) {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('حُفظت الإعدادات')));
@@ -87,58 +112,82 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _backup() async {
-    final String path = await BackupService(ref.read(dbProvider)).exportFile();
-    await SharePlus.instance.share(
-          ShareParams(files: <XFile>[XFile(path)]),
-        );
+    try {
+      final String path = await BackupService(ref.read(dbProvider)).exportFile();
+      await SharePlus.instance.share(
+        ShareParams(files: <XFile>[XFile(path)]),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('تعذر النسخ الاحتياطي: $e')));
+      }
+    }
   }
 
   Future<void> _restoreOrMerge(bool merge) async {
-    final List<PlatformFile> picked = await FilePicker.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: const <String>['json'],
-    );
-    final String? path = picked.isEmpty ? null : picked.single.path;
-    if (path == null) {
-      return;
-    }
-    final String text = await File(path).readAsString();
-    final AppDb db = ref.read(dbProvider);
-    final BackupService svc = BackupService(db);
-    if (merge) {
-      final Map<String, int> counts = await svc.mergeImport(text);
+    try {
+      final List<PlatformFile> picked = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const <String>['json'],
+      );
+      final String? path = picked.isEmpty ? null : picked.single.path;
+      if (path == null) {
+        return;
+      }
+      final String text = await File(path).readAsString();
+      final AppDb db = ref.read(dbProvider);
+      final BackupService svc = BackupService(db);
+      if (merge) {
+        final Map<String, int> counts = await svc.mergeImport(text);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'دمج: جلسات ${counts['sessions']}، حضور ${counts['attendance']}',
+              ),
+            ),
+          );
+        }
+      } else {
+        if (!mounted) {
+          return;
+        }
+        final bool? ok = await showDialog<bool>(
+          context: context,
+          builder: (BuildContext context) => AlertDialog(
+            title: const Text('استرجاع كامل'),
+            content: const Text('سيستبدل كل البيانات الحالية بمحتوى الملف. متابعة؟'),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('تراجع'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('استرجاع'),
+              ),
+            ],
+          ),
+        );
+        if (ok != true) {
+          return;
+        }
+        await svc.restoreFull(text);
+        ref.invalidate(settingsProvider);
+        ref.invalidate(effectiveSettingsProvider);
+        ref.invalidate(currentYearProvider);
+        if (mounted) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text('تم الاسترجاع')));
+        }
+      }
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('دمج: جلسات ${counts['sessions']}، حضور ${counts['attendance']}')),
+          SnackBar(content: Text('الملف غير صالح أو تعذرت القراءة: $e')),
         );
       }
-    } else {
-      if (!mounted) {
-        return;
-      }
-      final bool? ok = await showDialog<bool>(
-        context: context,
-        builder: (BuildContext context) => AlertDialog(
-          title: const Text('استرجاع كامل'),
-          content: const Text('سيستبدل كل البيانات الحالية بمحتوى الملف. متابعة؟'),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('تراجع'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('استرجاع'),
-            ),
-          ],
-        ),
-      );
-      if (ok != true) {
-        return;
-      }
-      await svc.restoreFull(text);
-      ref.invalidate(settingsProvider);
-      ref.invalidate(currentYearProvider);
     }
   }
 
@@ -147,7 +196,21 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
     if (!_loaded) {
       return Scaffold(
         appBar: AppBar(title: const Text('الإعدادات')),
-        body: FutureBuilder<void>(future: _load(), builder: (BuildContext context, AsyncSnapshot<void> s) => const Center(child: CircularProgressIndicator())),
+        body: Center(
+          child: _loadError == null
+              ? const CircularProgressIndicator()
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text('تعذر تحميل الإعدادات: $_loadError'),
+                    const SizedBox(height: 12),
+                    FilledButton(
+                      onPressed: _load,
+                      child: const Text('إعادة المحاولة'),
+                    ),
+                  ],
+                ),
+        ),
       );
     }
     return Scaffold(
@@ -169,6 +232,14 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
               Expanded(child: TextField(controller: _t1, decoration: const InputDecoration(labelText: 'حد الإنذار الأول %'), keyboardType: TextInputType.number)),
               const SizedBox(width: 8),
               Expanded(child: TextField(controller: _t2, decoration: const InputDecoration(labelText: 'حد الإنذار الثاني %'), keyboardType: TextInputType.number)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: <Widget>[
+              Expanded(child: TextField(controller: _dayStart, decoration: const InputDecoration(labelText: 'بداية اليوم (08:00)'))),
+              const SizedBox(width: 8),
+              Expanded(child: TextField(controller: _lateAfter, decoration: const InputDecoration(labelText: 'دقائق السماح قبل «متأخر»'), keyboardType: TextInputType.number)),
             ],
           ),
           const SizedBox(height: 8),

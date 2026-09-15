@@ -31,27 +31,33 @@ class BadgeCode {
     return sum % 36;
   }
 
-  /// يبني رمزاً كاملاً مع خانة التحقق.
+  /// يبني رمزاً كاملاً مع خانة التحقق، ولوحة نسخة اختيارية للبدل الفاقد.
+  /// الصيغة: SH-{مدرسة3}-{تسلسل4}-{سنة2}-{تحقق1}[-{نسخة}]
   static String make({
     required String schoolName,
     required int sequence,
     required int yearShort,
+    int version = 1,
   }) {
     final String body =
         'SH-${schoolCode(schoolName)}-${sequence.toString().padLeft(4, '0')}'
         '-${(yearShort % 100).toString().padLeft(2, '0')}';
-    return '$body-${_alphabet[_checksum(body)]}';
+    final String base = '$body-${_alphabet[_checksum(body)]}';
+    return version <= 1
+        ? base
+        : '$base-${version.toRadixString(36).toUpperCase()}';
   }
 
   /// يتحقق من صحة رمز ممسوح ويعيد مكوناته، أو null إن كان تالفاً/غريباً.
   static ParsedBadgeCode? parse(String raw) {
     final String code = raw.trim().toUpperCase();
-    final RegExp pattern = RegExp(r'^SH-([A-Z0-9]{3})-(\d{4})-(\d{2})-([A-Z0-9])$');
+    final RegExp pattern =
+        RegExp(r'^SH-([A-Z0-9]{3})-(\d{4})-(\d{2})-([A-Z0-9])(?:-([A-Z0-9]{1,2}))?$');
     final RegExpMatch? m = pattern.firstMatch(code);
     if (m == null) {
       return null;
     }
-    final String body = code.substring(0, code.length - 2);
+    final String body = code.substring(0, 16);
     if (_alphabet[_checksum(body)] != m.group(4)) {
       return null;
     }
@@ -60,6 +66,7 @@ class BadgeCode {
       schoolCode: m.group(1)!,
       sequence: int.parse(m.group(2)!),
       yearShort: int.parse(m.group(3)!),
+      version: m.group(5) == null ? 1 : int.parse(m.group(5)!, radix: 36),
     );
   }
 }
@@ -70,12 +77,14 @@ class ParsedBadgeCode {
     required this.schoolCode,
     required this.sequence,
     required this.yearShort,
+    this.version = 1,
   });
 
   final String code;
   final String schoolCode;
   final int sequence;
   final int yearShort;
+  final int version;
 
   @override
   String toString() => code;

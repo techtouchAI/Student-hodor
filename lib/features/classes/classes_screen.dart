@@ -59,13 +59,24 @@ class ClassesScreen extends ConsumerWidget {
                       leading: const CircleAvatar(child: Icon(Icons.class_)),
                       title: Text('${c.grade} ـ ${c.section}'),
                       subtitle: Text('طلاب: ${n.data ?? 0}'),
-                      onTap: () => context.go(
+                      onTap: () => context.push(
                         '/students?class=${c.id}'
                         '&title=${Uri.encodeComponent('${c.grade} ـ ${c.section}')}',
                       ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.edit),
-                        onPressed: () => _edit(context, ref, c),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          IconButton(
+                            tooltip: 'تعديل',
+                            icon: const Icon(Icons.edit),
+                            onPressed: () => _edit(context, ref, c),
+                          ),
+                          IconButton(
+                            tooltip: 'حذف',
+                            icon: const Icon(Icons.delete),
+                            onPressed: () => _delete(context, ref, c),
+                          ),
+                        ],
                       ),
                     ),
                   );
@@ -155,5 +166,48 @@ class ClassesScreen extends ConsumerWidget {
       );
     }
     await db.logAudit(c == null ? 'class_add' : 'class_edit', grade.text);
+  }
+
+  /// حذف صف فارغ فقط؛ الصف الذي فيه طلاب يُوجَّه لحذفهم أولاً (حماية البيانات).
+  Future<void> _delete(
+    BuildContext context,
+    WidgetRef ref,
+    SchoolClass c,
+  ) async {
+    final AppDb db = ref.read(dbProvider);
+    final int kids = await db.countStudentsInClass(c.id);
+    if (!context.mounted) {
+      return;
+    }
+    if (kids > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('الصف فيه $kids طالباً — احذف الطلاب أو رقّهم أولاً'),
+        ),
+      );
+      return;
+    }
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: const Text('حذف صف'),
+        content: Text('سيُحذف «${c.grade} ـ ${c.section}» وجلساته. متابعة؟'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('تراجع'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) {
+      return;
+    }
+    await db.deleteClass(c.id);
   }
 }

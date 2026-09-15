@@ -62,6 +62,23 @@ class SchoolTime {
     return out;
   }
 
+  /// مفاتيح أشهر (سنة، شهر) بين تاريخين شاملين — تحل السنة الميلادية الصحيحة
+  /// لكل شهر داخل امتداد سنة دراسية عابرة للسنتين (أيلول 2025 … حزيران 2026).
+  static List<MonthKey> monthsBetween(DateTime from, DateTime to) {
+    final List<MonthKey> out = <MonthKey>[];
+    DateTime d = DateTime(from.year, from.month);
+    final DateTime end = DateTime(to.year, to.month);
+    while (!d.isAfter(end)) {
+      out.add(MonthKey(d.year, d.month));
+      d = DateTime(d.year, d.month + 1);
+    }
+    return out;
+  }
+
+  /// امتداد الأشهر بين مفتاحي بداية/نهاية (نص ISO).
+  static List<MonthKey> monthsBetweenKeys(String startKey, String endKey) =>
+      monthsBetween(parseKey(startKey), parseKey(endKey));
+
   static String formatFullAr(DateTime d, {bool withHijri = false}) {
     final String g =
         '${weekdayNames[d.weekday - 1]} ${d.day} ${monthNames[d.month - 1]} ${d.year}';
@@ -83,4 +100,35 @@ class SchoolTime {
       return '';
     }
   }
+}
+
+/// مفتاح شهر ميلادي صريح (سنة + شهر) — مصدر الحقيقة لأشهر التصدير والتقارير،
+/// يمنع افتراض أن كل أشهر السنة الدراسية تقع في سنة بداية السنة الدراسية.
+class MonthKey {
+  const MonthKey(this.year, this.month);
+
+  final int year;
+  final int month;
+
+  DateTime get first => DateTime(year, month, 1);
+
+  DateTime get last => DateTime(year, month + 1, 0);
+
+  /// مفتاح نصي ثابت للمقارنة والمفاتيح (yyyy-MM).
+  String get key => '${year.toString().padLeft(4, '0')}'
+      '-${month.toString().padLeft(2, '0')}';
+
+  String get label => '${SchoolTime.monthNames[month - 1]} $year';
+
+  bool isValidDay(int day) => DateTime(year, month, day).month == month;
+
+  @override
+  bool operator ==(Object other) =>
+      other is MonthKey && other.year == year && other.month == month;
+
+  @override
+  int get hashCode => Object.hash(year, month);
+
+  @override
+  String toString() => key;
 }

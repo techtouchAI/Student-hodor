@@ -2,7 +2,8 @@ name: build-apk
 
 on:
   push:
-    branches: [arena/01a0a1b9-student-hodor, main]
+    branches: [main, "arena/**"]
+  pull_request:
   workflow_dispatch:
 
 concurrency:

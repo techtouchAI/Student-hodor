@@ -32,4 +32,19 @@ void main() {
     expect(BadgeCode.parse('hello world'), isNull);
     expect(BadgeCode.parse(''), isNull);
   });
+
+  test('نسخة البدل الفاقد تُشفَّر وتُفك ولا تكسر الرموز القديمة', () {
+    final String v1 =
+        BadgeCode.make(schoolName: 'مدرسة النجاح', sequence: 42, yearShort: 26);
+    final String v2 = BadgeCode.make(
+      schoolName: 'مدرسة النجاح',
+      sequence: 42,
+      yearShort: 26,
+      version: 2,
+    );
+    expect(v1, isNot(v2));
+    expect(BadgeCode.parse(v1)?.version, 1);
+    expect(BadgeCode.parse(v2)?.version, 2);
+    expect(BadgeCode.parse(v2)?.sequence, 42);
+  });
 }

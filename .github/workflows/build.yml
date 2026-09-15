@@ -118,17 +118,20 @@ jobs:
           sha256sum *.apk > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
+      - name: List APK outputs
+        if: always()
+        run: ls -la build/app/outputs/flutter-apk/ || true
+
       - name: Upload APK artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: student-hodor-apk
-          path: |
-            build/app/outputs/flutter-apk/*.apk
-            build/app/outputs/flutter-apk/SHA256SUMS.txt
+          path: build/app/outputs/flutter-apk/
           retention-days: 30
 
       - name: Upload bootstrap keystore (one-time)
-        if: env.KEYSTORE_BOOTSTRAPPED == 'true'
+        if: always() && hashFiles('tools/keystore/student_hodor.jks') != ''
         uses: actions/upload-artifact@v4
         with:
           name: release-keystore-bootstrap

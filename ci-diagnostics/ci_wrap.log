@@ -11,24 +11,13 @@ Here are the highlights of this release:
 For more details see https://docs.gradle.org/9.7.1/release-notes.html
 
 Starting a Gradle Daemon (subsequent builds will be faster)
+> Task :wrapper
 
-FAILURE: Build failed with an exception.
-
-* What went wrong:
-Directory '/tmp/tmp.9BpJCrYGXj' does not contain a Gradle build.
-
-A Gradle build's root directory should contain one of the possible settings files: settings.gradle, settings.gradle.kts, settings.gradle.dcl. It may also contain one of the possible build files: build.gradle, build.gradle.kts, build.gradle.dcl.
-
-To create a new Gradle build in this directory run 'gradle init'
-
-For more information about the 'init' task, please refer to https://docs.gradle.org/9.7.1/userguide/build_init_plugin.html in the Gradle documentation.
-
-For more details on creating a Gradle build, please refer to https://docs.gradle.org/9.7.1/userguide/tutorial_using_tasks.html in the Gradle documentation.
-
-* Try:
-> Run gradle init to create a new Gradle build in this directory.
-> Run with --stacktrace option to get the stack trace.
-> Run with --info or --debug option to get more log output.
-> Get more help at https://help.gradle.org.
-
-BUILD FAILED in 7s
+BUILD SUCCESSFUL in 29s
+1 actionable task: 1 executed
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.7.1/userguide/configuration_cache_enabling.html
+total 60
+drwxr-xr-x 2 runner runner  4096 Sep 15 04:07 .
+drwxr-xr-x 3 runner runner  4096 Sep 15 04:07 ..
+-rw-r--r-- 1 runner runner 47505 Sep 15 04:07 gradle-wrapper.jar
+-rw-r--r-- 1 runner runner   282 Sep 15 04:07 gradle-wrapper.properties

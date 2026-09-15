@@ -1,4 +1,4 @@
-/// دورة حياة السنة الدراسية: إنشاء، إنهاء، ترقية، تصفير.
+/// دورة حياة السنة الدراسية: إنشاء، إنهاء، ترقية، تدوير مع إبقاء الأسماء، تصفير.
 library;
 
 import 'package:drift/drift.dart';
@@ -77,7 +77,7 @@ class YearsService {
           if (toClass == null) {
             continue;
           }
-          final int nextSeq = await _nextSeq(toYearId);
+          final int nextSeq = await db.nextSeqForYear(toYearId);
           final int newId = await db.into(db.students).insert(
                 StudentsCompanion(
                   yearId: Value(toYearId),
@@ -108,10 +108,57 @@ class YearsService {
         return n;
       });
 
-  Future<int> _nextSeq(int yearId) async {
-    final List<Student> existing =
-        await (db.select(db.students)..where((s) => s.yearId.equals(yearId))).get();
-    return existing.fold<int>(0, (int m, Student s) => s.seq > m ? s.seq : m) + 1;
+  /// «تصفير عداد الغيابات مع إبقاء أسماء التلاميذ»: سنة جديدة فعّالة + أرشفة
+  /// القديمة + نقل كل الطلاب لصفوف مطابقة الاسم (تُنشأ إن غابت) ببادجات جديدة.
+  Future<int> rolloverKeepNames({
+    required DateTime newStart,
+    required DateTime newEnd,
+  }) async {
+    final AcademicYear? cur = await db.activeYear();
+    if (cur == null) {
+      return 0;
+    }
+    final int newId = await createYear(
+      name: '${newStart.year}-${newStart.year + 1}',
+      start: newStart,
+      end: newEnd,
+      activate: true,
+    );
+    await closeYear(cur.id);
+    final List<SchoolClass> from = await (db.select(db.schoolClasses)
+          ..where((c) => c.yearId.equals(cur.id)))
+        .get();
+    final Map<int, int> mapping = <int, int>{};
+    for (final SchoolClass c in from) {
+      SchoolClass? to = await (db.select(db.schoolClasses)
+            ..where(
+              (x) =>
+                  x.yearId.equals(newId) &
+                  x.grade.equals(c.grade) &
+                  x.section.equals(c.section),
+            ))
+          .getSingleOrNull();
+      to ??= await db.into(db.schoolClasses).insertReturning(
+            SchoolClassesCompanion(
+              yearId: Value(newId),
+              grade: Value(c.grade),
+              section: Value(c.section),
+            ),
+          );
+      mapping[c.id] = to.id;
+    }
+    final String school = await db.setting('school_name') ?? '';
+    final String startKey = SchoolTime.dateKey(newStart);
+    final int yearShort = int.tryParse(startKey.substring(2, 4)) ?? 0;
+    final int n = await promote(
+      fromYearId: cur.id,
+      toYearId: newId,
+      mapping: mapping,
+      schoolName: school,
+      yearShort: yearShort,
+    );
+    await db.logAudit('year_rollover', 'from=${cur.id} to=$newId n=$n');
+    return n;
   }
 
   /// تصفير شامل: نسخة احتياطية إجبارية أولاً ثم مسح كل الجداول.

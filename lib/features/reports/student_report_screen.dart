@@ -4,16 +4,16 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/attendance_labels.dart';
 import '../../core/school_time.dart';
 import '../../data/db.dart';
 import '../../data/reports_service.dart';
 import '../../state/providers.dart';
-import 'reports_screen.dart';
 
 class StudentReportScreen extends ConsumerStatefulWidget {
-  const StudentReportScreen({super.key, required this.student});
+  const StudentReportScreen({super.key, required this.studentId});
 
-  final Student student;
+  final int studentId;
 
   @override
   ConsumerState<StudentReportScreen> createState() => _StudentReportState();
@@ -22,6 +22,7 @@ class StudentReportScreen extends ConsumerStatefulWidget {
 class _StudentReportState extends ConsumerState<StudentReportScreen> {
   late int _year;
   late int _month;
+  late Future<_ReportBundle> _bundle;
 
   @override
   void initState() {
@@ -29,39 +30,66 @@ class _StudentReportState extends ConsumerState<StudentReportScreen> {
     final DateTime now = DateTime.now();
     _year = now.year;
     _month = now.month;
+    _bundle = _loadBundle();
+  }
+
+  Future<_ReportBundle> _loadBundle() async {
+    final AppDb db = ref.read(dbProvider);
+    final Map<String, String> s = await db.effectiveSettings();
+    final List<Holiday> hs = await db.select(db.holidays).get();
+    return _ReportBundle(
+      weekdays: <int>{
+        for (final String w in (s['work_weekdays'] ?? '7,1,2,3,4').split(','))
+          int.tryParse(w) ?? 0,
+      },
+      holidays: <String>{for (final Holiday h in hs) h.date},
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final AppDb db = ref.watch(dbProvider);
-    final Student s = widget.student;
     return Scaffold(
-      appBar: AppBar(title: Text(s.fullName)),
-      body: StreamBuilder<AcademicYear?>(
-        stream: db.watchActiveYear(),
-        builder: (BuildContext context, AsyncSnapshot<AcademicYear?> ys) {
-          final AcademicYear? year = ys.data;
-          if (year == null) {
-            return const Center(child: Text('لا سنة فعّالة'));
+      appBar: AppBar(title: const Text('ملف الطالب')),
+      body: StreamBuilder<Student?>(
+        stream: (db.select(db.students)
+              ..where((s) => s.id.equals(widget.studentId)))
+            .watchSingleOrNull(),
+        builder: (BuildContext context, AsyncSnapshot<Student?> ss) {
+          final Student? s = ss.data;
+          if (ss.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
           }
-          final ReportsService reports = ReportsService(db);
-          return FutureBuilder<Map<String, String>>(
-            future: db.allSettings(),
-            builder: (BuildContext context, AsyncSnapshot<Map<String, String>> ss) {
-              final Set<int> weekdays = <int>{
-                for (final String w
-                    in (ss.data?['work_weekdays'] ?? '7,1,2,3,4').split(','))
-                  int.tryParse(w) ?? 0,
-              };
-              return FutureBuilder<List<Holiday>>(
-                future: db.select(db.holidays).get(),
-                builder: (BuildContext context, AsyncSnapshot<List<Holiday>> hs) {
-                  final Set<String> holidays = <String>{
-                    for (final Holiday h in hs.data ?? <Holiday>[]) h.date,
-                  };
+          if (s == null) {
+            return const Center(child: Text('الطالب غير موجود (ربما حُذف)'));
+          }
+          return StreamBuilder<AcademicYear?>(
+            stream: db.watchActiveYear(),
+            builder: (BuildContext context, AsyncSnapshot<AcademicYear?> ys) {
+              final AcademicYear? year = ys.data;
+              if (year == null) {
+                return const Center(child: Text('لا سنة فعّالة'));
+              }
+              final ReportsService reports = ReportsService(db);
+              return FutureBuilder<_ReportBundle>(
+                future: _bundle,
+                builder: (
+                  BuildContext context,
+                  AsyncSnapshot<_ReportBundle> bs,
+                ) {
+                  final _ReportBundle b = bs.data ?? const _ReportBundle();
                   return ListView(
                     padding: const EdgeInsets.all(12),
                     children: <Widget>[
+                      Text(
+                        s.fullName,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      Text(
+                        'رقم الطالب: ${s.seq}',
+                        textAlign: TextAlign.center,
+                      ),
                       _TotalsCard(reports: reports, student: s, yearId: year.id),
                       const SizedBox(height: 8),
                       Row(
@@ -102,22 +130,22 @@ class _StudentReportState extends ConsumerState<StudentReportScreen> {
                           yearId: year.id,
                           year: _year,
                           month: _month,
-                          workWeekdays: weekdays,
-                          holidayKeys: holidays,
+                          workWeekdays: b.weekdays,
+                          holidayKeys: b.holidays,
                         ),
                         builder: (
                           BuildContext context,
                           AsyncSnapshot<List<DayCell>> snap,
                         ) {
-                          final List<DayCell> cells = snap.data ?? <DayCell>[];
+                          final List<DayCell> cells =
+                              snap.data ?? <DayCell>[];
                           return Wrap(
                             spacing: 4,
                             runSpacing: 4,
                             children: <Widget>[
                               for (final DayCell c in cells)
                                 Tooltip(
-                                  message:
-                                      '${c.dateKey}: ${statusName(c.status)}',
+                                  message: '${c.dateKey}: ${statusName(c.status)}',
                                   child: Container(
                                     width: 34,
                                     height: 34,
@@ -152,6 +180,16 @@ class _StudentReportState extends ConsumerState<StudentReportScreen> {
       ),
     );
   }
+}
+
+class _ReportBundle {
+  const _ReportBundle({
+    this.weekdays = const <int>{7, 1, 2, 3, 4},
+    this.holidays = const <String>{},
+  });
+
+  final Set<int> weekdays;
+  final Set<String> holidays;
 }
 
 class _TotalsCard extends StatelessWidget {

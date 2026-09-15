@@ -95,17 +95,40 @@ class BadgePrint {
             pw.Container(
               padding: const pw.EdgeInsets.symmetric(vertical: 4, horizontal: 3),
               decoration: const pw.BoxDecoration(color: PdfColors.teal800),
-              child: pw.Column(
+              child: pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
                 children: <pw.Widget>[
-                  pw.Text(
-                    _t(s.schoolName),
-                    textAlign: pw.TextAlign.center,
-                    style: _style(7.5, bold: true).copyWith(color: PdfColors.white),
+                  pw.Container(
+                    width: 16,
+                    height: 16,
+                    decoration: pw.BoxDecoration(
+                      color: PdfColors.white,
+                      shape: pw.BoxShape.circle,
+                      border: pw.Border.all(color: PdfColors.amber800, width: 1.2),
+                    ),
+                    child: pw.Center(
+                      child: pw.Text(
+                        _t(s.schoolName.isEmpty ? 'م' : s.schoolName.trim()[0]),
+                        style: _style(8, bold: true).copyWith(color: PdfColors.teal800),
+                      ),
+                    ),
                   ),
-                  pw.Text(
-                    _t('المدير: ${s.directorName}'),
-                    textAlign: pw.TextAlign.center,
-                    style: _style(5).copyWith(color: PdfColors.teal50),
+                  pw.SizedBox(width: 3),
+                  pw.Expanded(
+                    child: pw.Column(
+                      children: <pw.Widget>[
+                        pw.Text(
+                          _t(s.schoolName),
+                          textAlign: pw.TextAlign.center,
+                          style: _style(7.5, bold: true).copyWith(color: PdfColors.white),
+                        ),
+                        pw.Text(
+                          _t('المدير: ${s.directorName}'),
+                          textAlign: pw.TextAlign.center,
+                          style: _style(5).copyWith(color: PdfColors.teal50),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -149,20 +172,31 @@ class BadgePrint {
                     pw.Text(_t(s.classLine), style: _style(6.5)),
                     pw.Text(_t(s.yearLine), style: _style(6)),
                     pw.Spacer(),
-                    pw.BarcodeWidget(
-                      barcode: Barcode.qrCode(),
-                      data: s.code,
-                      width: w * 0.30,
-                      height: w * 0.30,
+                    pw.Row(
+                      crossAxisAlignment: pw.CrossAxisAlignment.end,
+                      children: <pw.Widget>[
+                        pw.BarcodeWidget(
+                          barcode: Barcode.qrCode(),
+                          data: s.code,
+                          width: w * 0.28,
+                          height: w * 0.28,
+                        ),
+                        pw.Spacer(),
+                        pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.end,
+                          children: <pw.Widget>[
+                            pw.BarcodeWidget(
+                              barcode: Barcode.code128(),
+                              data: s.code,
+                              width: w * 0.52,
+                              height: 11,
+                            ),
+                            pw.SizedBox(height: 1),
+                            pw.Text(_t(s.seqLine), style: _style(5.5)),
+                          ],
+                        ),
+                      ],
                     ),
-                    pw.SizedBox(height: 2),
-                    pw.BarcodeWidget(
-                      barcode: Barcode.code128(),
-                      data: s.code,
-                      width: w * 0.82,
-                      height: 12,
-                    ),
-                    pw.Text(_t(s.seqLine), style: _style(5.5)),
                   ],
                 ),
               ),

@@ -4,8 +4,10 @@ library;
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:vibration/vibration.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../core/school_time.dart';
 import '../../data/db.dart';
@@ -30,15 +32,18 @@ class _ScanState extends ConsumerState<ScanScreen> {
   final List<ScanOutcome> _feed = <ScanOutcome>[];
   Session? _session;
   bool _loadingSession = true;
+  bool _noYear = false;
 
   @override
   void initState() {
     super.initState();
+    WakelockPlus.enable();
     _openSession();
   }
 
   @override
   void dispose() {
+    WakelockPlus.disable();
     _controller.dispose();
     super.dispose();
   }
@@ -47,12 +52,16 @@ class _ScanState extends ConsumerState<ScanScreen> {
     final AppDb db = ref.read(dbProvider);
     final AcademicYear? year = await db.activeYear();
     if (year == null) {
+      if (mounted) {
+        setState(() {
+          _noYear = true;
+          _loadingSession = false;
+        });
+      }
       return;
     }
     final String date = SchoolTime.dateKey(DateTime.now());
-    Session? session = await (db.select(db.sessions)
-          ..where((s) => s.classId.equals(widget.classId) & s.date.equals(date)))
-        .getSingleOrNull();
+    Session? session = await db.sessionOf(widget.classId, date);
     session ??= await db
         .into(db.sessions)
         .insertReturning(
@@ -92,7 +101,12 @@ class _ScanState extends ConsumerState<ScanScreen> {
         await Vibration.vibrate(duration: o.isSuccess ? 90 : 220);
       }
       if (mounted) {
-        setState(() => _feed.insert(0, o));
+        setState(() {
+          _feed.insert(0, o);
+          if (_feed.length > 200) {
+            _feed.removeRange(200, _feed.length);
+          }
+        });
       }
     }
   }
@@ -103,10 +117,17 @@ class _ScanState extends ConsumerState<ScanScreen> {
       return;
     }
     final AppDb db = ref.read(dbProvider);
-    final List<(Student, int?)> matrix = await _matrix(db, session);
+    final List<Student> roster = await (db.select(db.students)
+          ..where((s) => s.classId.equals(session.classId)))
+        .get();
+    final Map<int, int> status = <int, int>{
+      for (final AttendanceRow r
+          in await db.attendanceForClassDate(session.classId, session.date))
+        r.studentId: r.status,
+    };
     final List<Student> missing = <Student>[
-      for (final (Student s, int? st) in matrix)
-        if (st == null) s,
+      for (final Student s in roster)
+        if (!status.containsKey(s.id)) s,
     ];
     if (!mounted) {
       return;
@@ -142,20 +163,9 @@ class _ScanState extends ConsumerState<ScanScreen> {
       sessionId: session.id,
     );
     await db.logAudit('manual_present', pick.fullName);
-    setState(() {});
-  }
-
-  Future<List<(Student, int?)>> _matrix(AppDb db, Session session) async {
-    final List<Student> roster = await (db.select(db.students)
-          ..where((s) => s.classId.equals(session.classId)))
-        .get();
-    final Map<int, int> status = <int, int>{
-      for (final AttendanceRow r in await (db.select(db.attendanceRows)
-            ..where((a) => a.classId.equals(session.classId) & a.date.equals(session.date)))
-          .get())
-        r.studentId: r.status,
-    };
-    return <(Student, int?)>[for (final Student s in roster) (s, status[s.id])];
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _toggleClose() async {
@@ -165,8 +175,7 @@ class _ScanState extends ConsumerState<ScanScreen> {
     }
     final AppDb db = ref.read(dbProvider);
     if (session.closedAt == null) {
-      final List<(Student, int?)> matrix = await _matrix(db, session);
-      final int missing = matrix.where((e) => e.$2 == null).length;
+      final int missing = await _missingCount(db, session);
       if (!mounted) {
         return;
       }
@@ -201,10 +210,20 @@ class _ScanState extends ConsumerState<ScanScreen> {
     } else {
       await db.reopenSession(session.id);
     }
-    final Session refreshed = await (db.select(db.sessions)
-          ..where((s) => s.id.equals(session.id)))
-        .getSingle();
-    setState(() => _session = refreshed);
+    final Session? refreshed =
+        await db.sessionOf(session.classId, session.date);
+    if (mounted && refreshed != null) {
+      setState(() => _session = refreshed);
+    }
+  }
+
+  Future<int> _missingCount(AppDb db, Session session) async {
+    final List<Student> roster = await (db.select(db.students)
+          ..where((s) => s.classId.equals(session.classId)))
+        .get();
+    final int recorded =
+        await db.recordedCount(session.classId, session.date);
+    return roster.length - recorded;
   }
 
   @override
@@ -215,6 +234,14 @@ class _ScanState extends ConsumerState<ScanScreen> {
         title: Text('مسح ${widget.title}'),
         actions: <Widget>[
           IconButton(
+            tooltip: 'كشف اليوم',
+            icon: const Icon(Icons.fact_check),
+            onPressed: () => context.push(
+              '/day-sheet?class=${widget.classId}'
+              '&title=${Uri.encodeComponent(widget.title)}',
+            ),
+          ),
+          IconButton(
             tooltip: 'الفلاش',
             icon: const Icon(Icons.flashlight_on),
             onPressed: () => _controller.toggleTorch(),
@@ -223,67 +250,110 @@ class _ScanState extends ConsumerState<ScanScreen> {
       ),
       body: _loadingSession
           ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: <Widget>[
-                _Header(session: _session, classId: widget.classId, db: db),
-                Expanded(
-                  flex: 5,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: <Widget>[
-                      MobileScanner(controller: _controller, onDetect: _onDetect),
-                      if (_session?.closedAt != null)
-                        const ColoredBox(
-                          color: Color(0xAA000000),
-                          child: Center(
-                            child: Text(
-                              'الجلسة مقفلة — أعد فتحها لتسجيل قراءات',
-                              style: TextStyle(color: Colors.white, fontSize: 18),
-                              textAlign: TextAlign.center,
+          : _noYear
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Text(
+                      'لا توجد سنة دراسية فعّالة.\nأنشئ سنة أو فعّلها من شاشة السنوات.',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
+              : Column(
+                  children: <Widget>[
+                    _Header(session: _session, classId: widget.classId, db: db),
+                    Expanded(
+                      flex: 5,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: <Widget>[
+                          MobileScanner(
+                            controller: _controller,
+                            onDetect: _onDetect,
+                            errorBuilder: (
+                              BuildContext context,
+                              MobileScannerException error,
+                              Widget? child,
+                            ) =>
+                                Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    const Icon(Icons.no_photography, size: 48),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      error.errorCode.name == 'permissionDenied'
+                                          ? 'صلاحية الكاميرا مرفوضة — فعّلها من إعدادات أندرويد ثم أعد المحاولة'
+                                          : 'تعذر تشغيل الكاميرا: ${error.errorCode}',
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    FilledButton(
+                                      onPressed: () => _controller.start(),
+                                      child: const Text('إعادة المحاولة'),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  flex: 3,
-                  child: ListView.builder(
-                    itemCount: _feed.length,
-                    itemBuilder: (BuildContext context, int i) {
-                      final ScanOutcome o = _feed[i];
-                      return ListTile(
-                        dense: true,
-                        leading: Icon(
-                          o.isSuccess ? Icons.check_circle : Icons.error,
-                          color: o.isSuccess ? Colors.green : Colors.red,
-                        ),
-                        title: Text(o.message),
-                      );
-                    },
-                  ),
-                ),
-                SafeArea(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: <Widget>[
-                      FilledButton.icon(
-                        onPressed: _manual,
-                        icon: const Icon(Icons.edit),
-                        label: const Text('يدوي'),
+                          if (_session?.closedAt != null)
+                            const ColoredBox(
+                              color: Color(0xAA000000),
+                              child: Center(
+                                child: Text(
+                                  'الجلسة مقفلة — أعد فتحها لتسجيل قراءات',
+                                  style: TextStyle(color: Colors.white, fontSize: 18),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
-                      FilledButton.icon(
-                        onPressed: _toggleClose,
-                        icon: Icon(
-                          _session?.closedAt == null ? Icons.lock : Icons.lock_open,
-                        ),
-                        label: Text(_session?.closedAt == null ? 'إقفال اليوم' : 'إعادة فتح'),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: ListView.builder(
+                        itemCount: _feed.length,
+                        itemBuilder: (BuildContext context, int i) {
+                          final ScanOutcome o = _feed[i];
+                          return ListTile(
+                            dense: true,
+                            leading: Icon(
+                              o.isSuccess ? Icons.check_circle : Icons.error,
+                              color: o.isSuccess ? Colors.green : Colors.red,
+                            ),
+                            title: Text(o.message),
+                          );
+                        },
                       ),
-                    ],
-                  ),
+                    ),
+                    SafeArea(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: <Widget>[
+                          FilledButton.icon(
+                            onPressed: _manual,
+                            icon: const Icon(Icons.edit),
+                            label: const Text('يدوي'),
+                          ),
+                          FilledButton.icon(
+                            onPressed: _toggleClose,
+                            icon: Icon(
+                              _session?.closedAt == null ? Icons.lock : Icons.lock_open,
+                            ),
+                            label: Text(
+                              _session?.closedAt == null ? 'إقفال اليوم' : 'إعادة فتح',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
     );
   }
 }

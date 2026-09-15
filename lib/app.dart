@@ -1,10 +1,12 @@
-/// جذر التطبيق: سمة عربية RTL + راوتر.
+/// جذر التطبيق: سمة عربية RTL + تعريب المواد + راوتر بمسارات كاملة.
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'features/attendance/day_sheet_screen.dart';
 import 'features/badges/badges_screen.dart';
 import 'features/classes/classes_screen.dart';
 import 'features/export/export_screen.dart';
@@ -12,6 +14,7 @@ import 'features/home/home_screen.dart';
 import 'features/leaves/leaves_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'features/reports/reports_screen.dart';
+import 'features/reports/student_report_screen.dart';
 import 'features/scan/scan_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/students/students_screen.dart';
@@ -20,6 +23,8 @@ import 'state/providers.dart';
 
 final GoRouter router = GoRouter(
   initialLocation: '/',
+  errorBuilder: (BuildContext context, GoRouterState state) =>
+      _RouteErrorScreen(uri: state.uri.toString()),
   routes: <GoRoute>[
     GoRoute(path: '/', builder: (_, __) => const _SplashGate()),
     GoRoute(path: '/onboarding', builder: (_, __) => const OnboardingScreen()),
@@ -33,22 +38,36 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/students',
       builder: (_, GoRouterState st) => StudentsScreen(
-        classId: int.parse(st.uri.queryParameters['class'] ?? '0'),
+        classId: int.tryParse(st.uri.queryParameters['class'] ?? '') ?? 0,
         title: Uri.decodeComponent(st.uri.queryParameters['title'] ?? ''),
       ),
     ),
     GoRoute(
       path: '/badges',
       builder: (_, GoRouterState st) => BadgesScreen(
-        classId: int.parse(st.uri.queryParameters['class'] ?? '0'),
+        classId: int.tryParse(st.uri.queryParameters['class'] ?? '') ?? 0,
         title: Uri.decodeComponent(st.uri.queryParameters['title'] ?? ''),
       ),
     ),
     GoRoute(
       path: '/scan',
       builder: (_, GoRouterState st) => ScanScreen(
-        classId: int.parse(st.uri.queryParameters['class'] ?? '0'),
+        classId: int.tryParse(st.uri.queryParameters['class'] ?? '') ?? 0,
         title: Uri.decodeComponent(st.uri.queryParameters['title'] ?? ''),
+      ),
+    ),
+    GoRoute(
+      path: '/day-sheet',
+      builder: (_, GoRouterState st) => DaySheetScreen(
+        classId: int.tryParse(st.uri.queryParameters['class'] ?? '') ?? 0,
+        date: st.uri.queryParameters['date'] ?? '',
+        title: Uri.decodeComponent(st.uri.queryParameters['title'] ?? ''),
+      ),
+    ),
+    GoRoute(
+      path: '/student/:id',
+      builder: (_, GoRouterState st) => StudentReportScreen(
+        studentId: int.tryParse(st.pathParameters['id'] ?? '') ?? 0,
       ),
     ),
   ],
@@ -61,6 +80,13 @@ class StudentHodorApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) => MaterialApp.router(
         title: 'حضور الطالب',
         debugShowCheckedModeBanner: false,
+        locale: const Locale('ar'),
+        supportedLocales: const <Locale>[Locale('ar'), Locale('en')],
+        localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
         theme: ThemeData(
           useMaterial3: true,
           fontFamily: 'Tajawal',
@@ -68,8 +94,10 @@ class StudentHodorApp extends ConsumerWidget {
           scaffoldBackgroundColor: const Color(0xFFF6F8F7),
         ),
         // فرض الاتجاه RTL لكل الشاشات بدون اعتماد ترجمة المواد.
-        builder: (BuildContext context, Widget? child) =>
-            Directionality(textDirection: TextDirection.rtl, child: child!),
+        builder: (BuildContext context, Widget? child) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: child ?? const SizedBox.shrink(),
+        ),
         routerConfig: router,
       );
 }
@@ -100,4 +128,35 @@ class _SplashGate extends ConsumerWidget {
       },
     );
   }
+}
+
+/// صفحة خطأ موحّدة للمسارات غير الموجودة بدل ودجت الخطأ الخام.
+class _RouteErrorScreen extends StatelessWidget {
+  const _RouteErrorScreen({required this.uri});
+
+  final String uri;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('صفحة غير موجودة')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                const Icon(Icons.explore_off, size: 64),
+                const SizedBox(height: 12),
+                Text('لا يوجد مسار للعنوان: $uri'),
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  onPressed: () => context.go('/home'),
+                  icon: const Icon(Icons.home),
+                  label: const Text('العودة للرئيسة'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
 }

@@ -4,14 +4,19 @@
 /// - كل تاريخ يُخزّن كمفتاح نصي ISO (yyyy-MM-dd) قابل للفهرسة والمقارنة.
 /// - قيود فريدة تمنع التكرار المنطقي (طالب/تاريخ، جلسة/صف/تاريخ، رمز باج).
 /// - إقفال اليوم عملية ذرّية (transaction): الغياب يُشتق ممن لم يُمسح.
+/// - التسلسل (`seq`) فريد على مستوى **السنة الدراسية كلها** (لا الصف) لأنه يدخل
+///   في رمز الباج الفريد؛ مصدره الوحيد [AppDb.nextSeqForYear] داخل معاملة.
 library;
 
 import 'dart:io';
+import 'dart:math';
 
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+
+import '../core/badge_code.dart';
 
 part 'db.g.dart';
 
@@ -42,6 +47,7 @@ class ScanResult {
   static const int wrongClass = 4;
   static const int wrongYear = 5;
   static const int sessionClosed = 6;
+  static const int late = 7;
 }
 
 class Settings extends Table {
@@ -194,18 +200,59 @@ class AppDb extends _$AppDb {
 
   AppDb.forTesting(super.e);
 
+  /// الإصدار 2: فهارس على الأعمدة الساخنة (لا تغيير جداول ⇒ لا فقد بيانات).
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (Migrator m) async => m.createAll(),
+        onCreate: (Migrator m) async {
+          await m.createAll();
+          await _ensureIndexes();
+        },
         onUpgrade: (Migrator m, int from, int to) async {
-          // هجرات مرقّمة تُضاف هنا مع كل تغيير مخطط (إصدار 2 فصاعداً).
+          // هجرات مرقّمة تُضاف هنا مع كل تغيير مخطط.
+          if (from < 2) {
+            await _ensureIndexes();
+          }
         },
       );
 
+  Future<void> _ensureIndexes() async {
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance_rows (date)',
+    );
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_attendance_class_date '
+      'ON attendance_rows (class_id, date)',
+    );
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_attendance_student '
+      'ON attendance_rows (student_id)',
+    );
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_leaves_student ON leaves (student_id)',
+    );
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_scan_session ON scan_events (session_id)',
+    );
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_students_year_class '
+      'ON students (year_id, class_id)',
+    );
+  }
+
   // ---------- إعدادات ----------
+
+  /// قيم افتراضية تُدمج عند القراءة فلا تعتمد شاشة على وجود مفتاح مسبق.
+  static const Map<String, String> settingDefaults = <String, String>{
+    'work_weekdays': '7,1,2,3,4',
+    'show_hijri': '1',
+    'alert_threshold_1': '10',
+    'alert_threshold_2': '15',
+    'day_start': '08:00',
+    'late_after_minutes': '15',
+  };
 
   Future<String?> setting(String key) async =>
       (await (select(settings)..where((s) => s.key.equals(key))).getSingleOrNull())
@@ -220,6 +267,10 @@ class AppDb extends _$AppDb {
         for (final Setting s in await select(settings).get()) s.key: s.value,
       };
 
+  /// الإعدادات المخزّنة فوق القيم الافتراضية — ما تستخدمه الشاشات دائماً.
+  Future<Map<String, String>> effectiveSettings() async =>
+      <String, String>{...settingDefaults, ...await allSettings()};
+
   // ---------- سنوات ----------
 
   Stream<AcademicYear?> watchActiveYear() =>
@@ -231,7 +282,171 @@ class AppDb extends _$AppDb {
       (select(academicYears)..where((y) => y.active.equals(true) & y.closed.equals(false)))
           .getSingleOrNull();
 
-  // ---------- حضور ----------
+  Future<AcademicYear?> yearById(int id) =>
+      (select(academicYears)..where((y) => y.id.equals(id))).getSingleOrNull();
+
+  // ---------- طلاب وصفوف ----------
+
+  Future<Student?> studentById(int id) =>
+      (select(students)..where((s) => s.id.equals(id))).getSingleOrNull();
+
+  /// التسلسل الفريد التالي على مستوى **السنة** (لا الصف) — يدخل في رمز الباج
+  /// وفي القيد الفريد (yearId, seq)، لذا مصدره هنا وحده وداخل معاملة.
+  Future<int> nextSeqForYear(int yearId) async {
+    final List<Student> all =
+        await (select(students)..where((s) => s.yearId.equals(yearId))).get();
+    return all.fold<int>(0, (int m, Student t) => t.seq > m ? t.seq : m) + 1;
+  }
+
+  /// هوية مستقرة للطالب عبر السنوات: مولّدة مرة واحدة ولا تعتمد على الاسم.
+  static String makePersonKey() {
+    final int t = DateTime.now().microsecondsSinceEpoch;
+    final int r = _rng.nextInt(1 << 30);
+    return 'PK-${t.toRadixString(36)}-${r.toRadixString(36).toUpperCase()}';
+  }
+
+  static final Random _rng = Random();
+
+  /// إضافة طالب + باجه الأول بعملية ذرّية واحدة (تسلسل سنة فريد + رمز فريد).
+  Future<int> addStudent({
+    required int yearId,
+    required int classId,
+    required String fullName,
+    String? photoPath,
+  }) async =>
+      transaction<int>(() async {
+        final int seq = await nextSeqForYear(yearId);
+        final int id = await into(students).insert(
+          StudentsCompanion(
+            yearId: Value(yearId),
+            classId: Value(classId),
+            fullName: Value(fullName),
+            personKey: Value(makePersonKey()),
+            seq: Value(seq),
+            photoPath: Value(photoPath),
+            createdAt: Value(DateTime.now().toIso8601String()),
+          ),
+        );
+        final String school = await setting('school_name') ?? '';
+        final AcademicYear? y = await yearById(yearId);
+        final int yearShort =
+            y == null ? 0 : (int.tryParse(y.start.substring(2, 4)) ?? 0);
+        await into(badges).insert(
+          BadgesCompanion(
+            studentId: Value(id),
+            code: Value(
+              BadgeCode.make(
+                schoolName: school,
+                sequence: seq,
+                yearShort: yearShort,
+              ),
+            ),
+            issuedAt: Value(DateTime.now().toIso8601String()),
+          ),
+        );
+        await logAudit('student_add', fullName);
+        return id;
+      });
+
+  /// حذف طالب وكل ما يرتبط به (باجات/حضور/إجازات/أحداث مسح) بمعاملة واحدة.
+  Future<void> deleteStudent(int id) async => transaction<void>(() async {
+        await (delete(scanEvents)..where((e) => e.studentId.equals(id))).go();
+        await (delete(attendanceRows)..where((a) => a.studentId.equals(id))).go();
+        await (delete(leaves)..where((l) => l.studentId.equals(id))).go();
+        await (delete(badges)..where((b) => b.studentId.equals(id))).go();
+        await (delete(students)..where((s) => s.id.equals(id))).go();
+        await logAudit('student_delete', 'id=$id');
+      });
+
+  Future<int> countStudentsInClass(int classId) async {
+    final List<Student> kids =
+        await (select(students)..where((s) => s.classId.equals(classId))).get();
+    return kids.length;
+  }
+
+  /// حذف صف فارغ فقط (تفرضه الشاشة) مع جلساته.
+  Future<void> deleteClass(int classId) async => transaction<void>(() async {
+        await (delete(sessions)..where((s) => s.classId.equals(classId))).go();
+        await (delete(schoolClasses)..where((c) => c.id.equals(classId))).go();
+        await logAudit('class_delete', 'id=$classId');
+      });
+
+  // ---------- بادجات ----------
+
+  Future<Badge?> activeBadgeOf(int studentId) =>
+      (select(badges)
+            ..where((b) => b.studentId.equals(studentId) & b.status.equals(0)))
+          .getSingleOrNull();
+
+  /// بدل فاقد: إبطال الباج الفعال وإصدار باجر برمز مختلف (نسخة أعلى).
+  Future<Badge?> reissueBadge(int studentId) async =>
+      transaction<Badge?>(() async {
+        final Student? st = await studentById(studentId);
+        if (st == null) {
+          return null;
+        }
+        final Badge? old = await activeBadgeOf(studentId);
+        final int version = (old?.version ?? 0) + 1;
+        if (old != null) {
+          await (update(badges)..where((b) => b.id.equals(old.id))).write(
+            const BadgesCompanion(status: Value(1)),
+          );
+        }
+        final String school = await setting('school_name') ?? '';
+        final AcademicYear? y = await yearById(st.yearId);
+        final int yearShort =
+            y == null ? 0 : (int.tryParse(y.start.substring(2, 4)) ?? 0);
+        final Badge row = await into(badges).insertReturning(
+          BadgesCompanion(
+            studentId: Value(studentId),
+            code: Value(
+              BadgeCode.make(
+                schoolName: school,
+                sequence: st.seq,
+                yearShort: yearShort,
+                version: version,
+              ),
+            ),
+            version: Value(version),
+            issuedAt: Value(DateTime.now().toIso8601String()),
+          ),
+        );
+        await logAudit('badge_reissue', 'student=$studentId v=$version');
+        return row;
+      });
+
+  // ---------- جلسات وحضور ----------
+
+  Future<Session?> sessionOf(int classId, String date) =>
+      (select(sessions)
+            ..where((s) => s.classId.equals(classId) & s.date.equals(date)))
+          .getSingleOrNull();
+
+  Stream<Session?> watchSession(int classId, String date) =>
+      (select(sessions)
+            ..where((s) => s.classId.equals(classId) & s.date.equals(date)))
+          .watchSingleOrNull();
+
+  Future<List<AttendanceRow>> attendanceForClassDate(
+    int classId,
+    String date,
+  ) async =>
+      (select(attendanceRows)
+            ..where((a) => a.classId.equals(classId) & a.date.equals(date)))
+          .get();
+
+  /// عدد الطلاب المسجَّلين (حاضر/متأخر/إجازة) ليوم صف — لعرض «المتبقي».
+  Future<int> recordedCount(int classId, String date) async {
+    final List<AttendanceRow> rows = await attendanceForClassDate(classId, date);
+    return rows
+        .where(
+          (AttendanceRow r) =>
+              r.status == AttendanceStatus.present ||
+              r.status == AttendanceStatus.late ||
+              r.status == AttendanceStatus.leave,
+        )
+        .length;
+  }
 
   Future<AttendanceRow?> attendanceOf(int studentId, String date) async =>
       (select(attendanceRows)
@@ -239,6 +454,9 @@ class AppDb extends _$AppDb {
           .getSingleOrNull();
 
   /// تسجيل/تحديث حالة حضور لطالب في تاريخ (idempotent).
+  ///
+  /// ملاحظة: `insertOnConflictUpdate` يستهدف القيد الفريد الأساسي (id) فقط،
+  /// لذا يُنفَّذ الإدراج أو التحديث صراحةً وفق القيد الفريد (studentId, date).
   Future<void> upsertAttendance({
     required int yearId,
     required int classId,
@@ -248,10 +466,11 @@ class AppDb extends _$AppDb {
     required int source,
     int? sessionId,
     String? note,
-  }) async =>
-      into(attendanceRows).insertOnConflictUpdate(
+  }) async {
+    final AttendanceRow? existing = await attendanceOf(studentId, date);
+    if (existing == null) {
+      await into(attendanceRows).insert(
         AttendanceRowsCompanion(
-          id: const Value.absent(),
           yearId: Value(yearId),
           classId: Value(classId),
           studentId: Value(studentId),
@@ -262,14 +481,89 @@ class AppDb extends _$AppDb {
           note: Value(note),
         ),
       );
-
-  Future<bool> isOnLeave(int studentId, String date) async {
-    final List<Leave> covering =
-        await (select(leaves)..where((l) => l.studentId.equals(studentId))).get();
-    return covering.any(
-      (Leave l) => l.start.compareTo(date) <= 0 && l.end.compareTo(date) >= 0,
+      return;
+    }
+    await (update(attendanceRows)..where((a) => a.id.equals(existing.id))).write(
+      AttendanceRowsCompanion(
+        yearId: Value(yearId),
+        classId: Value(classId),
+        status: Value(status),
+        source: Value(source),
+        sessionId: Value(sessionId),
+        note: Value(note),
+      ),
     );
   }
+
+  /// هل يغطي الطالبَ إجازةٌ في هذا التاريخ؟ (فلترة SQL لا تحميل الذاكرة).
+  Future<bool> isOnLeave(int studentId, String date) async =>
+      (await (select(leaves)
+                ..where(
+                  (l) =>
+                      l.studentId.equals(studentId) &
+                      l.start.isSmallerOrEqualValue(date) &
+                      l.end.isBiggerOrEqualValue(date),
+                ))
+              .get())
+          .isNotEmpty;
+
+  /// مزامنة إجازة مع سجلات الحضور المولّدة تلقائياً داخل نطاقها:
+  /// إضافة ⇒ الغياب التلقائي يصبح إجازة؛ حذف ⇒ يعود غياباً إن لم تغطّه إجازة أخرى.
+  Future<int> syncLeaveToAttendance({
+    required int studentId,
+    required String start,
+    required String end,
+    required bool added,
+  }) async =>
+      transaction<int>(() async {
+        final Student? st = await studentById(studentId);
+        if (st == null) {
+          return 0;
+        }
+        final List<AttendanceRow> rows = await (select(attendanceRows)
+              ..where(
+                (a) =>
+                    a.studentId.equals(studentId) &
+                    a.date.isBiggerOrEqualValue(start) &
+                    a.date.isSmallerOrEqualValue(end),
+              ))
+            .get();
+        int changed = 0;
+        for (final AttendanceRow r in rows) {
+          if (r.source != AttendanceSource.autoClose) {
+            continue; // لا نلمس ما سجّله بشر يدوياً أو بالمسح
+          }
+          if (added && r.status == AttendanceStatus.absent) {
+            await upsertAttendance(
+              yearId: r.yearId,
+              classId: r.classId,
+              studentId: r.studentId,
+              date: r.date,
+              status: AttendanceStatus.leave,
+              source: AttendanceSource.autoClose,
+              sessionId: r.sessionId,
+              note: 'leave-sync',
+            );
+            changed++;
+          } else if (!added && r.status == AttendanceStatus.leave) {
+            final bool stillCovered = await isOnLeave(studentId, r.date);
+            if (!stillCovered) {
+              await upsertAttendance(
+                yearId: r.yearId,
+                classId: r.classId,
+                studentId: r.studentId,
+                date: r.date,
+                status: AttendanceStatus.absent,
+                source: AttendanceSource.autoClose,
+                sessionId: r.sessionId,
+                note: null,
+              );
+              changed++;
+            }
+          }
+        }
+        return changed;
+      });
 
   /// إقفال جلسة اليوم: كل طالب بلا تسجيل وبلا إجازة => غائب. عملية ذرّية.
   /// يعيد عدد سجلات الغياب المولّدة.

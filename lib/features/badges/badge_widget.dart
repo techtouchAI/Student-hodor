@@ -1,6 +1,9 @@
-/// عرض الباج على الشاشة (معاينة قبل الطباعة).
+/// عرض الباج على الشاشة بمطابقة النموذج البصري (docs/badge-concept-front.png):
+/// ترويسة متدرجة مع ختم دائري، شريط ذهبي، نقش guilloche خفيف، صورة مؤطرة،
+/// اسم الطالب وصفه وعامه، ثم QR + Code128 + رقم الطالب.
 library;
 
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:barcode/barcode.dart';
@@ -55,53 +58,86 @@ class BadgeWidget extends StatelessWidget {
                 end: Alignment.bottomCenter,
               ),
             ),
-            child: Column(
+            child: Row(
               children: <Widget>[
-                Text(
-                  spec.schoolName,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: width * 0.062,
+                _Emblem(size: width * 0.16),
+                SizedBox(width: width * 0.03),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        spec.schoolName,
+                        textAlign: TextAlign.start,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: width * 0.062,
+                        ),
+                      ),
+                      SizedBox(height: width * 0.008),
+                      Text(
+                        'المدير: ${spec.directorName}',
+                        textAlign: TextAlign.start,
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: width * 0.040,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                SizedBox(height: width * 0.012),
-                Text(
-                  'المدير: ${spec.directorName}',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white70, fontSize: width * 0.042),
                 ),
               ],
             ),
           ),
           Container(height: width * 0.02, color: BadgePalette.gold),
           Expanded(
-            child: Padding(
-              padding: EdgeInsets.all(width * 0.05),
-              child: Column(
-                children: <Widget>[
-                  _photo(width),
-                  SizedBox(height: width * 0.03),
-                  Text(
-                    spec.studentName,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: nameStyle,
-                  ),
-                  SizedBox(height: width * 0.015),
-                  Text(spec.classLine, style: lineStyle),
-                  Text(spec.yearLine, style: lineStyle),
-                  const Spacer(),
-                  _QrView(data: spec.code, size: width * 0.30),
-                  SizedBox(height: width * 0.02),
-                  _Code128View(data: spec.code, width: width * 0.8, height: width * 0.11),
-                  Text(
-                    spec.seqLine,
-                    style: TextStyle(fontSize: width * 0.045, color: BadgePalette.ink),
-                  ),
-                ],
+            child: CustomPaint(
+              painter: _GuillochePainter(),
+              child: Padding(
+                padding: EdgeInsets.all(width * 0.05),
+                child: Column(
+                  children: <Widget>[
+                    _photo(width),
+                    SizedBox(height: width * 0.03),
+                    Text(
+                      spec.studentName,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: nameStyle,
+                    ),
+                    SizedBox(height: width * 0.015),
+                    Text(spec.classLine, style: lineStyle),
+                    Text(spec.yearLine, style: lineStyle),
+                    const Spacer(),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: <Widget>[
+                        _QrView(data: spec.code, size: width * 0.28),
+                        const Spacer(),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: <Widget>[
+                            _Code128View(
+                              data: spec.code,
+                              width: width * 0.52,
+                              height: width * 0.10,
+                            ),
+                            SizedBox(height: width * 0.012),
+                            Text(
+                              spec.seqLine,
+                              style: TextStyle(
+                                fontSize: width * 0.045,
+                                color: BadgePalette.ink,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -118,8 +154,8 @@ class BadgeWidget extends StatelessWidget {
         height: w * 0.42,
         decoration: BoxDecoration(
           color: const Color(0xFFE3EDEA),
-          borderRadius: BorderRadius.circular(w * 0.03),
-          border: Border.all(color: BadgePalette.header),
+          borderRadius: BorderRadius.circular(w * 0.05),
+          border: Border.all(color: BadgePalette.header, width: 1.4),
         ),
         child: Icon(Icons.person, size: w * 0.2, color: BadgePalette.header),
       );
@@ -128,8 +164,8 @@ class BadgeWidget extends StatelessWidget {
       width: w * 0.34,
       height: w * 0.42,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(w * 0.03),
-        border: Border.all(color: BadgePalette.header),
+        borderRadius: BorderRadius.circular(w * 0.05),
+        border: Border.all(color: BadgePalette.header, width: 1.4),
         image: DecorationImage(
           image: MemoryImage(Uint8List.fromList(bytes)),
           fit: BoxFit.cover,
@@ -137,6 +173,89 @@ class BadgeWidget extends StatelessWidget {
       ),
     );
   }
+}
+
+/// ختم دائري مبسّط: حلقة ذهبية، قرص أبيض، درع أخضر بنجمة.
+class _Emblem extends StatelessWidget {
+  const _Emblem({required this.size});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => CustomPaint(
+        size: Size.square(size),
+        painter: _EmblemPainter(),
+      );
+}
+
+class _EmblemPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Offset c = size.center(Offset.zero);
+    final double r = size.width / 2;
+    canvas.drawCircle(
+      c,
+      r,
+      Paint()..color = BadgePalette.gold,
+    );
+    canvas.drawCircle(c, r * 0.88, Paint()..color = Colors.white);
+    canvas.drawCircle(c, r * 0.74, Paint()..color = BadgePalette.header);
+    final Path shield = Path()
+      ..moveTo(c.dx, c.dy - r * 0.42)
+      ..lineTo(c.dx + r * 0.34, c.dy - r * 0.18)
+      ..lineTo(c.dx + r * 0.30, c.dy + r * 0.26)
+      ..lineTo(c.dx, c.dy + r * 0.46)
+      ..lineTo(c.dx - r * 0.30, c.dy + r * 0.26)
+      ..lineTo(c.dx - r * 0.34, c.dy - r * 0.18)
+      ..close();
+    canvas.drawPath(shield, Paint()..color = Colors.white);
+    final Path star = Path();
+    final double sr = r * 0.18;
+    for (int i = 0; i < 10; i++) {
+      final double rad = i.isEven ? sr : sr * 0.45;
+      final double a = -math.pi / 2 + i * math.pi / 5;
+      final Offset p =
+          Offset(c.dx + rad * math.cos(a), c.dy + rad * math.sin(a));
+      if (i == 0) {
+        star.moveTo(p.dx, p.dy);
+      } else {
+        star.lineTo(p.dx, p.dy);
+      }
+    }
+    star.close();
+    canvas.drawPath(star, Paint()..color = BadgePalette.header);
+  }
+
+  @override
+  bool shouldRepaint(_EmblemPainter oldDelegate) => false;
+}
+
+/// نقش guilloche خفيف (حلقات إهليلجية دوّارة) كعلامة مائية.
+class _GuillochePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Paint stroke = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.6
+      ..color = BadgePalette.header.withValues(alpha: 0.10);
+    final Offset c = size.center(Offset.zero);
+    final Rect base = Rect.fromCenter(
+      center: c,
+      width: size.width * 0.9,
+      height: size.width * 0.42,
+    );
+    for (int i = 0; i < 14; i++) {
+      canvas.save();
+      canvas.translate(c.dx, c.dy);
+      canvas.rotate(i * math.pi / 14);
+      canvas.translate(-c.dx, -c.dy);
+      canvas.drawOval(base, stroke);
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(_GuillochePainter oldDelegate) => false;
 }
 
 class _QrView extends StatelessWidget {

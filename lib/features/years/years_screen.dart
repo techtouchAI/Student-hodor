@@ -4,6 +4,7 @@ library;
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/school_time.dart';
 import '../../data/db.dart';
@@ -194,6 +195,7 @@ class YearsScreen extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 DropdownButtonFormField<AcademicYear>(
+                  key: ValueKey<AcademicYear>(to),
                   initialValue: to,
                   items: <DropdownMenuItem<AcademicYear>>[
                     for (final AcademicYear y in open)
@@ -222,6 +224,7 @@ class YearsScreen extends ConsumerWidget {
                       children: <Widget>[
                         for (final SchoolClass c in fromClasses)
                           DropdownButtonFormField<int?>(
+                            key: ValueKey<int?>(mapping[c.id]),
                             initialValue: mapping[c.id],
                             decoration: InputDecoration(
                               labelText: '${c.grade} ـ ${c.section} ←',
@@ -303,11 +306,15 @@ class YearsScreen extends ConsumerWidget {
     }
     final String backup = await YearsService(ref.read(dbProvider)).resetAll();
     ref.invalidate(settingsProvider);
+    ref.invalidate(effectiveSettingsProvider);
     ref.invalidate(currentYearProvider);
+    ref.invalidate(yearEndedProvider);
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('تم التصفير. النسخة الاحتياطية: $backup')),
       );
+      // لا بيانات بعد التصفير: العودة للإعداد الأولي.
+      context.go('/onboarding');
     }
   }
 

@@ -1,4 +1,5 @@
-/// شاشة التصدير: Excel/PDF، اختيار صفوف وأشهر (أو الكل)، ثم مشاركة/طباعة.
+/// شاشة التصدير: Excel/PDF، اختيار صفوف وأشهر السنة الدراسية (أو الكل)،
+/// خيارات محتوى (تفاصيل يومية/ملخص/إجازات)، ثم مشاركة/طباعة.
 library;
 
 import 'dart:io';
@@ -29,9 +30,15 @@ class ExportScreen extends ConsumerStatefulWidget {
 class _ExportState extends ConsumerState<ExportScreen> {
   ExportFormat _format = ExportFormat.excel;
   final Set<int> _classIds = <int>{};
-  final Set<int> _months = <int>{};
+  final Set<String> _monthKeys = <String>{};
   bool _allMonths = false;
+  bool _includeDaily = true;
+  bool _includeSummary = true;
+  bool _includeLeaves = true;
   bool _busy = false;
+
+  List<MonthKey> _monthsOf(AcademicYear year) =>
+      SchoolTime.monthsBetweenKeys(year.start, year.end);
 
   Future<void> _generate() async {
     setState(() => _busy = true);
@@ -39,9 +46,14 @@ class _ExportState extends ConsumerState<ExportScreen> {
       final AppDb db = ref.read(dbProvider);
       final AcademicYear? year = await db.activeYear();
       if (year == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('لا توجد سنة فعّالة للتصدير')),
+          );
+        }
         return;
       }
-      final Map<String, String> settings = await db.allSettings();
+      final Map<String, String> settings = await db.effectiveSettings();
       final Set<int> weekdays = <int>{
         for (final String w in (settings['work_weekdays'] ?? '7,1,2,3,4').split(','))
           int.tryParse(w) ?? 0,
@@ -55,6 +67,14 @@ class _ExportState extends ConsumerState<ExportScreen> {
       final List<SchoolClass> chosen = _classIds.isEmpty
           ? allClasses
           : allClasses.where((SchoolClass c) => _classIds.contains(c.id)).toList();
+      if (chosen.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('لا صفوف للتصدير — أضف صفوفاً أولاً')),
+          );
+        }
+        return;
+      }
       final List<ExportScopeClass> scope = <ExportScopeClass>[];
       for (final SchoolClass c in chosen) {
         final List<Student> students = await (db.select(db.students)
@@ -65,10 +85,20 @@ class _ExportState extends ConsumerState<ExportScreen> {
             .get();
         scope.add(ExportScopeClass(c, students));
       }
-      final List<int> months = _allMonths
+      final List<MonthKey> months = _allMonths
           ? _monthsOf(year)
-          : (_months.isEmpty ? <int>[DateTime.now().month] : _months.toList()..sort());
-      final int yearNumber = int.tryParse(year.start.substring(0, 4)) ?? DateTime.now().year;
+          : <MonthKey>[
+              for (final MonthKey m in _monthsOf(year))
+                if (_monthKeys.contains(m.key)) m,
+            ];
+      if (months.isEmpty && _includeDaily) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('اختر شهراً واحداً على الأقل')),
+          );
+        }
+        return;
+      }
       if (_format == ExportFormat.excel) {
         final ExcelBuilder builder = ExcelBuilder(
           db: db,
@@ -76,11 +106,13 @@ class _ExportState extends ConsumerState<ExportScreen> {
           schoolName: settings['school_name'] ?? '',
           directorName: settings['director_name'] ?? '',
           year: year,
-          yearNumber: yearNumber,
           months: months,
           classes: scope,
           workWeekdays: weekdays,
           holidayKeys: holidays,
+          includeDaily: _includeDaily,
+          includeSummary: _includeSummary,
+          includeLeaves: _includeLeaves,
         );
         final List<int> bytes = await builder.build();
         final Directory tmp = Directory.systemTemp;
@@ -102,35 +134,27 @@ class _ExportState extends ConsumerState<ExportScreen> {
           schoolName: settings['school_name'] ?? '',
           directorName: settings['director_name'] ?? '',
           year: year,
-          yearNumber: yearNumber,
           months: months,
           classes: scope,
           workWeekdays: weekdays,
           holidayKeys: holidays,
           font: regular,
           fontBold: bold,
+          includeDaily: _includeDaily,
+          includeSummary: _includeSummary,
         );
         await report.layout();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('تعذر التصدير: $e')));
       }
     } finally {
       if (mounted) {
         setState(() => _busy = false);
       }
     }
-  }
-
-  List<int> _monthsOf(AcademicYear year) {
-    final DateTime s = SchoolTime.parseKey(year.start);
-    final DateTime e = SchoolTime.parseKey(year.end);
-    final List<int> out = <int>[];
-    DateTime d = DateTime(s.year, s.month);
-    while (!d.isAfter(DateTime(e.year, e.month))) {
-      if (!out.contains(d.month)) {
-        out.add(d.month);
-      }
-      d = DateTime(d.year, d.month + 1);
-    }
-    return out;
   }
 
   @override
@@ -145,6 +169,7 @@ class _ExportState extends ConsumerState<ExportScreen> {
           if (year == null) {
             return const Center(child: Text('لا سنة فعّالة'));
           }
+          final List<MonthKey> yearMonths = _monthsOf(year);
           return ListView(
             padding: const EdgeInsets.all(16),
             children: <Widget>[
@@ -201,23 +226,41 @@ class _ExportState extends ConsumerState<ExportScreen> {
                 Wrap(
                   spacing: 6,
                   children: <Widget>[
-                    for (int m = 1; m <= 12; m++)
+                    for (final MonthKey m in yearMonths)
                       FilterChip(
-                        label: Text(SchoolTime.monthNames[m - 1]),
-                        selected: _months.contains(m),
+                        label: Text(m.label),
+                        selected: _monthKeys.contains(m.key),
                         onSelected: (bool v) => setState(() {
                           if (v) {
-                            _months.add(m);
+                            _monthKeys.add(m.key);
                           } else {
-                            _months.remove(m);
+                            _monthKeys.remove(m.key);
                           }
                         }),
                       ),
                   ],
                 ),
+              const SizedBox(height: 12),
+              const Text('محتوى الملف:'),
+              SwitchListTile(
+                value: _includeDaily,
+                title: const Text('جداول الأيام الملوّنة (شهرياً)'),
+                onChanged: (bool v) => setState(() => _includeDaily = v),
+              ),
+              SwitchListTile(
+                value: _includeSummary,
+                title: const Text('ملخّص السنة لكل طالب'),
+                onChanged: (bool v) => setState(() => _includeSummary = v),
+              ),
+              if (_format == ExportFormat.excel)
+                SwitchListTile(
+                  value: _includeLeaves,
+                  title: const Text('ورقة الإجازات'),
+                  onChanged: (bool v) => setState(() => _includeLeaves = v),
+                ),
               const SizedBox(height: 20),
               FilledButton.icon(
-                onPressed: _busy ? null : _generate,
+                onPressed: _busy || (!includeAnything) ? null : _generate,
                 icon: const Icon(Icons.download),
                 label: Text(_busy ? 'جارٍ التوليد…' : 'توليد ومشاركة'),
               ),
@@ -227,4 +270,9 @@ class _ExportState extends ConsumerState<ExportScreen> {
       ),
     );
   }
+
+  bool get includeAnything =>
+      _includeDaily ||
+      _includeSummary ||
+      (_format == ExportFormat.excel && _includeLeaves);
 }

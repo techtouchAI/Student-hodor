@@ -13,9 +13,6 @@ android/.gradle/
 android/local.properties
 android/app/.cxx/
 android/captures/
-android/gradlew
-android/gradlew.bat
-android/gradle/wrapper/gradle-wrapper.jar
 *.jks
 !tools/keystore/student_hodor.jks
 

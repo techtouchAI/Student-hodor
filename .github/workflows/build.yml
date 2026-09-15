@@ -17,31 +17,22 @@ jobs:
     name: Build & publish release APK
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 17
+          # تخزين تلقائي لـ ~/.gradle/caches و ~/.gradle/wrapper بين التشغيلات
+          cache: gradle
 
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
-      # أهم خطوة لتسريع البناء: تخزين تبعيات Gradle وتوزيعته بين التشغيلات
-      - name: Cache Gradle dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('android/**/*.gradle*', 'android/gradle.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
       - name: Cache pub dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.pub-cache
           key: ${{ runner.os }}-pub-${{ hashFiles('pubspec.yaml') }}
@@ -61,23 +52,10 @@ jobs:
       - name: Test
         run: flutter test
 
-      # Wrapper غير مودَع في المستودع، نولّده مرة واحدة فقط إن لم يكن موجوداً
-      - name: Ensure Gradle wrapper
-        run: |
-          if [ ! -f android/gradlew ]; then
-            tmp="$(mktemp -d)"
-            touch "$tmp/settings.gradle" "$tmp/build.gradle"
-            (cd "$tmp" && gradle wrapper --gradle-version 8.14.3 --distribution-type bin -q)
-            cp "$tmp/gradlew" "$tmp/gradlew.bat" android/
-            cp -r "$tmp/gradle" android/
-            rm -rf "$tmp"
-            chmod +x android/gradlew
-          fi
-
       - name: Build release APK
         run: flutter build apk --release
 
-      # التحقق من نجاح البناء: الملف موجود، موقّع بمفتاح الـ Release، مع بصمة SHA256
+      # التحقق من نجاح البناء: الملف موجود وموقّع بمفتاح الـ Release
       - name: Verify APK
         run: |
           set -e
@@ -90,7 +68,7 @@ jobs:
           sha256sum app-release.apk > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
-      # النشر أولًا (التسليم الأساسي) — تحديث بدون حذف/إعادة إنشاء التاغ
+      # نشر غير مدمِّر: إنشاء مرة واحدة ثم تحديث في المكان (بدون حذف التاغ)
       - name: Publish APK to GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -107,9 +85,8 @@ jobs:
             gh release create "$tag" app-release.apk SHA256SUMS.txt \
               --title "$title" --notes "$notes" --target "${{ github.sha }}"
           fi
-          echo "Download: https://github.com/${{ github.repository }}/releases/tags/$tag"
 
-      # التأكد النهائي: تنزيل الـ APK المنشور فعلياً ومطابقة بصمته
+      # ضمان نهائي: تنزيل الـ APK المنشور فعلياً من داخل GitHub ومطابقة بصمته
       - name: Verify published APK downloads
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -121,14 +98,32 @@ jobs:
           sha256sum -c SHA256SUMS.txt
           echo "Published APK download verified OK"
 
-      # نسخة احتياطية مرفقة بالتشغيل — لا تعرقل النشر إذا امتلأت حصة التخزين
+      # نسخة احتياطية في صفحة التشغيل — لا تعرقل النشر إن امتلأت حصة تخزين الحساب
       - name: Upload APK artifact
         if: always()
         continue-on-error: true
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: app-release-apk
           retention-days: 3
           path: |
             build/app/outputs/flutter-apk/app-release.apk
             build/app/outputs/flutter-apk/SHA256SUMS.txt
+
+      # ملخص يظهر في صفحة التشغيل: رابط التنزيل + البصمة
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Student Hodor — APK جاهز"
+            echo ""
+            echo "- **التنزيل المباشر:** [app-release.apk](https://github.com/${{ github.repository }}/releases/download/latest-apk/app-release.apk)"
+            echo "- **صفحة الإصدار:** [latest-apk](https://github.com/${{ github.repository }}/releases/tags/latest-apk)"
+            echo "- **الكوميت:** \`${{ github.sha }}\`"
+            echo ""
+            echo '```'
+            cat build/app/outputs/flutter-apk/SHA256SUMS.txt 2>/dev/null || echo "(no checksum)"
+            echo '```'
+            echo ""
+            echo "> المستودع خاص: يتطلب التنزيل تسجيل الدخول إلى GitHub."
+          } >> "$GITHUB_STEP_SUMMARY"

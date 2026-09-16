@@ -68,4 +68,24 @@ void main() {
     expect('('.allMatches(visual).length, 1);
     expect(')'.allMatches(visual).length, 1);
   });
+
+  test('لا فراغ مضاعف حول الأرقام داخل السياق العربي', () {
+    // المحايد كان يلتصق بالمقطع الحالي من الطرفين فيتكدس فراغان.
+    expect(arabicForPdf('مدرسة 2 الابتدائية'), isNot(contains('  ')));
+    expect(
+      arabicForPdf('السنة الدراسية: 2026-2027 (2026-09-01 إلى 2027-06-30)'),
+      isNot(contains('  ')),
+    );
+  });
+
+  test('عبارة لاتينية داخل عربية تبقى كتلة واحدة لا تنعكس كلماتها', () {
+    final String visual = arabicForPdf('ملف Hello World نهاية');
+    expect(visual, contains('Hello World'));
+  });
+
+  test('ملتصقات الأرقام لا تنفصل: النسبة مع رقمها والسالب معه', () {
+    expect(arabicForPdf('نسبة الحضور 100%'), contains('100%'));
+    expect(arabicForPdf('خصم 50% (لفترة محدودة)'), contains('50%'));
+    expect(arabicForPdf('الرصيد -5 دنانير'), contains('-5'));
+  });
 }

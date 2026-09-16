@@ -178,9 +178,24 @@ const Map<int, int> _mirrors = <int, int>{
 
 bool _isBracketCp(int cp) => _mirrors.containsKey(cp);
 
+/// محايدات «ملتصقة بالأرقام» (أصناف ET/CS في Bidi): تلتحق بأي مقطع
+/// لاتيني/رقمي مجاور من أي جهة، فلا ينفصل «%» عن «100» ولا «-» عن رقمه.
+bool _isNumberGlueCp(int cp) =>
+    cp == 0x0025 || // %
+    cp == 0x2030 || // ‰
+    cp == 0x002E || // .
+    cp == 0x002C || // ,
+    cp == 0x002F || // /
+    cp == 0x002D || // -
+    cp == 0x002B || // +
+    cp == 0x00B0; // °
+
 /// يحوّل نصاً مُشكّلاً (أو خاماً) إلى ترتيب العرض البصري لسياق RTL:
 /// - المقاطع العربية تُعكس حرفياً.
 /// - مقاطع الأرقام/اللاتينية تحتفظ بترتيبها الداخلي وتوضع بموضعها الصحيح.
+/// - المحايدات (مسافة/ترقيم) بين جهتين متماثلتين تلتحق بهما، وإلا انفصلت
+///   في مقطع مستقل باتجاه الفقرة (قاعدة N1 المبسطة) — عدا ملتصقات
+///   الأرقام (%, ., ,, /, -, +) فتلتحق بأي مقطع رقمي مجاور.
 /// - الأقواس في مقاطع مستقلة باتجاه الفقرة (RTL) وتُعكَس صورها دائماً.
 /// - نص بلا عربية إطلاقاً يُترَك كما هو (أرقام/رموز لاتينية خالصة).
 String toVisualOrder(String shaped) {
@@ -195,6 +210,8 @@ String toVisualOrder(String shaped) {
   // لا LTR — كان الافتراض السابق يقلب أمثال «(ملاحظة» في البداية.
   bool currentRtl = true;
   bool hasCurrent = false;
+  // اتجاه آخر محرف قوي — لحلّ المحايدات بقاعدة N1 المبسطة (انظر أدناه).
+  bool? prevStrongRtl;
 
   void flush() {
     if (current.isNotEmpty) {
@@ -203,6 +220,24 @@ String toVisualOrder(String shaped) {
       current = <int>[];
       hasCurrent = false;
     }
+  }
+
+  bool? nextStrongRtl(int from) {
+    for (int j = from; j < cps.length; j++) {
+      final int p = cps[j];
+      // القوس حدّ فاصل: يشكّل مقطعاً مستقلاً دائماً فلا يُرى ما بعده —
+      // وإلا التصق فراغ ما قبل القوس بالمقطع اللاتيني وتكدس فراغان.
+      if (_isBracketCp(p)) {
+        return null;
+      }
+      if (_isRtlCp(p)) {
+        return true;
+      }
+      if (_isDigitCp(p) || _isLatinCp(p)) {
+        return false;
+      }
+    }
+    return null;
   }
 
   for (int i = 0; i < cps.length; i++) {
@@ -221,11 +256,28 @@ String toVisualOrder(String shaped) {
     final bool kind;
     if (_isDigitCp(cp) || _isLatinCp(cp)) {
       kind = false;
+      prevStrongRtl = false;
     } else if (rtl) {
       kind = true;
+      prevStrongRtl = true;
     } else {
-      // محايد (مسافة/ترقيم): يلتحق بالمقطع الحالي أو باتجاه الفقرة.
-      kind = hasCurrent ? currentRtl : true;
+      // محايد (مسافة/ترقيم) بقاعدة N1 المبسطة: بين جهتين متماثلتين
+      // يلتحق بهما فتبقى «Hello World» كتلة واحدة، وإلا انفصل في مقطع
+      // مستقل باتجاه الفقرة — الالتصاق الدائم بالمقطع الحالي كان يكدّس
+      // فراغين حول أي مقطع لاتيني/رقمي محاط بفراغين.
+      final bool? next = nextStrongRtl(i + 1);
+      final bool? prev = prevStrongRtl;
+      if (prev != null && prev == next) {
+        kind = prev;
+      } else if (_isNumberGlueCp(cp) && (prev == false || next == false)) {
+        // ملتصق برقم مجاور: يلتحق بالمقطع اللاتيني/الرقمي.
+        kind = false;
+      } else {
+        flush();
+        tokens.add(<int>[cp]);
+        tokenRtl.add(true);
+        continue;
+      }
     }
     if (!hasCurrent) {
       currentRtl = kind;

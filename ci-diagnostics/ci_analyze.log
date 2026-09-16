@@ -2,4 +2,4 @@ Analyzing Student-hodor...
 
    info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • lib/features/badges/badge_print.dart:93:19 • prefer_const_constructors
 
-1 issue found. (ran in 11.6s)
+1 issue found. (ran in 16.7s)

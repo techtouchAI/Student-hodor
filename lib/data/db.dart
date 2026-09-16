@@ -666,7 +666,7 @@ class AppDb extends _$AppDb {
         return generated;
       });
 
-  /// إعادة فتح جلسة مقفلة: يحذف السجلات المولّدة تلقائياً فقط.
+  /// إعادة فتح جلسة مقفلة: يحذف السجلات المولّدة تلقائياً ويصفّر تاريخ الإقفال.
   Future<void> reopenSession(int sessionId) async => transaction<void>(() async {
         await (delete(attendanceRows)
               ..where(
@@ -676,7 +676,7 @@ class AppDb extends _$AppDb {
               ))
             .go();
         await (update(sessions)..where((s) => s.id.equals(sessionId)))
-            .write(const SessionsCompanion(closedAt: Value.absent()));
+            .write(const SessionsCompanion(closedAt: Value(null)));
         await logAudit('reopen_session', 'session=$sessionId');
       });
 

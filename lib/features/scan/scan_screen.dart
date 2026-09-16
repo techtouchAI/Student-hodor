@@ -32,7 +32,8 @@ class ScanScreen extends ConsumerStatefulWidget {
   ConsumerState<ScanScreen> createState() => _ScanState();
 }
 
-class _ScanState extends ConsumerState<ScanScreen> {
+class _ScanState extends ConsumerState<ScanScreen>
+    with WidgetsBindingObserver {
   MobileScannerController? _controller;
   String? _cameraError;
   final Map<String, DateTime> _debounce = <String, DateTime>{};
@@ -46,9 +47,32 @@ class _ScanState extends ConsumerState<ScanScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _createController();
     _keepAwake(true);
     _start(widget.classRef);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    final MobileScannerController? controller = _controller;
+    if (controller == null) {
+      return;
+    }
+    switch (state) {
+      case AppLifecycleState.resumed:
+        if (!controller.value.isRunning) {
+          controller.start().catchError((Object e) {});
+        }
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        if (controller.value.isRunning) {
+          controller.stop().catchError((Object e) {});
+        }
+    }
   }
 
   @override
@@ -61,6 +85,7 @@ class _ScanState extends ConsumerState<ScanScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _keepAwake(false);
     _controller?.dispose();
     super.dispose();
@@ -68,7 +93,9 @@ class _ScanState extends ConsumerState<ScanScreen> {
 
   void _createController() {
     try {
+      _controller?.dispose();
       _controller = MobileScannerController(
+        autoStart: false,
         formats: const <BarcodeFormat>[
           BarcodeFormat.qrCode,
           BarcodeFormat.code128,
@@ -79,6 +106,30 @@ class _ScanState extends ConsumerState<ScanScreen> {
       AppErrorLog.instance.record(e, st, where: 'scan:controller');
       _controller = null;
       _cameraError = '$e';
+    }
+  }
+
+  Future<void> _restartCamera() async {
+    final MobileScannerController? c = _controller;
+    if (c == null) {
+      setState(_createController);
+      return;
+    }
+    try {
+      await c.stop();
+    } catch (_) {}
+    try {
+      await c.start();
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e, st) {
+      if (e is! MobileScannerException ||
+          (e.errorCode != MobileScannerErrorCode.controllerAlreadyInitialized &&
+              e.errorCode.name != 'controllerAlreadyInitialized')) {
+        AppErrorLog.instance.record(e, st, where: 'scan:restartCamera');
+        _snack('تعذر تشغيل الكاميرا: $e');
+      }
     }
   }
 
@@ -527,6 +578,12 @@ class _ScanState extends ConsumerState<ScanScreen> {
             MobileScannerException error,
             Widget? child,
           ) {
+            if (error.errorCode ==
+                    MobileScannerErrorCode.controllerAlreadyInitialized ||
+                error.errorCode.name == 'controllerAlreadyInitialized') {
+              // المتحكم يعمل بالفعل ولا حاجة لعرض شاشة عطل أو تسجيل استثناء كاذب
+              return const SizedBox.shrink();
+            }
             AppErrorLog.instance.record(
               error,
               StackTrace.current,
@@ -541,20 +598,16 @@ class _ScanState extends ConsumerState<ScanScreen> {
                     const Icon(Icons.no_photography, size: 48),
                     const SizedBox(height: 8),
                     Text(
-                      error.errorCode.name == 'permissionDenied'
+                      error.errorCode ==
+                                  MobileScannerErrorCode.permissionDenied ||
+                              error.errorCode.name == 'permissionDenied'
                           ? 'صلاحية الكاميرا مرفوضة — فعّلها من إعدادات أندرويد ثم أعد المحاولة'
-                          : 'تعذر تشغيل الكاميرا: ${error.errorCode}',
+                          : 'تعذر تشغيل الكاميرا: ${error.errorCode.name}',
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 12),
                     FilledButton(
-                      onPressed: () async {
-                        try {
-                          await controller.start();
-                        } catch (e) {
-                          _snack('تعذر بدء الكاميرا: $e');
-                        }
-                      },
+                      onPressed: _restartCamera,
                       child: const Text('إعادة المحاولة'),
                     ),
                   ],

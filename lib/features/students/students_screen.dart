@@ -223,6 +223,7 @@ class _StudentsState extends ConsumerState<StudentsScreen> {
           );
         }
         return ListView.builder(
+          padding: const EdgeInsets.symmetric(vertical: 8),
           itemCount: list.length,
           itemBuilder: (BuildContext context, int i) =>
               _studentTile(list[i]),
@@ -235,40 +236,123 @@ class _StudentsState extends ConsumerState<StudentsScreen> {
     final String? photoPath = s.photoPath;
     final bool hasPhoto =
         photoPath != null && photoPath.isNotEmpty && File(photoPath).existsSync();
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundImage: hasPhoto ? FileImage(File(photoPath)) : null,
-        child: hasPhoto ? null : const Icon(Icons.person),
-      ),
-      title: Text(s.fullName),
-      subtitle: Text('رقم الطالب: ${s.seq}'),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          IconButton(
-            tooltip: 'الباج والرمز',
-            icon: const Icon(Icons.badge),
-            onPressed: () => _showBadge(s),
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      elevation: 0.5,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => context.pushNamed(
+          AppRoutes.student,
+          pathParameters: <String, String>{'id': '${s.id}'},
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              // السطر الأول: صورة/أيقونة الطالب والاسم كاملاً في سطر مخصص دون تزاحم
+              Row(
+                children: <Widget>[
+                  CircleAvatar(
+                    radius: 16,
+                    backgroundImage:
+                        hasPhoto ? FileImage(File(photoPath)) : null,
+                    child: hasPhoto
+                        ? null
+                        : const Icon(Icons.person, size: 18),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      s.fullName,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 2),
+              // السطر الثاني: رقم الطالب والأيقونات المقابلة مع تباعد منطقي
+              Row(
+                children: <Widget>[
+                  Flexible(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Icon(
+                          Icons.tag,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            'رقم الطالب: ${s.seq}',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    tooltip: 'الباج والرمز',
+                    icon: const Icon(Icons.badge),
+                    iconSize: 20,
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.all(6),
+                    constraints: const BoxConstraints(),
+                    onPressed: () => _showBadge(s),
+                  ),
+                  const SizedBox(width: 6),
+                  IconButton(
+                    tooltip: 'ملف الحضور',
+                    icon: const Icon(Icons.assessment),
+                    iconSize: 20,
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.all(6),
+                    constraints: const BoxConstraints(),
+                    onPressed: () => context.pushNamed(
+                      AppRoutes.student,
+                      pathParameters: <String, String>{'id': '${s.id}'},
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  IconButton(
+                    tooltip: 'تعديل',
+                    icon: const Icon(Icons.edit),
+                    iconSize: 20,
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.all(6),
+                    constraints: const BoxConstraints(),
+                    onPressed: () => _edit(s),
+                  ),
+                  const SizedBox(width: 6),
+                  IconButton(
+                    tooltip: 'حذف',
+                    icon: const Icon(Icons.delete),
+                    iconSize: 20,
+                    color: Theme.of(context).colorScheme.error,
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.all(6),
+                    constraints: const BoxConstraints(),
+                    onPressed: () => _delete(s),
+                  ),
+                ],
+              ),
+            ],
           ),
-          IconButton(
-            tooltip: 'ملف الحضور',
-            icon: const Icon(Icons.assessment),
-            onPressed: () => context.pushNamed(
-              AppRoutes.student,
-              pathParameters: <String, String>{'id': '${s.id}'},
-            ),
-          ),
-          IconButton(
-            tooltip: 'تعديل',
-            icon: const Icon(Icons.edit),
-            onPressed: () => _edit(s),
-          ),
-          IconButton(
-            tooltip: 'حذف',
-            icon: const Icon(Icons.delete),
-            onPressed: () => _delete(s),
-          ),
-        ],
+        ),
       ),
     );
   }

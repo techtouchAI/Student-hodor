@@ -60,6 +60,7 @@ class _ClassesState extends ConsumerState<ClassesScreen> {
                 return const Center(child: Text('لا صفوف بعد — أضف أول صف'));
               }
               return ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 8),
                 itemCount: classes.length,
                 itemBuilder: (BuildContext context, int i) =>
                     _classTile(db, classes[i]),
@@ -80,49 +81,142 @@ class _ClassesState extends ConsumerState<ClassesScreen> {
             ..where(db.students.classId.equals(c.id)))
           .map((TypedResult r) => r.read(countAll()) ?? 0)
           .watchSingle(),
-      loading: ListTile(
-        leading: const CircleAvatar(child: Icon(Icons.class_)),
-        title: Text(title),
-        subtitle: const Text('طلاب: …'),
+      loading: _classCard(
+        title: title,
+        countText: 'طلاب: …',
+        c: c,
+        ref0: ref0,
       ),
-      builder: (BuildContext context, int count) => ListTile(
-        leading: const CircleAvatar(child: Icon(Icons.class_)),
-        title: Text(title),
-        subtitle: Text('طلاب: $count'),
+      builder: (BuildContext context, int count) => _classCard(
+        title: title,
+        countText: 'طلاب: $count',
+        c: c,
+        ref0: ref0,
+      ),
+    );
+  }
+
+  Widget _classCard({
+    required String title,
+    required String countText,
+    required SchoolClass c,
+    required ClassRef ref0,
+  }) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      elevation: 0.5,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
         onTap: () => context.push(
           AppRoutes.classLocation('/students', c.id, title),
           extra: ref0,
         ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            IconButton(
-              tooltip: 'البادجات',
-              icon: const Icon(Icons.badge),
-              onPressed: () => context.push(
-                AppRoutes.classLocation('/badges', c.id, title),
-                extra: ref0,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              // السطر الأول: الأيقونة واسم الصف كاملاً دون تزاحم
+              Row(
+                children: <Widget>[
+                  const CircleAvatar(
+                    radius: 16,
+                    child: Icon(Icons.class_, size: 18),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-            IconButton(
-              tooltip: 'كشف اليوم',
-              icon: const Icon(Icons.fact_check),
-              onPressed: () => context.push(
-                AppRoutes.classLocation('/day-sheet', c.id, title),
-                extra: ref0,
+              const SizedBox(height: 2),
+              // السطر الثاني: عدد الطلاب والأيقونات المقابلة مع تباعد منطقي
+              Row(
+                children: <Widget>[
+                  Flexible(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Icon(
+                          Icons.people_outline,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            countText,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    tooltip: 'البادجات',
+                    icon: const Icon(Icons.badge),
+                    iconSize: 20,
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.all(6),
+                    constraints: const BoxConstraints(),
+                    onPressed: () => context.push(
+                      AppRoutes.classLocation('/badges', c.id, title),
+                      extra: ref0,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  IconButton(
+                    tooltip: 'كشف اليوم',
+                    icon: const Icon(Icons.fact_check),
+                    iconSize: 20,
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.all(6),
+                    constraints: const BoxConstraints(),
+                    onPressed: () => context.push(
+                      AppRoutes.classLocation('/day-sheet', c.id, title),
+                      extra: ref0,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  IconButton(
+                    tooltip: 'تعديل',
+                    icon: const Icon(Icons.edit),
+                    iconSize: 20,
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.all(6),
+                    constraints: const BoxConstraints(),
+                    onPressed: () => _edit(c),
+                  ),
+                  const SizedBox(width: 6),
+                  IconButton(
+                    tooltip: 'حذف',
+                    icon: const Icon(Icons.delete),
+                    iconSize: 20,
+                    color: Theme.of(context).colorScheme.error,
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.all(6),
+                    constraints: const BoxConstraints(),
+                    onPressed: () => _delete(c),
+                  ),
+                ],
               ),
-            ),
-            IconButton(
-              tooltip: 'تعديل',
-              icon: const Icon(Icons.edit),
-              onPressed: () => _edit(c),
-            ),
-            IconButton(
-              tooltip: 'حذف',
-              icon: const Icon(Icons.delete),
-              onPressed: () => _delete(c),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -209,7 +209,7 @@ class _ScanState extends ConsumerState<ScanScreen> {
 
   Future<void> _vibrate(bool ok) async {
     try {
-      if (await Vibration.hasVibrator() ?? false) {
+      if (await Vibration.hasVibrator()) {
         await Vibration.vibrate(duration: ok ? 90 : 220);
       }
     } catch (e) {

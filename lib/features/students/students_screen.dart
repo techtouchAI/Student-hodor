@@ -237,7 +237,7 @@ class _StudentsState extends ConsumerState<StudentsScreen> {
         photoPath != null && photoPath.isNotEmpty && File(photoPath).existsSync();
     return ListTile(
       leading: CircleAvatar(
-        backgroundImage: hasPhoto ? FileImage(File(photoPath!)) : null,
+        backgroundImage: hasPhoto ? FileImage(File(photoPath)) : null,
         child: hasPhoto ? null : const Icon(Icons.person),
       ),
       title: Text(s.fullName),

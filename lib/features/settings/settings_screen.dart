@@ -323,7 +323,7 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.bug_report),
             title: const Text('التشخيص وسجل الأعطال'),
-            subtitle: Text(
+            subtitle: const Text(
               'الإصدار ${AppInfo.version} — عند أي شاشة بيضاء/فارغة أرسل هذا التقرير',
             ),
             onTap: _diagnostics,

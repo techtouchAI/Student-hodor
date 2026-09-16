@@ -128,11 +128,11 @@ class ClassesScreen extends ConsumerWidget {
       year = await db.activeYear();
     } catch (e, st) {
       AppErrorLog.instance.record(e, st, where: 'classes:year');
-      _snack(context, 'تعذر قراءة السنة الفعّالة: $e');
+      _snackIfMounted(context, 'تعذر قراءة السنة الفعّالة: $e');
       return;
     }
     if (year == null) {
-      _snack(context, 'لا توجد سنة فعّالة — أنشئها من شاشة السنوات');
+      _snackIfMounted(context, 'لا توجد سنة فعّالة — أنشئها من شاشة السنوات');
       return;
     }
     final TextEditingController grade =
@@ -175,7 +175,7 @@ class ClassesScreen extends ConsumerWidget {
       return;
     }
     if (grade.text.trim().isEmpty || section.text.trim().isEmpty) {
-      _snack(context, 'اكتب الصف والشعبة معاً');
+      _snackIfMounted(context, 'اكتب الصف والشعبة معاً');
       return;
     }
     try {
@@ -189,7 +189,7 @@ class ClassesScreen extends ConsumerWidget {
               ))
             .getSingleOrNull();
         if (existing != null) {
-          _snack(context, 'الصف والشعبة موجودان مسبقاً');
+          _snackIfMounted(context, 'الصف والشعبة موجودان مسبقاً');
           return;
         }
         await db.into(db.schoolClasses).insert(
@@ -209,10 +209,10 @@ class ClassesScreen extends ConsumerWidget {
         );
       }
       await db.logAudit(c == null ? 'class_add' : 'class_edit', grade.text);
-      _snack(context, c == null ? 'أُضيف الصف' : 'حُفظ التعديل');
+      _snackIfMounted(context, c == null ? 'أُضيف الصف' : 'حُفظ التعديل');
     } catch (e, st) {
       AppErrorLog.instance.record(e, st, where: 'classes:save');
-      _snack(context, 'تعذر الحفظ: $e');
+      _snackIfMounted(context, 'تعذر الحفظ: $e');
     }
   }
 
@@ -228,14 +228,14 @@ class ClassesScreen extends ConsumerWidget {
       kids = await db.countStudentsInClass(c.id);
     } catch (e, st) {
       AppErrorLog.instance.record(e, st, where: 'classes:count');
-      _snack(context, 'تعذر فحص الصف: $e');
+      _snackIfMounted(context, 'تعذر فحص الصف: $e');
       return;
     }
     if (!context.mounted) {
       return;
     }
     if (kids > 0) {
-      _snack(context, 'الصف فيه $kids طالباً — احذف الطلاب أو رقّهم أولاً');
+      _snackIfMounted(context, 'الصف فيه $kids طالباً — احذف الطلاب أو رقّهم أولاً');
       return;
     }
     final bool? ok = await showDialog<bool>(
@@ -261,15 +261,17 @@ class ClassesScreen extends ConsumerWidget {
     }
     try {
       await db.deleteClass(c.id);
-      _snack(context, 'حُذف الصف');
+      _snackIfMounted(context, 'حُذف الصف');
     } catch (e, st) {
       AppErrorLog.instance.record(e, st, where: 'classes:delete');
-      _snack(context, 'تعذر الحذف: $e');
+      _snackIfMounted(context, 'تعذر الحذف: $e');
     }
   }
 }
 
-void _snack(BuildContext context, String message) {
+/// يعرض رسالة فقط إن بقي السياق صالحاً — يسمح بتمرير `context` عبر فجوات
+/// `async` بلا استخدام مباشر له بعد `await` (use_build_context_synchronously).
+void _snackIfMounted(BuildContext context, String message) {
   if (!context.mounted) {
     return;
   }

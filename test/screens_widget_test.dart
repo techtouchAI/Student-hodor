@@ -6,9 +6,10 @@
 /// هذا هو الفحص الذي كان غائباً فسمح للعطل بالوصول إلى المستخدم.
 library;
 
+import 'dart:async';
+
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -198,9 +199,11 @@ void main() {
       final AppDb db = await _seedDb();
       addTearDown(db.close);
       final GoRouter router = await _pumpScreen(tester, db, '/classes');
-      router.push<void>(
-        '/students',
-        extra: const ClassRef(id: 1, title: 'السادس ـ أ'),
+      unawaited(
+        router.push<void>(
+          '/students',
+          extra: const ClassRef(id: 1, title: 'السادس ـ أ'),
+        ),
       );
       await _settle(tester);
       expect(tester.takeException(), isNull);

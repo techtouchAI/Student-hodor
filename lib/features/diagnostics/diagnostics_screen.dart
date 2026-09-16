@@ -4,7 +4,7 @@
 /// يرسل نصاً حرفياً يحدد الشاشة والسبب.
 library;
 
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -73,12 +73,14 @@ class _DiagnosticsState extends ConsumerState<DiagnosticsScreen> {
     }
   }
 
-  static Future<int> _countAll(AppDb db, GeneratedTable table) async {
-    final Expression<int> total = countAll();
-    final QueryRow? row =
-        await (db.selectOnly(table)..addColumns(<Expression<int>>[total]))
-            .getSingleOrNull();
-    return row?.read(total) ?? 0;
+  /// عدّ صفوف جدول بعدّه في SQL مباشرة (بلا تحميل الجدول في الذاكرة).
+  static Future<int> _countAll(AppDb db, TableInfo<Table, Object?> table) async {
+    final QueryRow row = await db
+        .customSelect(
+          'SELECT COUNT(*) AS c FROM ${table.actualTableName}',
+        )
+        .getSingle();
+    return row.read<int>('c');
   }
 
   Future<void> _copyReport() async {
@@ -124,7 +126,7 @@ class _DiagnosticsState extends ConsumerState<DiagnosticsScreen> {
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                         const SizedBox(height: 4),
-                        Text('الإصدار: ${AppInfo.version}'),
+                        const Text('الإصدار: ${AppInfo.version}'),
                         Text('إصدار مخطط القاعدة: ${db.schemaVersion}'),
                         Text('السنة الفعّالة: $_yearSummary'),
                       ],

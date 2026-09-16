@@ -47,8 +47,10 @@ void main() {
     test('displayTitle لا يكون فارغاً أبداً', () {
       expect(const ClassRef(id: 1).displayTitle, 'الصف');
       expect(const ClassRef(id: 1, title: '  ').displayTitle, 'الصف');
-      expect(const ClassRef(id: 1, title: ' السادس ـ أ ').displayTitle,
-          'السادس ـ أ');
+      expect(
+        const ClassRef(id: 1, title: ' السادس ـ أ ').displayTitle,
+        'السادس ـ أ',
+      );
     });
   });
 }

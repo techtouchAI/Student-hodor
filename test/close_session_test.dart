@@ -74,6 +74,11 @@ void main() {
     final int generated = await db.closeSession(session);
     expect(generated, 2);
 
+    final Session? closedSes = await (db.select(db.sessions)
+          ..where((s) => s.id.equals(session)))
+        .getSingleOrNull();
+    expect(closedSes?.closedAt, isNotNull);
+
     final AttendanceRow? a2 = await db.attendanceOf(roster[1].id, date);
     final AttendanceRow? a3 = await db.attendanceOf(roster[2].id, date);
     expect(a2?.status, AttendanceStatus.leave);
@@ -83,8 +88,12 @@ void main() {
     // إقفال ثانٍ لا يضاعف السجلات.
     expect(await db.closeSession(session), 0);
 
-    // إعادة الفتح تحذف المولّد تلقائياً وتبقي المسح اليدوي.
+    // إعادة الفتح تحذف المولّد تلقائياً وتصفّر closedAt وتبقي المسح اليدوي.
     await db.reopenSession(session);
+    final Session? reopenedSes = await (db.select(db.sessions)
+          ..where((s) => s.id.equals(session)))
+        .getSingleOrNull();
+    expect(reopenedSes?.closedAt, isNull);
     expect(await db.attendanceOf(roster[2].id, date), isNull);
     expect(await db.attendanceOf(roster[0].id, date), isNotNull);
   });

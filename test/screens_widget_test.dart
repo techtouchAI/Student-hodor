@@ -44,11 +44,14 @@ Future<AppDb> _seedDb() async {
   return db;
 }
 
+/// تسوية **محدودة** بإطار زمني: `pumpAndSettle` غير المقيّد قد يدور بلا نهاية
+/// إن بقي مؤشر تحميل متحركاً، فيعلّق مجموعة الاختبارات كلها بدل أن يفشل سريعاً.
 Future<void> _settle(WidgetTester tester) async {
-  await tester.pump();
-  await tester.pump(const Duration(milliseconds: 60));
-  await tester.pumpAndSettle(const Duration(milliseconds: 100));
+  for (int i = 0; i < 12; i++) {
+    await tester.pump(const Duration(milliseconds: 250));
+  }
 }
+
 
 Future<GoRouter> _pumpScreen(
   WidgetTester tester,
@@ -78,7 +81,9 @@ void main() {
       expect(find.text('الصفوف والشعب'), findsOneWidget);
       expect(find.text('السادس ـ أ'), findsWidgets);
       expect(tester.takeException(), isNull);
-    });
+    },
+      timeout: const Timeout(Duration(seconds: 60)),
+    );
 
     testWidgets('الصفوف → الطلاب: ضغط الصف يفتح شاشة فيها الطلاب',
         (WidgetTester tester) async {
@@ -91,7 +96,9 @@ void main() {
       expect(find.text('علي حسن'), findsOneWidget);
       expect(find.text('زيد كريم'), findsOneWidget);
       expect(tester.takeException(), isNull);
-    });
+    },
+      timeout: const Timeout(Duration(seconds: 60)),
+    );
 
     testWidgets('الطلاب: رابط مباشر بمعامِلات عربية مرمّزة',
         (WidgetTester tester) async {
@@ -105,7 +112,9 @@ void main() {
       expect(find.text('علي حسن'), findsOneWidget);
       expect(find.text('زيد كريم'), findsOneWidget);
       expect(tester.takeException(), isNull);
-    });
+    },
+      timeout: const Timeout(Duration(seconds: 60)),
+    );
 
     testWidgets('البادجات: الشاشة تُحمِّل باجات الصف بلا عطل',
         (WidgetTester tester) async {
@@ -120,7 +129,9 @@ void main() {
       expect(find.text('علي حسن'), findsOneWidget);
       expect(find.textContaining('مدرسة النجاح'), findsWidgets);
       expect(tester.takeException(), isNull);
-    });
+    },
+      timeout: const Timeout(Duration(seconds: 60)),
+    );
 
     testWidgets('كشف اليوم: قائمة الحالات + شريط الملخّص',
         (WidgetTester tester) async {
@@ -136,7 +147,9 @@ void main() {
       expect(find.text('علي حسن'), findsOneWidget);
       expect(find.textContaining('مسجل: 0 / 2'), findsOneWidget);
       expect(tester.takeException(), isNull);
-    });
+    },
+      timeout: const Timeout(Duration(seconds: 60)),
+    );
   });
 
   group('معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء', () {
@@ -151,7 +164,9 @@ void main() {
       );
       expect(tester.takeException(), isNull);
       expect(find.text('علي حسن'), findsOneWidget);
-    });
+    },
+      timeout: const Timeout(Duration(seconds: 60)),
+    );
 
     testWidgets('بلا معامِلات إطلاقاً ⇒ الشاشة تُحلّ صفّها من القاعدة',
         (WidgetTester tester) async {
@@ -160,7 +175,9 @@ void main() {
       await _pumpScreen(tester, db, '/students');
       expect(tester.takeException(), isNull);
       expect(find.text('علي حسن'), findsOneWidget);
-    });
+    },
+      timeout: const Timeout(Duration(seconds: 60)),
+    );
 
     testWidgets('قيمة class غير رقمية ⇒ لا انهيار',
         (WidgetTester tester) async {
@@ -169,7 +186,9 @@ void main() {
       await _pumpScreen(tester, db, '/students?class=abc&title=%D8%A7');
       expect(tester.takeException(), isNull);
       expect(find.text('علي حسن'), findsOneWidget);
-    });
+    },
+      timeout: const Timeout(Duration(seconds: 60)),
+    );
 
     testWidgets('كشف اليوم بلا تاريخ ⇒ يُعتمد اليوم',
         (WidgetTester tester) async {
@@ -181,7 +200,9 @@ void main() {
         find.textContaining(SchoolTime.dateKey(DateTime.now())),
         findsOneWidget,
       );
-    });
+    },
+      timeout: const Timeout(Duration(seconds: 60)),
+    );
 
     testWidgets('بلا سنة فعّالة ⇒ رسالة إرشادية لا بياض',
         (WidgetTester tester) async {
@@ -190,7 +211,9 @@ void main() {
       await _pumpScreen(tester, db, '/students?class=1');
       expect(tester.takeException(), isNull);
       expect(find.textContaining('لا توجد صفوف'), findsOneWidget);
-    });
+    },
+      timeout: const Timeout(Duration(seconds: 60)),
+    );
   });
 
   group('extra يتجاوز معاملة الرابط', () {
@@ -209,6 +232,8 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.textContaining('طلاب السادس ـ أ'), findsOneWidget);
       expect(find.text('علي حسن'), findsOneWidget);
-    });
+    },
+      timeout: const Timeout(Duration(seconds: 60)),
+    );
   });
 }

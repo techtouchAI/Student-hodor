@@ -31,117 +31,161 @@ class BadgeWidget extends StatelessWidget {
       fontSize: width * 0.052,
       color: BadgePalette.ink,
     );
-    return Container(
-      width: width,
-      height: _height,
-      decoration: BoxDecoration(
-        color: BadgePalette.background,
-        borderRadius: BorderRadius.circular(width * 0.05),
-        border: Border.all(color: BadgePalette.headerDark, width: 1.2),
-        boxShadow: const <BoxShadow>[
-          BoxShadow(color: Color(0x22000000), blurRadius: 6, offset: Offset(0, 3)),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: <Widget>[
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(
-              vertical: width * 0.045,
-              horizontal: width * 0.04,
-            ),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: <Color>[BadgePalette.headerDark, BadgePalette.header],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+    // الباج يُصمَّم مرة واحدة بمقاس ثابت ثم **يُصغَّر** ليلائم أي خلية شبكة أو
+    // حوار معاينة. كان العمود سابقاً يعتمد `Expanded`/`Spacer` داخل ارتفاع
+    // الخلية، فإذا ضاقت الخلية (شاشة صغيرة/خط كبير) حدث RenderFlex overflow
+    // وسقط رسم البطاقة. التصميم الثابت + FittedBox يجعله مستحيلاً.
+    return FittedBox(
+      fit: BoxFit.contain,
+      alignment: Alignment.center,
+      child: SizedBox(
+        width: width,
+        height: _height,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: BadgePalette.background,
+            borderRadius: BorderRadius.circular(width * 0.05),
+            border: Border.all(color: BadgePalette.headerDark, width: 1.2),
+            boxShadow: const <BoxShadow>[
+              BoxShadow(
+                color: Color(0x22000000),
+                blurRadius: 6,
+                offset: Offset(0, 3),
               ),
-            ),
-            child: Row(
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(width * 0.05),
+            child: Column(
               children: <Widget>[
-                _Emblem(size: width * 0.16),
-                SizedBox(width: width * 0.03),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(
+                    vertical: width * 0.045,
+                    horizontal: width * 0.04,
+                  ),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: <Color>[
+                        BadgePalette.headerDark,
+                        BadgePalette.header,
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                  child: Row(
                     children: <Widget>[
-                      Text(
-                        spec.schoolName,
-                        textAlign: TextAlign.start,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: width * 0.062,
-                        ),
-                      ),
-                      SizedBox(height: width * 0.008),
-                      Text(
-                        'المدير: ${spec.directorName}',
-                        textAlign: TextAlign.start,
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: width * 0.040,
+                      _Emblem(size: width * 0.16),
+                      SizedBox(width: width * 0.03),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              spec.schoolName,
+                              textAlign: TextAlign.start,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: width * 0.062,
+                              ),
+                            ),
+                            SizedBox(height: width * 0.008),
+                            Text(
+                              'المدير: ${spec.directorName}',
+                              textAlign: TextAlign.start,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: width * 0.040,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
+                Container(height: width * 0.02, color: BadgePalette.gold),
+                Expanded(
+                  child: CustomPaint(
+                    painter: _GuillochePainter(),
+                    child: SingleChildScrollView(
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: EdgeInsets.all(width * 0.05),
+                      child: Column(
+                        children: <Widget>[
+                          _photo(width),
+                          SizedBox(height: width * 0.03),
+                          Text(
+                            spec.studentName,
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: nameStyle,
+                          ),
+                          SizedBox(height: width * 0.015),
+                          Text(
+                            spec.classLine,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: lineStyle,
+                          ),
+                          Text(
+                            spec.yearLine,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: lineStyle,
+                          ),
+                          SizedBox(height: width * 0.04),
+                          // شريط الرموز بمقاس طبيعي ثابت ثم يُصغَّر ككل إن ضاقت
+                          // الخلية — يستحيل أن يفيض أو يقطع الرموز.
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.center,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                _QrView(data: spec.code, size: width * 0.28),
+                                SizedBox(width: width * 0.03),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    _Code128View(
+                                      data: spec.code,
+                                      width: width * 0.52,
+                                      height: width * 0.10,
+                                    ),
+                                    SizedBox(height: width * 0.012),
+                                    Text(
+                                      spec.seqLine,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: width * 0.045,
+                                        color: BadgePalette.ink,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
-          Container(height: width * 0.02, color: BadgePalette.gold),
-          Expanded(
-            child: CustomPaint(
-              painter: _GuillochePainter(),
-              child: Padding(
-                padding: EdgeInsets.all(width * 0.05),
-                child: Column(
-                  children: <Widget>[
-                    _photo(width),
-                    SizedBox(height: width * 0.03),
-                    Text(
-                      spec.studentName,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: nameStyle,
-                    ),
-                    SizedBox(height: width * 0.015),
-                    Text(spec.classLine, style: lineStyle),
-                    Text(spec.yearLine, style: lineStyle),
-                    const Spacer(),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: <Widget>[
-                        _QrView(data: spec.code, size: width * 0.28),
-                        const Spacer(),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: <Widget>[
-                            _Code128View(
-                              data: spec.code,
-                              width: width * 0.52,
-                              height: width * 0.10,
-                            ),
-                            SizedBox(height: width * 0.012),
-                            Text(
-                              spec.seqLine,
-                              style: TextStyle(
-                                fontSize: width * 0.045,
-                                color: BadgePalette.ink,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -266,10 +310,33 @@ class _QrView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final QrImage image = QrImage(QrCode(6, QrErrorCorrectLevel.M)..addData(data));
+    // رمز أطول من سعة الإصدار أو بيانات تالفة ⇒ إطار واضح بدل إسقاط البطاقة.
+    QrImage? image;
+    try {
+      image = QrImage(QrCode(6, QrErrorCorrectLevel.M)..addData(data));
+    } catch (_) {
+      image = null;
+    }
+    final QrImage? qr = image;
+    if (qr == null) {
+      return Container(
+        width: size,
+        height: size,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: const Color(0xFFEFEFEF),
+          border: Border.all(color: BadgePalette.header),
+        ),
+        child: Icon(
+          Icons.qr_code_2,
+          size: size * 0.6,
+          color: BadgePalette.header,
+        ),
+      );
+    }
     return CustomPaint(
       size: Size.square(size),
-      painter: _QrPainter(image),
+      painter: _QrPainter(qr),
     );
   }
 }
@@ -313,10 +380,32 @@ class _Code128View extends StatelessWidget {
   final double height;
 
   @override
-  Widget build(BuildContext context) => CustomPaint(
-        size: Size(width, height),
-        painter: _Code128Painter(data, width, height),
+  Widget build(BuildContext context) {
+    // إن تعذر ترميز النص (محرف غير مدعوم) نعرض خطوطاً بديلة ولا نُسقط الباج.
+    bool encodable = true;
+    try {
+      Barcode.code128().make(data, width: width, height: height);
+    } catch (_) {
+      encodable = false;
+    }
+    if (!encodable) {
+      return Container(
+        width: width,
+        height: height,
+        alignment: Alignment.center,
+        color: Colors.white,
+        child: Icon(
+          Icons.linear_scale,
+          size: height * 0.8,
+          color: BadgePalette.ink,
+        ),
       );
+    }
+    return CustomPaint(
+      size: Size(width, height),
+      painter: _Code128Painter(data, width, height),
+    );
+  }
 }
 
 class _Code128Painter extends CustomPainter {

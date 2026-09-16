@@ -1,4 +1,9 @@
 /// جذر التطبيق: سمة عربية RTL + تعريب المواد + راوتر بمسارات كاملة.
+///
+/// قاعدتان ثابتتان هنا:
+/// - **لا معاملة روابط يدوية:** كل مسار يقرأ معاملاته عبر `core/nav.dart`.
+/// - **لا صفحة بيضاء:** كل `builder` ملفوف بـ[ErrorBoundary]، وأي فشل في قراءة
+///   المعاملات يُنتج شاشة خطأ مقروءة (`_RouteErrorScreen`) لا بياضاً.
 library;
 
 import 'package:flutter/material.dart';
@@ -6,9 +11,12 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'core/error_guard.dart';
+import 'core/nav.dart';
 import 'features/attendance/day_sheet_screen.dart';
 import 'features/badges/badges_screen.dart';
 import 'features/classes/classes_screen.dart';
+import 'features/diagnostics/diagnostics_screen.dart';
 import 'features/export/export_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/leaves/leaves_screen.dart';
@@ -21,60 +29,128 @@ import 'features/students/students_screen.dart';
 import 'features/years/years_screen.dart';
 import 'state/providers.dart';
 
-final GoRouter router = GoRouter(
-  initialLocation: '/',
-  errorBuilder: (BuildContext context, GoRouterState state) =>
-      _RouteErrorScreen(uri: state.uri.toString()),
-  routes: <GoRoute>[
-    GoRoute(path: '/', builder: (_, __) => const _SplashGate()),
-    GoRoute(path: '/onboarding', builder: (_, __) => const OnboardingScreen()),
-    GoRoute(path: '/home', builder: (_, __) => const HomeScreen()),
-    GoRoute(path: '/classes', builder: (_, __) => const ClassesScreen()),
-    GoRoute(path: '/leaves', builder: (_, __) => const LeavesScreen()),
-    GoRoute(path: '/reports', builder: (_, __) => const ReportsScreen()),
-    GoRoute(path: '/export', builder: (_, __) => const ExportScreen()),
-    GoRoute(path: '/years', builder: (_, __) => const YearsScreen()),
-    GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
-    GoRoute(
-      path: '/students',
-      builder: (_, GoRouterState st) => StudentsScreen(
-        classId: int.tryParse(st.uri.queryParameters['class'] ?? '') ?? 0,
-        title: Uri.decodeComponent(st.uri.queryParameters['title'] ?? ''),
+/// يبني الراوتر. دالة (لا ثابت عام) حتى تُنشئ الاختبارات نسخة نظيفة لكل حالة.
+GoRouter buildRouter() => GoRouter(
+      initialLocation: '/',
+      errorBuilder: (BuildContext context, GoRouterState state) =>
+          _RouteErrorScreen(
+        uri: state.uri.toString(),
+        message: state.error?.toString(),
       ),
-    ),
-    GoRoute(
-      path: '/badges',
-      builder: (_, GoRouterState st) => BadgesScreen(
-        classId: int.tryParse(st.uri.queryParameters['class'] ?? '') ?? 0,
-        title: Uri.decodeComponent(st.uri.queryParameters['title'] ?? ''),
-      ),
-    ),
-    GoRoute(
-      path: '/scan',
-      builder: (_, GoRouterState st) => ScanScreen(
-        classId: int.tryParse(st.uri.queryParameters['class'] ?? '') ?? 0,
-        title: Uri.decodeComponent(st.uri.queryParameters['title'] ?? ''),
-      ),
-    ),
-    GoRoute(
-      path: '/day-sheet',
-      builder: (_, GoRouterState st) => DaySheetScreen(
-        classId: int.tryParse(st.uri.queryParameters['class'] ?? '') ?? 0,
-        date: st.uri.queryParameters['date'] ?? '',
-        title: Uri.decodeComponent(st.uri.queryParameters['title'] ?? ''),
-      ),
-    ),
-    GoRoute(
-      path: '/student/:id',
-      builder: (_, GoRouterState st) => StudentReportScreen(
-        studentId: int.tryParse(st.pathParameters['id'] ?? '') ?? 0,
-      ),
-    ),
-  ],
-);
+      routes: <GoRoute>[
+        GoRoute(
+          path: '/',
+          builder: (_, __) => _guarded('splash', const _SplashGate()),
+        ),
+        GoRoute(
+          path: '/onboarding',
+          name: 'onboarding',
+          builder: (_, __) => _guarded('onboarding', const OnboardingScreen()),
+        ),
+        GoRoute(
+          path: '/home',
+          name: AppRoutes.home,
+          builder: (_, __) => _guarded('home', const HomeScreen()),
+        ),
+        GoRoute(
+          path: '/classes',
+          name: AppRoutes.classes,
+          builder: (_, __) => _guarded('classes', const ClassesScreen()),
+        ),
+        GoRoute(
+          path: '/leaves',
+          name: AppRoutes.leaves,
+          builder: (_, __) => _guarded('leaves', const LeavesScreen()),
+        ),
+        GoRoute(
+          path: '/reports',
+          name: AppRoutes.reports,
+          builder: (_, __) => _guarded('reports', const ReportsScreen()),
+        ),
+        GoRoute(
+          path: '/export',
+          name: AppRoutes.export,
+          builder: (_, __) => _guarded('export', const ExportScreen()),
+        ),
+        GoRoute(
+          path: '/years',
+          name: AppRoutes.years,
+          builder: (_, __) => _guarded('years', const YearsScreen()),
+        ),
+        GoRoute(
+          path: '/settings',
+          name: AppRoutes.settings,
+          builder: (_, __) => _guarded('settings', const SettingsScreen()),
+        ),
+        GoRoute(
+          path: '/diagnostics',
+          name: AppRoutes.diagnostics,
+          builder: (_, __) =>
+              _guarded('diagnostics', const DiagnosticsScreen()),
+        ),
+        GoRoute(
+          path: '/students',
+          name: AppRoutes.students,
+          builder: (_, GoRouterState st) => _guarded(
+            'students',
+            StudentsScreen(classRef: _classRef(st)),
+          ),
+        ),
+        GoRoute(
+          path: '/badges',
+          name: AppRoutes.badges,
+          builder: (_, GoRouterState st) => _guarded(
+            'badges',
+            BadgesScreen(classRef: _classRef(st)),
+          ),
+        ),
+        GoRoute(
+          path: '/scan',
+          name: AppRoutes.scan,
+          builder: (_, GoRouterState st) => _guarded(
+            'scan',
+            ScanScreen(classRef: _classRef(st)),
+          ),
+        ),
+        GoRoute(
+          path: '/day-sheet',
+          name: AppRoutes.daySheet,
+          builder: (_, GoRouterState st) => _guarded(
+            'daySheet',
+            DaySheetScreen(classRef: _classRef(st), date: dateOf(st)),
+          ),
+        ),
+        GoRoute(
+          path: '/student/:id',
+          name: AppRoutes.student,
+          builder: (_, GoRouterState st) => _guarded(
+            'student',
+            StudentReportScreen(
+              studentId: int.tryParse(st.pathParameters['id'] ?? '') ?? 0,
+            ),
+          ),
+        ),
+      ],
+    );
+
+/// قراءة مرجع الصف داخل `builder`: أي استثناء هنا كان يُسقط الراوتر كله
+/// (صفحة بيضاء كاملة) — الآن يتحول إلى رسالة خطأ واضحة.
+ClassRef _classRef(GoRouterState st) {
+  try {
+    return classRefOf(st);
+  } catch (e) {
+    return const ClassRef(id: 0);
+  }
+}
+
+Widget _guarded(String label, Widget screen) =>
+    ErrorBoundary(routeLabel: label, child: screen);
 
 class StudentHodorApp extends ConsumerWidget {
-  const StudentHodorApp({super.key});
+  const StudentHodorApp({super.key, this.router});
+
+  /// يُمرَّر في الاختبارات؛ الافتراضي راوتر التطبيق العام.
+  final GoRouter? router;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => MaterialApp.router(
@@ -98,7 +174,7 @@ class StudentHodorApp extends ConsumerWidget {
           textDirection: TextDirection.rtl,
           child: child ?? const SizedBox.shrink(),
         ),
-        routerConfig: router,
+        routerConfig: router ?? buildRouter(),
       );
 }
 
@@ -115,7 +191,7 @@ class _SplashGate extends ConsumerWidget {
         body: Center(child: CircularProgressIndicator()),
       ),
       error: (Object e, StackTrace st) => Scaffold(
-        body: Center(child: Text('خطأ في فتح قاعدة البيانات: $e')),
+        body: Center(child: LoadErrorCard(message: 'قاعدة البيانات: $e')),
       ),
       data: (Map<String, String> s) {
         final bool configured = (s['school_name'] ?? '').isNotEmpty;
@@ -130,33 +206,44 @@ class _SplashGate extends ConsumerWidget {
   }
 }
 
-/// صفحة خطأ موحّدة للمسارات غير الموجودة بدل ودجت الخطأ الخام.
+/// صفحة خطأ موحّدة للمسارات غير الموجودة/المعاملات التالفة بدل ودجت الخطأ الخام.
 class _RouteErrorScreen extends StatelessWidget {
-  const _RouteErrorScreen({required this.uri});
+  const _RouteErrorScreen({required this.uri, this.message});
 
   final String uri;
+  final String? message;
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('صفحة غير موجودة')),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                const Icon(Icons.explore_off, size: 64),
-                const SizedBox(height: 12),
-                Text('لا يوجد مسار للعنوان: $uri'),
-                const SizedBox(height: 16),
-                FilledButton.icon(
-                  onPressed: () => context.go('/home'),
-                  icon: const Icon(Icons.home),
-                  label: const Text('العودة للرئيسة'),
-                ),
-              ],
+        appBar: AppBar(title: const Text('تعذر فتح الصفحة')),
+        body: ListView(
+          padding: const EdgeInsets.all(24),
+          children: <Widget>[
+            const Icon(Icons.explore_off, size: 64),
+            const SizedBox(height: 12),
+            Text(
+              message == null
+                  ? 'لا يوجد مسار للعنوان: $uri'
+                  : 'العنوان: $uri\nالسبب: $message',
+              textAlign: TextAlign.center,
             ),
-          ),
+            const SizedBox(height: 16),
+            Center(
+              child: FilledButton.icon(
+                onPressed: () => context.go('/home'),
+                icon: const Icon(Icons.home),
+                label: const Text('العودة للرئيسة'),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Center(
+              child: OutlinedButton.icon(
+                onPressed: () => context.pushNamed(AppRoutes.diagnostics),
+                icon: const Icon(Icons.bug_report),
+                label: const Text('سجل الأعطال'),
+              ),
+            ),
+          ],
         ),
       );
 }

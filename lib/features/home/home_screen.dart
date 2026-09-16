@@ -6,8 +6,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/error_guard.dart';
+import '../../core/nav.dart';
 import '../../core/school_time.dart';
 import '../../data/db.dart';
+import '../../data/error_log.dart';
 import '../../data/years_service.dart';
 import '../../state/providers.dart';
 
@@ -45,18 +48,31 @@ class _HomeState extends ConsumerState<HomeScreen> {
   late final Stream<List<SchoolClass>> _classes;
 
   Future<(int, String)?> _pickClass(BuildContext context, AppDb db) async {
-    final AcademicYear? year = await db.activeYear();
-    if (year == null) {
+    AcademicYear? year;
+    List<SchoolClass> classes;
+    try {
+      year = await db.activeYear();
+      if (year == null) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('لا توجد سنة فعّالة — أنشئها من شاشة السنوات'),
+            ),
+          );
+        }
+        return null;
+      }
+      classes = await (db.select(db.schoolClasses)
+            ..where((c) => c.yearId.equals(year!.id)))
+          .get();
+    } catch (e, st) {
+      AppErrorLog.instance.record(e, st, where: 'home:pickClass');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('لا توجد سنة فعّالة — أنشئها من السنوات')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('تعذر قراءة الصفوف: $e')));
       }
       return null;
     }
-    final List<SchoolClass> classes =
-        await (db.select(db.schoolClasses)..where((c) => c.yearId.equals(year.id)))
-            .get();
     if (!context.mounted) {
       return null;
     }
@@ -82,14 +98,30 @@ class _HomeState extends ConsumerState<HomeScreen> {
     );
   }
 
+  /// فتح شاشة مرتبطة بصف: الرابط يُبنى بترميز صحيح ويُمرَّر المرجع عبر `extra`
+  /// أيضاً، فتصل الشاشة ببياناتها حتى لو فُقدت المعاملات (استعادة عملية/رابط قديم).
   Future<void> _openClassFlow(
     BuildContext context,
     AppDb db,
-    String route,
+    String path,
   ) async {
     final (int, String)? p = await _pickClass(context, db);
-    if (p != null && context.mounted) {
-      await context.push('$route?class=${p.$1}&title=${Uri.encodeComponent(p.$2)}');
+    if (p == null || !context.mounted) {
+      return;
+    }
+    final ClassRef ref0 = ClassRef(id: p.$1, title: p.$2);
+    try {
+      await context.push(
+        AppRoutes.classLocation(path, ref0.id, ref0.displayTitle),
+        extra: ref0,
+      );
+    } catch (e, st) {
+      AppErrorLog.instance.record(e, st, where: 'home:push:$path');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذر فتح الشاشة: $e')),
+        );
+      }
     }
   }
 
@@ -99,7 +131,7 @@ class _HomeState extends ConsumerState<HomeScreen> {
       return;
     }
     if (pin == null || pin.isEmpty || ref.read(pinUnlockedProvider)) {
-      await context.push(route);
+      await _push(context, route);
       return;
     }
     final TextEditingController c = TextEditingController();
@@ -122,10 +154,22 @@ class _HomeState extends ConsumerState<HomeScreen> {
     );
     if (entered == pin && context.mounted) {
       ref.read(pinUnlockedProvider.notifier).state = true;
-      await context.push(route);
+      await _push(context, route);
     } else if (entered != null && context.mounted) {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('رمز غير صحيح')));
+    }
+  }
+
+  Future<void> _push(BuildContext context, String route) async {
+    try {
+      await context.push(route);
+    } catch (e, st) {
+      AppErrorLog.instance.record(e, st, where: 'home:push:$route');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('تعذر فتح الشاشة: $e')));
+      }
     }
   }
 
@@ -362,6 +406,11 @@ class _HomeState extends ConsumerState<HomeScreen> {
                     label: 'الإعدادات',
                     onTap: () => _openPin(context, ref, '/settings'),
                   ),
+                  _Tile(
+                    icon: Icons.bug_report,
+                    label: 'التشخيص والأعطال',
+                    onTap: () => _push(context, '/diagnostics'),
+                  ),
                 ],
               ),
             ],
@@ -373,6 +422,9 @@ class _HomeState extends ConsumerState<HomeScreen> {
 }
 
 /// حالة جلسات اليوم لكل الصفوف: مسجل/الكل ومفتوحة/مقفلة + دخول مباشر.
+///
+/// كل تدفق هنا له حالة خطأ ظاهرة ([StreamGuard]) — لا «لا صفوف بعد» كاذبة عند
+/// فشل قاعدة البيانات.
 class _TodayCard extends StatelessWidget {
   const _TodayCard({
     required this.today,
@@ -387,81 +439,119 @@ class _TodayCard extends StatelessWidget {
   final Stream<List<SchoolClass>> classesStream;
 
   @override
-  Widget build(BuildContext context) => StreamBuilder<List<Session>>(
-        stream: sessionsStream,
-        builder: (BuildContext context, AsyncSnapshot<List<Session>> ss) {
-          final Map<int, Session> byClass = <int, Session>{
-            for (final Session s in ss.data ?? <Session>[]) s.classId: s,
-          };
-          return Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    'جلسات اليوم $today',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 4),
-                  StreamBuilder<List<AttendanceRow>>(
-                    stream: rowsStream,
-                    builder: (
-                      BuildContext context,
-                      AsyncSnapshot<List<AttendanceRow>> rs,
-                    ) {
-                      final Map<int, int> counted = <int, int>{};
-                      for (final AttendanceRow r
-                          in rs.data ?? <AttendanceRow>[]) {
-                        if (r.status == AttendanceStatus.present ||
-                            r.status == AttendanceStatus.late ||
-                            r.status == AttendanceStatus.leave) {
-                          counted[r.classId] =
-                              (counted[r.classId] ?? 0) + 1;
-                        }
-                      }
-                      return StreamBuilder<List<SchoolClass>>(
-                        stream: classesStream,
+  Widget build(BuildContext context) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                'جلسات اليوم $today',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 4),
+              StreamGuard<List<SchoolClass>>(
+                stream: classesStream,
+                loading: const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: LinearProgressIndicator(),
+                ),
+                builder: (BuildContext context, List<SchoolClass> classes) {
+                  if (classes.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.all(8),
+                      child: Text('لا صفوف بعد — أضف صفاً من شاشة الصفوف'),
+                    );
+                  }
+                  return StreamGuard<List<Session>>(
+                    stream: sessionsStream,
+                    loading: const Padding(
+                      padding: EdgeInsets.all(8),
+                      child: LinearProgressIndicator(),
+                    ),
+                    builder: (BuildContext context, List<Session> sessions) {
+                      final Map<int, Session> byClass = <int, Session>{
+                        for (final Session s in sessions) s.classId: s,
+                      };
+                      return StreamGuard<List<AttendanceRow>>(
+                        stream: rowsStream,
+                        loading: const Padding(
+                          padding: EdgeInsets.all(8),
+                          child: LinearProgressIndicator(),
+                        ),
                         builder: (
                           BuildContext context,
-                          AsyncSnapshot<List<SchoolClass>> cs,
+                          List<AttendanceRow> rows,
                         ) {
-                          final List<SchoolClass> classes =
-                              cs.data ?? <SchoolClass>[];
-                          if (classes.isEmpty) {
-                            return const Padding(
-                              padding: EdgeInsets.all(8),
-                              child: Text('لا صفوف بعد'),
-                            );
+                          final Map<int, int> counted = <int, int>{};
+                          for (final AttendanceRow r in rows) {
+                            if (r.status == AttendanceStatus.present ||
+                                r.status == AttendanceStatus.late ||
+                                r.status == AttendanceStatus.leave) {
+                              counted[r.classId] =
+                                  (counted[r.classId] ?? 0) + 1;
+                            }
                           }
                           return Column(
                             children: <Widget>[
                               for (final SchoolClass c in classes)
-                                ListTile(
-                                  dense: true,
-                                  title: Text('${c.grade} ـ ${c.section}'),
-                                  subtitle: Text(
-                                    'مسجل: ${counted[c.id] ?? 0}'
-                                    '${byClass[c.id] == null ? ' • لم تُفتح جلسة' : (byClass[c.id]!.closedAt != null ? ' • مقفلة' : ' • مفتوحة')}',
-                                  ),
-                                  trailing: const Icon(Icons.chevron_left),
-                                  onTap: () => context.push(
-                                    '/day-sheet?class=${c.id}&date=$today'
-                                    '&title=${Uri.encodeComponent('${c.grade} ـ ${c.section}')}',
-                                  ),
+                                _ClassDayTile(
+                                  today: today,
+                                  schoolClass: c,
+                                  recorded: counted[c.id] ?? 0,
+                                  session: byClass[c.id],
                                 ),
                             ],
                           );
                         },
                       );
                     },
-                  ),
-                ],
+                  );
+                },
               ),
-            ),
-          );
-        },
+            ],
+          ),
+        ),
       );
+}
+
+/// صف واحد في بطاقة اليوم + دخول مباشر لكشف يومه.
+class _ClassDayTile extends StatelessWidget {
+  const _ClassDayTile({
+    required this.today,
+    required this.schoolClass,
+    required this.recorded,
+    required this.session,
+  });
+
+  final String today;
+  final SchoolClass schoolClass;
+  final int recorded;
+  final Session? session;
+
+  @override
+  Widget build(BuildContext context) {
+    final String title = '${schoolClass.grade} ـ ${schoolClass.section}';
+    final Session? s = session;
+    final String state = s == null
+        ? 'لم تُفتح جلسة'
+        : (s.closedAt != null ? 'مقفلة' : 'مفتوحة');
+    return ListTile(
+      dense: true,
+      title: Text(title),
+      subtitle: Text('مسجل: $recorded • $state'),
+      trailing: const Icon(Icons.chevron_left),
+      onTap: () => context.push(
+        AppRoutes.classLocation(
+          '/day-sheet',
+          schoolClass.id,
+          title,
+          date: today,
+        ),
+        extra: ClassRef(id: schoolClass.id, title: title),
+      ),
+    );
+  }
 }
 
 class _Tile extends StatelessWidget {

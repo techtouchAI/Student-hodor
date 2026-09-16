@@ -9,9 +9,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../core/app_info.dart';
 import '../../core/school_time.dart';
 import '../../data/backup_service.dart';
 import '../../data/db.dart';
+import '../../data/error_log.dart';
+import '../../features/diagnostics/diagnostics_screen.dart';
 import '../../state/providers.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -83,8 +86,33 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  Future<void> _diagnostics() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) => const DiagnosticsScreen(),
+      ),
+    );
+  }
+
   Future<void> _save() async {
     final AppDb db = ref.read(dbProvider);
+    try {
+      await _saveAll(db);
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('حُفظت الإعدادات')));
+      }
+    } catch (e, st) {
+      AppErrorLog.instance.record(e, st, where: 'settings:save');
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('تعذر الحفظ: $e')));
+      }
+    }
+  }
+
+  Future<void> _saveAll(AppDb db) async {
     await db.setSetting('school_name', _school.text.trim());
     await db.setSetting('director_name', _director.text.trim());
     await db.setSetting('alert_threshold_1', _t1.text.trim());
@@ -97,10 +125,6 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
     await db.logAudit('settings_save', '');
     ref.invalidate(settingsProvider);
     ref.invalidate(effectiveSettingsProvider);
-    if (mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('حُفظت الإعدادات')));
-    }
   }
 
   Future<void> _holidays() async {
@@ -294,6 +318,15 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
             leading: const Icon(Icons.merge),
             title: const Text('دمج جلسات جهاز آخر'),
             onTap: () => _restoreOrMerge(true),
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.bug_report),
+            title: const Text('التشخيص وسجل الأعطال'),
+            subtitle: const Text(
+              'الإصدار ${AppInfo.version} — عند أي شاشة بيضاء/فارغة أرسل هذا التقرير',
+            ),
+            onTap: _diagnostics,
           ),
         ],
       ),

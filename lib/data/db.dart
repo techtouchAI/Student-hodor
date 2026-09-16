@@ -17,6 +17,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../core/badge_code.dart';
+import '../core/nav.dart';
 
 part 'db.g.dart';
 
@@ -289,6 +290,58 @@ class AppDb extends _$AppDb {
 
   Future<Student?> studentById(int id) =>
       (select(students)..where((s) => s.id.equals(id))).getSingleOrNull();
+
+  /// عنوان صف للعرض («السادس ـ أ») أو null إن لم يوجد.
+  Future<String?> classTitle(int classId) async {
+    final SchoolClass? c = await (select(schoolClasses)
+          ..where((x) => x.id.equals(classId)))
+        .getSingleOrNull();
+    return c == null ? null : '${c.grade} ـ ${c.section}';
+  }
+
+  /// حلّ مرجع صف لشاشات (طلاب/بادجات/مسح/كشف اليوم).
+  ///
+  /// هذه هي الحماية الجوهرية من «الشاشة البيضاء/الفارغة»: لا تعتمد الشاشة على
+  /// معاملة رابط سليمة، بل:
+  /// 1. إن جاء معرّف صالح ⇒ يُعتمد ويُستكمل عنوانه من القاعدة إن كان ناقصاً.
+  /// 2. إن جاء `0` أو معرّف محذوف ⇒ يُعتمد أول صف في السنة الفعّالة (أو يُعرض
+  ///    منتقي صفوف إن وُجد أكثر من صف) بدل شاشة فارغة بلا تفسير.
+  ///
+  /// يعيد `(عدد صفوف السنة الفعّالة، المرجع)`؛ المرجع `null` يعني «اسأل المستخدم».
+  Future<(int, ClassRef?)> resolveClassRef(ClassRef requested) async {
+    final AcademicYear? year = await activeYear();
+    if (year == null) {
+      return (0, null);
+    }
+    final List<SchoolClass> classes = await (select(schoolClasses)
+          ..where((c) => c.yearId.equals(year.id))
+          ..orderBy(<OrderClauseGenerator<SchoolClasses>>[
+            (SchoolClasses c) => OrderingTerm.asc(c.grade),
+            (SchoolClasses c) => OrderingTerm.asc(c.section),
+          ]))
+        .get();
+    SchoolClass? match;
+    for (final SchoolClass c in classes) {
+      if (c.id == requested.id) {
+        match = c;
+        break;
+      }
+    }
+    if (match == null && requested.id > 0 && classes.length == 1) {
+      // رابط قديم/صف محذوف: صف وحيد في السنة ⇒ لا داعي لسؤال المستخدم.
+      match = classes.single;
+    }
+    if (match == null && requested.id <= 0 && classes.length == 1) {
+      match = classes.single;
+    }
+    if (match == null) {
+      return (classes.length, null);
+    }
+    final String title = requested.title.trim().isNotEmpty
+        ? requested.title.trim()
+        : '${match.grade} ـ ${match.section}';
+    return (classes.length, ClassRef(id: match.id, title: title));
+  }
 
   /// التسلسل الفريد التالي على مستوى **السنة** (لا الصف) — يدخل في رمز الباج
   /// وفي القيد الفريد (yearId, seq)، لذا مصدره هنا وحده وداخل معاملة.

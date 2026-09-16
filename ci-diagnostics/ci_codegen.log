@@ -1,10 +1,10 @@
   compiling builders/aot
-  36s compiling builders/aot
+  35s compiling builders/aot
 W These options have been removed and were ignored: --delete-conflicting-outputs
-  0s drift_dev on 164 inputs; lib/app.dart
-  16s drift_dev on 164 inputs: 1 output; spent 12s analyzing, 2s resolving, 2s sdk; lib/core/arabic_shaping.dart
-  17s drift_dev on 164 inputs: 46 output, 4 no-op; spent 13s analyzing, 3s resolving, 2s sdk; lib/data/photo_store.dart
-  18s drift_dev on 164 inputs: 41 skipped, 78 output, 45 no-op; spent 13s analyzing, 3s resolving, 2s sdk
-  0s source_gen:combining_builder on 82 inputs; lib/app.dart
-  0s source_gen:combining_builder on 82 inputs: 41 skipped, 1 output, 40 no-op
-  Built with build_runner/aot in 54s; wrote 79 outputs.
+  0s drift_dev on 192 inputs; lib/app.dart
+  13s drift_dev on 192 inputs: 1 output; spent 10s analyzing, 2s resolving, 1s sdk; lib/core/app_info.dart
+  15s drift_dev on 192 inputs: 55 output, 5 no-op; spent 11s analyzing, 2s resolving, 1s sdk; lib/data/error_log.dart
+  15s drift_dev on 192 inputs: 48 skipped, 91 output, 53 no-op; spent 11s analyzing, 2s resolving, 1s sdk
+  0s source_gen:combining_builder on 96 inputs; lib/app.dart
+  0s source_gen:combining_builder on 96 inputs: 48 skipped, 1 output, 47 no-op
+  Built with build_runner/aot in 51s; wrote 92 outputs.

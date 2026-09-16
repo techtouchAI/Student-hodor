@@ -3,11 +3,14 @@ description: >-
   نظام حضور الطلاب بالباركود/QR — تطبيق أندرويد أوفلاين بالكامل، قاعدة بيانات
   محلية، بادجات طلابية قابلة للطباعة، وتقارير Excel/PDF عربية.
 publish_to: none
-version: 1.1.0+2
+version: 1.2.0+4
 
 environment:
-  sdk: ">=3.4.0 <4.0.0"
+  sdk: ">=3.5.0 <4.0.0"
 
+# سياسة التثبيت: كل اعتمادية مثبّتة على الإصدار الذي بُني واختُبر فعلياً في CI.
+# السبب: `pubspec.lock` غير مُتتبَّع، فكان كل بناء يحلّ إصدارات جديدة قد تغيّر
+# السلوك في الميدان بلا أي تغيير في الكود (أحد جذور «الشاشة البيضاء» المتقطعة).
 dependencies:
   flutter:
     sdk: flutter
@@ -15,44 +18,43 @@ dependencies:
     sdk: flutter
 
   # حالة وتنقل
-  flutter_riverpod: ^2.5.0
-  go_router: ^14.2.0
+  flutter_riverpod: 2.6.1
+  go_router: 14.8.1
 
   # قاعدة البيانات المحلية (SQLite)
-  drift: ^2.28.0
-  sqlite3_flutter_libs: ^0.5.0
-  path_provider: ^2.1.0
-  path: ^1.9.0
+  drift: 2.35.0
+  sqlite3_flutter_libs: 0.5.42
+  path_provider: 2.1.6
+  path: 1.9.1
 
   # المسح بالكاميرا (MLKit مضمّن، أوفلاين)
-  mobile_scanner: ^5.2.0
+  mobile_scanner: 5.2.3
 
   # التصدير
-  excel: ^4.0.0
-  pdf: ^3.10.0
-  printing: ^5.12.0
-  archive: ^3.4.9
+  excel: 4.0.6
+  pdf: 3.12.0
+  printing: 5.14.3
+  archive: 3.6.1
 
   # توليد الرموز
-  qr: ^3.0.1
-  barcode: ^2.1.0
+  qr: 3.0.2
+  barcode: 2.2.9
 
   # ملفات وصور ومشاركة
-  image_picker: ^1.1.0
-  file_picker: ^13.0.0
-  share_plus: ^13.0.0
+  image_picker: 1.2.3
+  file_picker: 13.1.0
+  share_plus: 13.3.0
 
   # تجربة شاشة المسح
-  wakelock_plus: ^1.2.0
-  vibration: ^3.0.0
-
+  wakelock_plus: 1.8.0
+  vibration: 3.2.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.0.0
-  build_runner: ^2.4.0
-  drift_dev: ^2.28.0
+  flutter_lints: 4.0.0
+  build_runner: 2.16.1
+  drift_dev: 2.35.0
 
 flutter:
   uses-material-design: true

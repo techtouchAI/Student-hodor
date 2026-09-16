@@ -1,11 +1,13 @@
 /// مولّد ملف Excel: كشف حضور شهري ملوّن (أخضر/أحمر/أصفر/برتقالي)
 /// باتجاه RTL، مع مجاميع ونسب، وشهر واحد لكل ورقة + أوراق ملخّص وإجازات اختيارية.
 ///
-/// الاتجاه من اليمين إلى اليسار يُفرض **مرتين**:
+/// الاتجاه من اليمين إلى اليسار يُفرض **ثلاث مرات**:
 /// 1. `sheet.isRTL = true` (تكتبه الحزمة في `sheetView`).
 /// 2. ترقيع صريح لـ`rightToLeft="1"` في كل `sheetView` بعد الحفظ
 ///    ([_patchSheets]) حتى لا يتوقف الأمر على سلوك نسخة الحزمة — فالملف كان
 ///    يُفتح أحياناً باتجاه إنكليزي (LTR) فيظهر ترتيب الأعمدة معكوساً.
+/// 3. اتجاه قراءة RTL صريح (`readingOrder="2"`) على كل نمط محاذاته يمين
+///    ([_patchStylesRtl])، فالمحاذاة وحدها لا تكفي لدقة اتجاه الأسماء.
 ///
 /// وكذلك محاذاة خلايا النص (الاسم/الصف) تُضبط صراحةً `Right` فلا تعتمد على
 /// افتراض Excel، وأسماء الملفات المصدّرة عربية (انظر [exportFileName]).
@@ -555,6 +557,13 @@ class ExcelBuilder {
     final Archive archive = ZipDecoder().decodeBytes(bytes);
     final Archive out = Archive();
     for (final ArchiveFile f in archive) {
+      if (f.name == 'xl/styles.xml') {
+        final String xml =
+            utf8.decode(f.content as List<int>, allowMalformed: true);
+        final List<int> patched = utf8.encode(_patchStylesRtl(xml));
+        out.addFile(ArchiveFile(f.name, patched.length, patched));
+        continue;
+      }
       if (!_isWorksheetXml(f.name)) {
         out.addFile(f);
         continue;
@@ -565,6 +574,31 @@ class ExcelBuilder {
       out.addFile(ArchiveFile(f.name, patched.length, patched));
     }
     return ZipEncoder().encode(out)!;
+  }
+
+  /// يضيف `readingOrder="2"` (اتجاه قراءة RTL) لكل `alignment` محاذاته
+  /// `right` في `styles.xml` — الحزمة لا تدعم اتجاه القراءة، والمحاذاة
+  /// وحدها لا تضبط اتجاه الأسماء بدقة في كل العارضات.
+  ///
+  /// آمن لأن كل الخلايا يمينية المحاذاة في ملفاتنا نص عربي أو محايد
+  /// (أسماء، صفوف، تواريخ، أسباب إجازات) — لا أرقام تُحسَب ولا عناوين
+  /// موسّطة تشاركها النمط نفسه. الوسوم الحاملة `readingOrder` مسبقاً
+  /// تُترَك كما هي (لا تكرار للسمة).
+  String _patchStylesRtl(String xml) {
+    return xml.replaceAllMapped(
+      RegExp(r'<alignment\b[^>]*>'),
+      (Match m) {
+        final String tag = m.group(0)!;
+        if (!tag.contains('horizontal="right"') ||
+            tag.contains('readingOrder=')) {
+          return tag;
+        }
+        if (tag.endsWith('/>')) {
+          return '${tag.substring(0, tag.length - 2)} readingOrder="2"/>';
+        }
+        return '${tag.substring(0, tag.length - 1)} readingOrder="2">';
+      },
+    );
   }
 
   static bool _isWorksheetXml(String name) =>

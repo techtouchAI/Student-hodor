@@ -269,5 +269,25 @@ void main() {
         isNot(contains('/')),
       );
     });
+
+    test('أعمدة الأسماء باتجاه قراءة RTL صريح لا محاذاة فقط', () async {
+      final List<int> bytes = await _buildExcel();
+      final Archive archive = ZipDecoder().decodeBytes(bytes);
+      final String styles = _entry(archive, 'xl/styles.xml');
+      bool foundRight = false;
+      for (final Match m
+          in RegExp(r'<alignment\b[^>]*>').allMatches(styles)) {
+        final String tag = m.group(0)!;
+        if (tag.contains('horizontal="right"')) {
+          foundRight = true;
+          expect(
+            tag,
+            contains('readingOrder="2"'),
+            reason: 'المحاذاة يميناً وحدها لا تضبط اتجاه الأسماء بدقة: $tag',
+          );
+        }
+      }
+      expect(foundRight, isTrue, reason: 'لا نمط يميني في الملف أصلاً؟');
+    });
   });
 }

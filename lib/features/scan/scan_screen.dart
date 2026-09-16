@@ -616,7 +616,7 @@ class _ScanState extends ConsumerState<ScanScreen>
     final Session? session = _session;
     // تُحسب قبل `ready`: تحليل التدفق يرقّي `session` عبر المتغير المنطقي،
     // فتصير `session?.` تحذير invalid_null_aware_operator في الشجرة أدناه.
-    final DateTime? closedAt = session?.closedAt;
+    final String? closedAt = session?.closedAt; // عمود نصي (ISO) في drift
     final AppDb db = ref.watch(dbProvider);
     final bool ready = !_loading && c != null && session != null;
     return Scaffold(

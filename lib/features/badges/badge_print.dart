@@ -90,7 +90,7 @@ class BadgePrint {
       doc.addPage(
         pw.Page(
           pageFormat: format,
-          margin: pw.EdgeInsets.all(margin),
+          margin: const pw.EdgeInsets.all(margin),
           build: (pw.Context context) => pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.stretch,
             children: <pw.Widget>[

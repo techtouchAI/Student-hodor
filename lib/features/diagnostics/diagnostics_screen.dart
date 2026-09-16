@@ -39,14 +39,14 @@ class _DiagnosticsState extends ConsumerState<DiagnosticsScreen> {
       final AppDb db = ref.read(dbProvider);
       await AppErrorLog.instance.load();
       final Map<String, int> counts = <String, int>{
-        'السنوات': await _countAll(db, db.academicYears),
-        'الصفوف': await _countAll(db, db.schoolClasses),
-        'الطلاب': await _countAll(db, db.students),
-        'البادجات': await _countAll(db, db.badges),
-        'الجلسات': await _countAll(db, db.sessions),
-        'سجلات الحضور': await _countAll(db, db.attendanceRows),
-        'الإجازات': await _countAll(db, db.leaves),
-        'العطل': await _countAll(db, db.holidays),
+        'السنوات': await _countRows(db, 'academic_years'),
+        'الصفوف': await _countRows(db, 'school_classes'),
+        'الطلاب': await _countRows(db, 'students'),
+        'البادجات': await _countRows(db, 'badges'),
+        'الجلسات': await _countRows(db, 'sessions'),
+        'سجلات الحضور': await _countRows(db, 'attendance_rows'),
+        'الإجازات': await _countRows(db, 'leaves'),
+        'العطل': await _countRows(db, 'holidays'),
       };
       final AcademicYear? y = await db.activeYear();
       if (!mounted) {
@@ -73,12 +73,11 @@ class _DiagnosticsState extends ConsumerState<DiagnosticsScreen> {
     }
   }
 
-  /// عدّ صفوف جدول بعدّه في SQL مباشرة (بلا تحميل الجدول في الذاكرة).
-  static Future<int> _countAll(AppDb db, TableInfo<Table, Object?> table) async {
+  /// عدّ صفوف جدول في SQL مباشرة (بلا تحميل الجدول في الذاكرة، وبلا تمرير
+  /// نوع جدول عام يتعارض اسمياً مع ودجات Flutter).
+  static Future<int> _countRows(AppDb db, String tableName) async {
     final QueryRow row = await db
-        .customSelect(
-          'SELECT COUNT(*) AS c FROM ${table.actualTableName}',
-        )
+        .customSelect('SELECT COUNT(*) AS c FROM $tableName')
         .getSingle();
     return row.read<int>('c');
   }

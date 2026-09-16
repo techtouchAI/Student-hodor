@@ -73,7 +73,7 @@ class BadgePrint {
     final PdfPageFormat format = PdfPageFormat.a4.landscape;
     final double bw = BadgeMetrics.widthPt;
     final double bh = BadgeMetrics.heightPt;
-    final double margin = _marginMm * PdfPageFormat.mm;
+    const double margin = _marginMm * PdfPageFormat.mm;
     final double contentW = format.width - margin * 2;
     // الفراغ الأفقي مشتق من العرض لا ثابت: 5 بادجات + 4 فراغات = العرض كاملاً.
     final double gapX = (contentW - _columns * bw) / (_columns - 1);
@@ -163,7 +163,7 @@ class BadgePrint {
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: <pw.Widget>[
-          _header(s, w, radius),
+          _badgeHeader(s, w, radius),
           pw.Container(height: w * 0.02, color: _gold),
           pw.Expanded(
             child: pw.Padding(
@@ -204,7 +204,7 @@ class BadgePrint {
   /// الترويسة: متدرجة داكن→فاتح من الأعلى، بزاويتين علويتين مدورتين
   /// تعشّقان داخل إطار البطاقة. الترتيب معكوس عن الشاشة لأن سياق PDF
   /// LTR: النص يميناً والختم يساراً كما في العرض العربي.
-  static pw.Widget _header(BadgeSpec s, double w, double radius) =>
+  static pw.Widget _badgeHeader(BadgeSpec s, double w, double radius) =>
       pw.Container(
         padding: pw.EdgeInsets.symmetric(
           vertical: w * 0.045,

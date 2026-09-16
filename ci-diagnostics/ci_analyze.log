@@ -1,17 +1,5 @@
 Analyzing Student-hodor...                                      
 
-   info • Missing a required trailing comma. Try adding a trailing comma • lib/features/export/excel_builder.dart:237:18 • require_trailing_commas
-   info • Missing a required trailing comma. Try adding a trailing comma • lib/features/export/excel_builder.dart:243:18 • require_trailing_commas
-   info • Missing a required trailing comma. Try adding a trailing comma • lib/features/export/excel_builder.dart:249:18 • require_trailing_commas
-   info • Missing a required trailing comma. Try adding a trailing comma • lib/features/export/excel_builder.dart:255:18 • require_trailing_commas
-   info • Missing a required trailing comma. Try adding a trailing comma • lib/features/export/excel_builder.dart:261:18 • require_trailing_commas
-   info • Missing a required trailing comma. Try adding a trailing comma • lib/features/export/excel_builder.dart:461:10 • require_trailing_commas
-   info • Missing a required trailing comma. Try adding a trailing comma • lib/features/export/excel_builder.dart:467:10 • require_trailing_commas
-   info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • lib/features/reports/student_report_screen.dart:378:11 • prefer_const_constructors
-   info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • lib/features/reports/student_report_screen.dart:379:11 • prefer_const_constructors
-   info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • lib/features/reports/student_report_screen.dart:380:11 • prefer_const_constructors
-   info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • lib/features/reports/student_report_screen.dart:381:11 • prefer_const_constructors
-   info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • lib/features/reports/student_report_screen.dart:383:11 • prefer_const_constructors
-warning • The receiver can't be null, so the null-aware operator '?.' is unnecessary. Try replacing the operator '?.' with '.' • lib/features/scan/scan_screen.dart:658:37 • invalid_null_aware_operator
+  error • A value of type 'String?' can't be assigned to a variable of type 'DateTime?'. Try changing the type of the variable, or casting the right-hand type to 'DateTime?' • lib/features/scan/scan_screen.dart:619:32 • invalid_assignment
 
-13 issues found. (ran in 17.7s)
+1 issue found. (ran in 13.7s)

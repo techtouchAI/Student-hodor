@@ -4,7 +4,7 @@
 /// يرسل نصاً حرفياً يحدد الشاشة والسبب.
 library;
 
-import 'package:drift/drift.dart' hide Column;
+import 'package:drift/drift.dart' hide Column, Table;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

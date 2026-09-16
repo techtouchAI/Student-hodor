@@ -15,16 +15,27 @@ import '../../data/db.dart';
 import '../../data/error_log.dart';
 import '../../state/providers.dart';
 
-class ClassesScreen extends ConsumerWidget {
+class ClassesScreen extends ConsumerStatefulWidget {
   const ClassesScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ClassesScreen> createState() => _ClassesState();
+}
+
+class _ClassesState extends ConsumerState<ClassesScreen> {
+  /// رسالة snackbar — تُستدعى دائماً بعد حارس `mounted` فلا يُستخدم
+  /// `context` عبر فجوة `async`.
+  void _snack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final AppDb db = ref.watch(dbProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('الصفوف والشعب')),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _edit(context, ref, null),
+        onPressed: () => _edit(null),
         icon: const Icon(Icons.add),
         label: const Text('صف جديد'),
       ),
@@ -51,7 +62,7 @@ class ClassesScreen extends ConsumerWidget {
               return ListView.builder(
                 itemCount: classes.length,
                 itemBuilder: (BuildContext context, int i) =>
-                    _classTile(context, ref, db, classes[i]),
+                    _classTile(db, classes[i]),
               );
             },
           );
@@ -60,13 +71,9 @@ class ClassesScreen extends ConsumerWidget {
     );
   }
 
-  Widget _classTile(
-    BuildContext context,
-    WidgetRef ref,
-    AppDb db,
-    SchoolClass c,
-  ) {
+  Widget _classTile(AppDb db, SchoolClass c) {
     final String title = '${c.grade} ـ ${c.section}';
+    final ClassRef ref0 = ClassRef(id: c.id, title: title);
     return StreamGuard<int>(
       stream: (db.selectOnly(db.students)
             ..addColumns(<Expression<int>>[countAll()])
@@ -84,7 +91,7 @@ class ClassesScreen extends ConsumerWidget {
         subtitle: Text('طلاب: $count'),
         onTap: () => context.push(
           AppRoutes.classLocation('/students', c.id, title),
-          extra: ClassRef(id: c.id, title: title),
+          extra: ref0,
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
@@ -94,7 +101,7 @@ class ClassesScreen extends ConsumerWidget {
               icon: const Icon(Icons.badge),
               onPressed: () => context.push(
                 AppRoutes.classLocation('/badges', c.id, title),
-                extra: ClassRef(id: c.id, title: title),
+                extra: ref0,
               ),
             ),
             IconButton(
@@ -102,18 +109,18 @@ class ClassesScreen extends ConsumerWidget {
               icon: const Icon(Icons.fact_check),
               onPressed: () => context.push(
                 AppRoutes.classLocation('/day-sheet', c.id, title),
-                extra: ClassRef(id: c.id, title: title),
+                extra: ref0,
               ),
             ),
             IconButton(
               tooltip: 'تعديل',
               icon: const Icon(Icons.edit),
-              onPressed: () => _edit(context, ref, c),
+              onPressed: () => _edit(c),
             ),
             IconButton(
               tooltip: 'حذف',
               icon: const Icon(Icons.delete),
-              onPressed: () => _delete(context, ref, c),
+              onPressed: () => _delete(c),
             ),
           ],
         ),
@@ -121,25 +128,31 @@ class ClassesScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _edit(BuildContext context, WidgetRef ref, SchoolClass? c) async {
+  Future<void> _edit(SchoolClass? c) async {
     final AppDb db = ref.read(dbProvider);
     AcademicYear? year;
     try {
       year = await db.activeYear();
     } catch (e, st) {
       AppErrorLog.instance.record(e, st, where: 'classes:year');
-      _snackIfMounted(context, 'تعذر قراءة السنة الفعّالة: $e');
+      if (!mounted) {
+        return;
+      }
+      _snack('تعذر قراءة السنة الفعّالة: $e');
       return;
     }
     if (year == null) {
-      _snackIfMounted(context, 'لا توجد سنة فعّالة — أنشئها من شاشة السنوات');
+      if (!mounted) {
+        return;
+      }
+      _snack('لا توجد سنة فعّالة — أنشئها من شاشة السنوات');
       return;
     }
     final TextEditingController grade =
         TextEditingController(text: c?.grade ?? '');
     final TextEditingController section =
         TextEditingController(text: c?.section ?? '');
-    if (!context.mounted) {
+    if (!mounted) {
       return;
     }
     final bool? ok = await showDialog<bool>(
@@ -171,11 +184,11 @@ class ClassesScreen extends ConsumerWidget {
         ],
       ),
     );
-    if (ok != true) {
+    if (ok != true || !mounted) {
       return;
     }
     if (grade.text.trim().isEmpty || section.text.trim().isEmpty) {
-      _snackIfMounted(context, 'اكتب الصف والشعبة معاً');
+      _snack('اكتب الصف والشعبة معاً');
       return;
     }
     try {
@@ -188,8 +201,11 @@ class ClassesScreen extends ConsumerWidget {
                     x.section.equals(section.text.trim()),
               ))
             .getSingleOrNull();
+        if (!mounted) {
+          return;
+        }
         if (existing != null) {
-          _snackIfMounted(context, 'الصف والشعبة موجودان مسبقاً');
+          _snack('الصف والشعبة موجودان مسبقاً');
           return;
         }
         await db.into(db.schoolClasses).insert(
@@ -209,33 +225,38 @@ class ClassesScreen extends ConsumerWidget {
         );
       }
       await db.logAudit(c == null ? 'class_add' : 'class_edit', grade.text);
-      _snackIfMounted(context, c == null ? 'أُضيف الصف' : 'حُفظ التعديل');
+      if (!mounted) {
+        return;
+      }
+      _snack(c == null ? 'أُضيف الصف' : 'حُفظ التعديل');
     } catch (e, st) {
       AppErrorLog.instance.record(e, st, where: 'classes:save');
-      _snackIfMounted(context, 'تعذر الحفظ: $e');
+      if (!mounted) {
+        return;
+      }
+      _snack('تعذر الحفظ: $e');
     }
   }
 
   /// حذف صف فارغ فقط؛ الصف الذي فيه طلاب يُوجَّه لحذفهم أولاً (حماية البيانات).
-  Future<void> _delete(
-    BuildContext context,
-    WidgetRef ref,
-    SchoolClass c,
-  ) async {
+  Future<void> _delete(SchoolClass c) async {
     final AppDb db = ref.read(dbProvider);
     int kids;
     try {
       kids = await db.countStudentsInClass(c.id);
     } catch (e, st) {
       AppErrorLog.instance.record(e, st, where: 'classes:count');
-      _snackIfMounted(context, 'تعذر فحص الصف: $e');
+      if (!mounted) {
+        return;
+      }
+      _snack('تعذر فحص الصف: $e');
       return;
     }
-    if (!context.mounted) {
+    if (!mounted) {
       return;
     }
     if (kids > 0) {
-      _snackIfMounted(context, 'الصف فيه $kids طالباً — احذف الطلاب أو رقّهم أولاً');
+      _snack('الصف فيه $kids طالباً — احذف الطلاب أو رقّهم أولاً');
       return;
     }
     final bool? ok = await showDialog<bool>(
@@ -261,19 +282,16 @@ class ClassesScreen extends ConsumerWidget {
     }
     try {
       await db.deleteClass(c.id);
-      _snackIfMounted(context, 'حُذف الصف');
+      if (!mounted) {
+        return;
+      }
+      _snack('حُذف الصف');
     } catch (e, st) {
       AppErrorLog.instance.record(e, st, where: 'classes:delete');
-      _snackIfMounted(context, 'تعذر الحذف: $e');
+      if (!mounted) {
+        return;
+      }
+      _snack('تعذر الحذف: $e');
     }
   }
-}
-
-/// يعرض رسالة فقط إن بقي السياق صالحاً — يسمح بتمرير `context` عبر فجوات
-/// `async` بلا استخدام مباشر له بعد `await` (use_build_context_synchronously).
-void _snackIfMounted(BuildContext context, String message) {
-  if (!context.mounted) {
-    return;
-  }
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
 }

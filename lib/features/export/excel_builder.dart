@@ -116,13 +116,23 @@ class ExcelBuilder {
 
   final Set<String> _usedSheetNames = <String>{};
 
+  /// خط الكشف كله: أميري (موحّد مع التطبيق وتقرير PDF) حتى لا تظهر
+  /// العربية بخط النظام الافتراضي المختلف.
+  static const String _fontFamily = 'Amiri';
+
   /// نمط ترويسة موحّد (خلفية خضراء داكنة، نص أبيض عريض، توسيط).
   static CellStyle _headerStyle() => CellStyle(
         backgroundColorHex: ExcelColor.fromHexString(ExcelColors.header),
         fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
+        fontFamily: _fontFamily,
+        fontSize: 12,
         bold: true,
         horizontalAlign: HorizontalAlign.Center,
       );
+
+  /// تقريب النسبة لمنزلة عشرية واحدة: القيمة الخام (66.666…) تظهر في
+  /// الخلية بسلسلة كسور مزعجة بدل 66.7.
+  static double _round1(double v) => (v * 10).roundToDouble() / 10;
 
   String _colorFor(int? status, bool schoolDay) {
     if (!schoolDay) {
@@ -194,13 +204,21 @@ class ExcelBuilder {
               CellIndex.indexByColumnRow(columnIndex: _indexColumn, rowIndex: row),
             );
             seq.value = IntCellValue(row - _firstDataRow + 1);
-            seq.cellStyle = CellStyle(horizontalAlign: HorizontalAlign.Center);
+            seq.cellStyle = CellStyle(
+              fontFamily: _fontFamily,
+              fontSize: 11,
+              horizontalAlign: HorizontalAlign.Center,
+            );
             final Data name = sheet.cell(
               CellIndex.indexByColumnRow(columnIndex: _nameColumn, rowIndex: row),
             );
             name.value = TextCellValue(s.fullName);
             // محاذاة صريحة من اليمين: لا نترك اتجاه الاسم لافتراض Excel.
-            name.cellStyle = CellStyle(horizontalAlign: HorizontalAlign.Right);
+            name.cellStyle = CellStyle(
+              fontFamily: _fontFamily,
+              fontSize: 11,
+              horizontalAlign: HorizontalAlign.Right,
+            );
             int absent = 0;
             int leave = 0;
             int present = 0;
@@ -228,6 +246,8 @@ class ExcelBuilder {
               cell.cellStyle = CellStyle(
                 backgroundColorHex:
                     ExcelColor.fromHexString(_colorFor(status, schoolDay)),
+                fontFamily: _fontFamily,
+                fontSize: 11,
                 horizontalAlign: HorizontalAlign.Center,
               );
               switch (status) {
@@ -246,9 +266,10 @@ class ExcelBuilder {
             _cellAt(sheet, _leaveColumn, row).value = IntCellValue(leave);
             _cellAt(sheet, _presentColumn, row).value = IntCellValue(present);
             _cellAt(sheet, _lateColumn, row).value = IntCellValue(late);
-            _cellAt(sheet, _rateColumn, row).value = DoubleCellValue(
-              recorded == 0 ? 100 : (present + late) * 100 / recorded,
-            );
+            final double rate =
+                recorded == 0 ? 100 : (present + late) * 100 / recorded;
+            _cellAt(sheet, _rateColumn, row).value =
+                DoubleCellValue(_round1(rate));
             for (final int col in <int>[
               _absentColumn,
               _leaveColumn,
@@ -256,8 +277,11 @@ class ExcelBuilder {
               _lateColumn,
               _rateColumn,
             ]) {
-              _cellAt(sheet, col, row).cellStyle =
-                  CellStyle(horizontalAlign: HorizontalAlign.Center);
+              _cellAt(sheet, col, row).cellStyle = CellStyle(
+                fontFamily: _fontFamily,
+                fontSize: 11,
+                horizontalAlign: HorizontalAlign.Center,
+              );
             }
             row++;
           }
@@ -333,13 +357,21 @@ class ExcelBuilder {
         _num(sheet, column: 4, row: row, value: IntCellValue(t.late));
         _num(sheet, column: 5, row: row, value: IntCellValue(t.absent));
         _num(sheet, column: 6, row: row, value: IntCellValue(t.leave));
-        _num(sheet, column: 7, row: row, value: DoubleCellValue(t.ratePct));
+        _num(
+          sheet,
+          column: 7,
+          row: row,
+          value: DoubleCellValue(_round1(t.ratePct)),
+        );
         row++;
       }
     }
     sheet.setColumnWidth(0, 6.0);
     sheet.setColumnWidth(1, 18.0);
     sheet.setColumnWidth(2, 34.0);
+    for (int column = 3; column <= 6; column++) {
+      sheet.setColumnWidth(column, 10.0);
+    }
     sheet.setColumnWidth(7, 14.0);
   }
 
@@ -389,6 +421,9 @@ class ExcelBuilder {
       row++;
     }
     sheet.setColumnWidth(0, 30.0);
+    sheet.setColumnWidth(1, 14.0);
+    sheet.setColumnWidth(2, 14.0);
+    sheet.setColumnWidth(3, 12.0);
     sheet.setColumnWidth(4, 30.0);
   }
 
@@ -430,7 +465,11 @@ class ExcelBuilder {
       CellIndex.indexByColumnRow(columnIndex: column, rowIndex: row),
     );
     c.value = TextCellValue(value);
-    c.cellStyle = CellStyle(horizontalAlign: HorizontalAlign.Right);
+    c.cellStyle = CellStyle(
+      fontFamily: _fontFamily,
+      fontSize: 11,
+      horizontalAlign: HorizontalAlign.Right,
+    );
   }
 
   /// خلية رقمية موسّطة.
@@ -442,7 +481,11 @@ class ExcelBuilder {
   }) {
     final Data c = _cellAt(sheet, column, row);
     c.value = value;
-    c.cellStyle = CellStyle(horizontalAlign: HorizontalAlign.Center);
+    c.cellStyle = CellStyle(
+      fontFamily: _fontFamily,
+      fontSize: 11,
+      horizontalAlign: HorizontalAlign.Center,
+    );
   }
 
   void _writeHeader(Sheet sheet, ExportScopeClass sc, MonthKey m) {
@@ -483,6 +526,19 @@ class ExcelBuilder {
     }
     sheet.setColumnWidth(_indexColumn, 6.0);
     sheet.setColumnWidth(_nameColumn, 34.0);
+    // أعمدة الأيام والمجاميع بعرض صريح: بدونه تُقصّ كلمات «متأخر/إجازة»
+    // في العرض الافتراضي الضيق.
+    for (int day = 1; day <= 31; day++) {
+      sheet.setColumnWidth(_dayColumn(day), 11.0);
+    }
+    for (final int col in <int>[
+      _absentColumn,
+      _leaveColumn,
+      _presentColumn,
+      _lateColumn,
+    ]) {
+      sheet.setColumnWidth(col, 10.0);
+    }
     sheet.setColumnWidth(_rateColumn, 14.0);
   }
 

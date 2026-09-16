@@ -33,7 +33,11 @@ Future<AppDb> _seed() async {
   return db;
 }
 
-Future<(AppDb, AcademicYear, List<ExportScopeClass>)> _seededScope() async {
+Future<(AppDb, AcademicYear, List<ExportScopeClass>)> _seededScope({
+  List<(String, int)> records = const <(String, int)>[
+    ('2026-09-02', AttendanceStatus.absent),
+  ],
+}) async {
   final AppDb db = await _seed();
   final AcademicYear year = (await db.activeYear())!;
   final int classId = await db.into(db.schoolClasses).insert(
@@ -48,14 +52,16 @@ Future<(AppDb, AcademicYear, List<ExportScopeClass>)> _seededScope() async {
     classId: classId,
     fullName: 'علي حسن',
   );
-  await db.upsertAttendance(
-    yearId: year.id,
-    classId: classId,
-    studentId: studentId,
-    date: '2026-09-02',
-    status: AttendanceStatus.absent,
-    source: AttendanceSource.manual,
-  );
+  for (final (String, int) record in records) {
+    await db.upsertAttendance(
+      yearId: year.id,
+      classId: classId,
+      studentId: studentId,
+      date: record.$1,
+      status: record.$2,
+      source: AttendanceSource.manual,
+    );
+  }
   final SchoolClass cls = await (db.select(db.schoolClasses)
         ..where((c) => c.id.equals(classId)))
       .getSingle();
@@ -69,9 +75,12 @@ Future<List<int>> _buildExcel({
   bool includeDaily = true,
   bool includeSummary = true,
   bool includeLeaves = true,
+  List<(String, int)> records = const <(String, int)>[
+    ('2026-09-02', AttendanceStatus.absent),
+  ],
 }) async {
   final (AppDb db, AcademicYear year, List<ExportScopeClass> scope) =
-      await _seededScope();
+      await _seededScope(records: records);
   try {
     final ExcelBuilder builder = ExcelBuilder(
       db: db,
@@ -187,6 +196,21 @@ void main() {
       );
       expect(daily.cell(CellIndex.indexByString('D4')).value?.toString(), 'غائب');
       expect(daily.cell(CellIndex.indexByString('AH4')).value?.toString(), '1');
+    });
+
+    test('نسبة الحضور مقربة لمنزلة عشرية واحدة لا كسوراً مطولة', () async {
+      final List<int> bytes = await _buildExcel(
+        includeSummary: false,
+        includeLeaves: false,
+        records: const <(String, int)>[
+          ('2026-09-01', AttendanceStatus.present),
+          ('2026-09-02', AttendanceStatus.present),
+          ('2026-09-03', AttendanceStatus.absent),
+        ],
+      );
+      final Sheet daily = Excel.decodeBytes(bytes)['السادس-أ-أيلول 2026'];
+      // 200/3 = 66.666… ⇒ 66.7.
+      expect(daily.cell(CellIndex.indexByString('AL4')).value?.toString(), '66.7');
     });
 
     test('ورقة الملخص تحمل عنواناً وترويسة في الصف الثالث', () async {

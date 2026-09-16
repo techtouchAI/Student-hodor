@@ -114,9 +114,9 @@ class _BadgesState extends ConsumerState<BadgesScreen> {
   Future<void> _loadFonts() async {
     try {
       final pw.Font regular =
-          pw.Font.ttf(await rootBundle.load('assets/fonts/Tajawal-Regular.ttf'));
+          pw.Font.ttf(await rootBundle.load('assets/fonts/Amiri-Regular.ttf'));
       final pw.Font bold =
-          pw.Font.ttf(await rootBundle.load('assets/fonts/Tajawal-Bold.ttf'));
+          pw.Font.ttf(await rootBundle.load('assets/fonts/Amiri-Bold.ttf'));
       BadgePrint.registerFonts(regular, bold);
       if (mounted) {
         setState(() {

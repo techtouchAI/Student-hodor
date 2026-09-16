@@ -43,4 +43,29 @@ void main() {
     expect(arabicForPdf(''), '');
     expect(arabicForPdf('123'), '123');
   });
+
+  test('التطويل يُحفَظ: فاصل الصف «السادس ـ أ» لا يتحول لفراغ مزدوج', () {
+    expect(reshapeArabic('السادس ـ أ'), contains('ـ'));
+    expect(arabicForPdf('السادس ـ أ'), contains('ـ'));
+  });
+
+  test('الأقواس حول عربية تُعكَس صورها وتبقى بموضعها', () {
+    final String visual = arabicForPdf('(ملاحظة)');
+    expect(visual.startsWith('('), isTrue);
+    expect(visual.endsWith(')'), isTrue);
+  });
+
+  test('نص لاتيني خالص بأقواس يُترَك كما هو', () {
+    expect(arabicForPdf('Class (A)'), 'Class (A)');
+    expect(arabicForPdf('HD-2026-0001'), 'HD-2026-0001');
+  });
+
+  test('زوج أقواس يحوي خليطاً لا ينكسر ولا تُقلَب محتوياته', () {
+    final String visual =
+        arabicForPdf('السنة: 2026 (2026-01-01 إلى 2026-06-30)');
+    expect(visual, contains('2026-01-01'));
+    expect(visual, contains('2026-06-30'));
+    expect('('.allMatches(visual).length, 1);
+    expect(')'.allMatches(visual).length, 1);
+  });
 }

@@ -49,7 +49,16 @@ class PdfReport {
   pw.TextStyle _s(double size, {bool bold = false, PdfColor? color}) =>
       pw.TextStyle(font: bold ? fontBold : font, fontSize: size, color: color);
 
+  /// نص بصري جاهز للرسم باتجاه LTR دائماً (انظر تحذير arabic_shaping:
+  /// ممنوع لفّ المخرجات بـ`Directionality(rtl)`).
   static String _t(String s) => arabicForPdf(s);
+
+  /// يلحم أجزاء العنوان بشرطة طويلة متجاهلاً الفارغ منها، حتى لا تظهر
+  /// « — » يتيمة عندما يكون اسم المدرسة أو المدير غير مضبوط.
+  static String _join(List<String> parts) => parts
+      .map((String p) => p.trim())
+      .where((String p) => p.isNotEmpty)
+      .join(' — ');
 
   PdfColor _colorFor(int? status, bool schoolDay) {
     if (!schoolDay) {
@@ -339,7 +348,13 @@ class PdfReport {
                         style: _s(7.5, color: PdfColors.grey700),
                       ),
                       pw.Text(
-                        _t('$schoolName — ${sc.cls.grade} ـ ${sc.cls.section} — ${m.label}'),
+                        _t(
+                          _join(<String>[
+                            schoolName,
+                            '${sc.cls.grade} ـ ${sc.cls.section}',
+                            m.label,
+                          ]),
+                        ),
                         style: _s(11, bold: true, color: PdfColors.teal900),
                       ),
                     ],
@@ -362,7 +377,13 @@ class PdfReport {
                         ],
                       ),
                       pw.Text(
-                        _t('المدير: $directorName — السنة: ${year.name}'),
+                        _t(
+                          _join(<String>[
+                            if (directorName.trim().isNotEmpty)
+                              'المدير: $directorName',
+                            'السنة: ${year.name}',
+                          ]),
+                        ),
                         style: _s(7.5, bold: true),
                       ),
                     ],
@@ -497,7 +518,13 @@ class PdfReport {
                     style: _s(8, color: PdfColors.grey700),
                   ),
                   pw.Text(
-                    _t('$schoolName — ملخص السنة — ${sc.cls.grade} ـ ${sc.cls.section}'),
+                    _t(
+                      _join(<String>[
+                        schoolName,
+                        'ملخص السنة',
+                        '${sc.cls.grade} ـ ${sc.cls.section}',
+                      ]),
+                    ),
                     style: _s(11, bold: true, color: PdfColors.teal900),
                   ),
                 ],
@@ -506,11 +533,19 @@ class PdfReport {
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: <pw.Widget>[
+                  // «إلى» بدل سهم →: السهم غير موجود في خط التصدير.
                   pw.Text(
-                    _t('السنة الدراسية: ${year.name} (${year.start} → ${year.end})'),
+                    _t(
+                      'السنة الدراسية: ${year.name} '
+                      '(${year.start} إلى ${year.end})',
+                    ),
                     style: _s(8),
                   ),
-                  pw.Text(_t('المدير: $directorName'), style: _s(8, bold: true)),
+                  if (directorName.trim().isNotEmpty)
+                    pw.Text(
+                      _t('المدير: $directorName'),
+                      style: _s(8, bold: true),
+                    ),
                 ],
               ),
               pw.SizedBox(height: 6),
@@ -555,7 +590,7 @@ class PdfReport {
     final pw.Document doc = await build();
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async => doc.save(),
-      name: 'attendance-report.pdf',
+      name: 'كشف الحضور والغياب.pdf',
     );
   }
 }

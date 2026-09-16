@@ -130,9 +130,9 @@ class _ExportState extends ConsumerState<ExportScreen> {
         );
       } else {
         final pw.Font regular =
-            pw.Font.ttf(await rootBundle.load('assets/fonts/Tajawal-Regular.ttf'));
+            pw.Font.ttf(await rootBundle.load('assets/fonts/Amiri-Regular.ttf'));
         final pw.Font bold =
-            pw.Font.ttf(await rootBundle.load('assets/fonts/Tajawal-Bold.ttf'));
+            pw.Font.ttf(await rootBundle.load('assets/fonts/Amiri-Bold.ttf'));
         final PdfReport report = PdfReport(
           db: db,
           reports: ReportsService(db),

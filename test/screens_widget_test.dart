@@ -17,7 +17,9 @@ import 'dart:async';
 
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
-import 'package:flutter/widgets.dart' show SizedBox;
+import 'package:flutter/material.dart' show CircularProgressIndicator;
+import 'package:flutter/widgets.dart'
+    show Size, SizedBox, Text, TextOverflow;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -97,6 +99,14 @@ Future<GoRouter> _pumpScreen(
   );
   await _settle(tester);
   return router;
+}
+
+/// نافذة اختبار طويلة: `ListView` كسول، فبدون ارتفاع كافٍ لا تُبنى بطاقات
+/// أسفل الشاشة ولا يمكن التأكد من ظهورها.
+void _useTallWindow(WidgetTester tester) {
+  tester.view.physicalSize = const Size(1080, 2400);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.reset);
 }
 
 void main() {
@@ -313,6 +323,119 @@ void main() {
           expect(tester.takeException(), isNull);
           expect(find.textContaining('طلاب السادس ـ أ'), findsOneWidget);
           expect(find.text('علي حسن'), findsOneWidget);
+        } finally {
+          await _tearDownDb(tester, db);
+        }
+      },
+      timeout: _kTestTimeout,
+    );
+  });
+
+  group('بطاقات الصفوف والطلاب: لا نص مقتطع', () {
+    testWidgets(
+      'بطاقة الصف: الاسم وعدد الطلاب بلا ellipsis وبلا حدّ أسطر',
+      (WidgetTester tester) async {
+        final AppDb db = await _seedDb(tester);
+        try {
+          await _pumpScreen(tester, db, '/classes');
+          final Text count = tester.widget<Text>(
+            find.textContaining('طلاب: 2'),
+          );
+          expect(count.overflow, isNot(TextOverflow.ellipsis));
+          expect(count.maxLines, isNull);
+          final Text title = tester.widget<Text>(
+            find.text('السادس ـ أ').first,
+          );
+          expect(title.overflow, isNot(TextOverflow.ellipsis));
+          expect(title.maxLines, isNull);
+          // الأزرار الأربعة ما زالت موجودة (لم تُخفَ لصالح النص).
+          expect(find.byTooltip('البادجات'), findsOneWidget);
+          expect(find.byTooltip('كشف اليوم'), findsOneWidget);
+          expect(find.byTooltip('تعديل'), findsOneWidget);
+          expect(find.byTooltip('حذف'), findsOneWidget);
+          expect(tester.takeException(), isNull);
+        } finally {
+          await _tearDownDb(tester, db);
+        }
+      },
+      timeout: _kTestTimeout,
+    );
+
+    testWidgets(
+      'بطاقة الطالب: رقم الطالب بلا ellipsis',
+      (WidgetTester tester) async {
+        final AppDb db = await _seedDb(tester);
+        try {
+          await _pumpScreen(tester, db, '/students?class=1');
+          final Text seq = tester.widget<Text>(
+            find.textContaining('رقم الطالب:').first,
+          );
+          expect(seq.overflow, isNot(TextOverflow.ellipsis));
+          expect(seq.maxLines, isNull);
+          expect(tester.takeException(), isNull);
+        } finally {
+          await _tearDownDb(tester, db);
+        }
+      },
+      timeout: _kTestTimeout,
+    );
+  });
+
+  group('ملف الطالب يُحمَّل فعلاً (لا دوران بلا نهاية)', () {
+    testWidgets(
+      'ضغط اسم الطالب يعرض ملفه كاملاً',
+      (WidgetTester tester) async {
+        _useTallWindow(tester);
+        final AppDb db = await _seedDb(tester);
+        try {
+          await _pumpScreen(tester, db, '/students?class=1');
+          await tester.tap(find.text('علي حسن').first);
+          await _settle(tester);
+          expect(tester.takeException(), isNull);
+          expect(find.text('ملف الطالب'), findsOneWidget);
+          // هذه هي العلّة المبلّغة: مؤشر تحميل لا يختفي أبداً لأن `StreamBuilder`
+          // على تدفق drift لا يصل إلى `ConnectionState.done`.
+          expect(find.byType(CircularProgressIndicator), findsNothing);
+          expect(find.text('علي حسن'), findsWidgets);
+          expect(find.text('النسبة'), findsOneWidget);
+          expect(find.text('مسيرة الطالب عبر السنوات'), findsOneWidget);
+          expect(find.text('الإجازات'), findsOneWidget);
+          expect(find.byTooltip('الشهر السابق'), findsOneWidget);
+          expect(find.byTooltip('الشهر التالي'), findsOneWidget);
+        } finally {
+          await _tearDownDb(tester, db);
+        }
+      },
+      timeout: _kTestTimeout,
+    );
+
+    testWidgets(
+      'التنقّل بين الأشهر يعيد بناء الشبكة بلا عطل',
+      (WidgetTester tester) async {
+        _useTallWindow(tester);
+        final AppDb db = await _seedDb(tester);
+        try {
+          await _pumpScreen(tester, db, '/students?class=1');
+          await tester.tap(find.text('علي حسن').first);
+          await _settle(tester);
+          await tester.tap(find.byTooltip('الشهر السابق'));
+          await _settle(tester);
+          expect(tester.takeException(), isNull);
+          expect(find.byType(CircularProgressIndicator), findsNothing);
+          final int previousMonth = DateTime.now().month == 1
+              ? 12
+              : DateTime.now().month - 1;
+          expect(
+            find.textContaining(SchoolTime.monthNames[previousMonth - 1]),
+            findsOneWidget,
+          );
+          await tester.tap(find.byTooltip('الشهر التالي'));
+          await _settle(tester);
+          expect(tester.takeException(), isNull);
+          expect(
+            find.textContaining(SchoolTime.monthNames[DateTime.now().month - 1]),
+            findsOneWidget,
+          );
         } finally {
           await _tearDownDb(tester, db);
         }

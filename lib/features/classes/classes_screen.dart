@@ -117,8 +117,14 @@ class _ClassesState extends ConsumerState<ClassesScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              // السطر الأول: الأيقونة واسم الصف كاملاً دون تزاحم
+              // السطر الأول: الأيقونة واسم الصف وعدد الطلاب — كلها نصوص
+              // **تلتفّ ولا تُقتطع** (بلا `maxLines` ولا `TextOverflow.ellipsis`).
+              //
+              // سابقاً كان «طلاب: N» ينافس أربعة أزرار على العرض المتبقي عبر
+              // `Flexible` + `Spacer` في صف واحد، فيُقتطع آخر الكلمة على الشاشات
+              // الضيّقة أو عند تكبير الخط («بعض الكلمات مختفية»).
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   const CircleAvatar(
                     radius: 16,
@@ -126,94 +132,100 @@ class _ClassesState extends ConsumerState<ClassesScreen> {
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 2),
-              // السطر الثاني: عدد الطلاب والأيقونات المقابلة مع تباعد منطقي
-              Row(
-                children: <Widget>[
-                  Flexible(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Icon(
-                          Icons.people_outline,
-                          size: 16,
-                          color: Theme.of(context).colorScheme.primary,
+                        Text(
+                          title,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
-                        const SizedBox(width: 4),
-                        Flexible(
-                          child: Text(
-                            countText,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
-                                ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: <Widget>[
+                            Icon(
+                              Icons.people_outline,
+                              size: 16,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                countText,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                  const Spacer(),
-                  IconButton(
-                    tooltip: 'البادجات',
-                    icon: const Icon(Icons.badge),
-                    iconSize: 20,
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.all(6),
-                    constraints: const BoxConstraints(),
-                    onPressed: () => context.push(
-                      AppRoutes.classLocation('/badges', c.id, title),
-                      extra: ref0,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  IconButton(
-                    tooltip: 'كشف اليوم',
-                    icon: const Icon(Icons.fact_check),
-                    iconSize: 20,
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.all(6),
-                    constraints: const BoxConstraints(),
-                    onPressed: () => context.push(
-                      AppRoutes.classLocation('/day-sheet', c.id, title),
-                      extra: ref0,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  IconButton(
-                    tooltip: 'تعديل',
-                    icon: const Icon(Icons.edit),
-                    iconSize: 20,
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.all(6),
-                    constraints: const BoxConstraints(),
-                    onPressed: () => _edit(c),
-                  ),
-                  const SizedBox(width: 6),
-                  IconButton(
-                    tooltip: 'حذف',
-                    icon: const Icon(Icons.delete),
-                    iconSize: 20,
-                    color: Theme.of(context).colorScheme.error,
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.all(6),
-                    constraints: const BoxConstraints(),
-                    onPressed: () => _delete(c),
-                  ),
                 ],
+              ),
+              // السطر الثاني: الأزرار وحدها في صف مستقل، وتلتفّ لسطر إضافي إن
+              // ضاق العرض بدل أن تزاحم النص أو تتجاوزه.
+              const SizedBox(height: 4),
+              Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 6,
+                  runSpacing: 2,
+                  children: <Widget>[
+                    IconButton(
+                      tooltip: 'البادجات',
+                      icon: const Icon(Icons.badge),
+                      iconSize: 20,
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.all(6),
+                      constraints: const BoxConstraints(),
+                      onPressed: () => context.push(
+                        AppRoutes.classLocation('/badges', c.id, title),
+                        extra: ref0,
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'كشف اليوم',
+                      icon: const Icon(Icons.fact_check),
+                      iconSize: 20,
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.all(6),
+                      constraints: const BoxConstraints(),
+                      onPressed: () => context.push(
+                        AppRoutes.classLocation('/day-sheet', c.id, title),
+                        extra: ref0,
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'تعديل',
+                      icon: const Icon(Icons.edit),
+                      iconSize: 20,
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.all(6),
+                      constraints: const BoxConstraints(),
+                      onPressed: () => _edit(c),
+                    ),
+                    IconButton(
+                      tooltip: 'حذف',
+                      icon: const Icon(Icons.delete),
+                      iconSize: 20,
+                      color: Theme.of(context).colorScheme.error,
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.all(6),
+                      constraints: const BoxConstraints(),
+                      onPressed: () => _delete(c),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -253,18 +265,29 @@ class _ClassesState extends ConsumerState<ClassesScreen> {
       context: context,
       builder: (BuildContext context) => AlertDialog(
         title: Text(c == null ? 'إضافة صف' : 'تعديل صف'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            TextField(
-              controller: grade,
-              decoration: const InputDecoration(labelText: 'الصف (مثال: السادس)'),
-            ),
-            TextField(
-              controller: section,
-              decoration: const InputDecoration(labelText: 'الشعبة (مثال: أ)'),
-            ),
-          ],
+        // المحتوى قابل للتمرير وتسميات قصيرة مع نص مساعدة يلتفّ: التسمية
+        // الطويلة داخل `labelText` تُقتطع عند ضيق عرض الحوار.
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              TextField(
+                controller: grade,
+                textInputAction: TextInputAction.next,
+                decoration: const InputDecoration(
+                  labelText: 'الصف',
+                  helperText: 'مثال: السادس',
+                ),
+              ),
+              TextField(
+                controller: section,
+                decoration: const InputDecoration(
+                  labelText: 'الشعبة',
+                  helperText: 'مثال: أ',
+                ),
+              ),
+            ],
+          ),
         ),
         actions: <Widget>[
           TextButton(

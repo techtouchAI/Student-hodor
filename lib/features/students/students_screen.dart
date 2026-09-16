@@ -251,8 +251,12 @@ class _StudentsState extends ConsumerState<StudentsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              // السطر الأول: صورة/أيقونة الطالب والاسم كاملاً في سطر مخصص دون تزاحم
+              // السطر الأول: صورة/أيقونة الطالب + الاسم ورقمه كاملاً.
+              //
+              // بلا `TextOverflow.ellipsis` ولا منافسة مع الأزرار على العرض:
+              // الاسم الطويل يلتفّ على سطرين ورقم الطالب في سطر مستقل.
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   CircleAvatar(
                     radius: 16,
@@ -264,91 +268,96 @@ class _StudentsState extends ConsumerState<StudentsScreen> {
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: Text(
-                      s.fullName,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 2),
-              // السطر الثاني: رقم الطالب والأيقونات المقابلة مع تباعد منطقي
-              Row(
-                children: <Widget>[
-                  Flexible(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Icon(
-                          Icons.tag,
-                          size: 16,
-                          color: Theme.of(context).colorScheme.primary,
+                        Text(
+                          s.fullName,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
-                        const SizedBox(width: 4),
-                        Flexible(
-                          child: Text(
-                            'رقم الطالب: ${s.seq}',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
-                                ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: <Widget>[
+                            Icon(
+                              Icons.tag,
+                              size: 16,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                'رقم الطالب: ${s.seq}',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                  const Spacer(),
-                  IconButton(
-                    tooltip: 'الباج والرمز',
-                    icon: const Icon(Icons.badge),
-                    iconSize: 20,
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.all(6),
-                    constraints: const BoxConstraints(),
-                    onPressed: () => _showBadge(s),
-                  ),
-                  const SizedBox(width: 6),
-                  IconButton(
-                    tooltip: 'ملف الحضور',
-                    icon: const Icon(Icons.assessment),
-                    iconSize: 20,
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.all(6),
-                    constraints: const BoxConstraints(),
-                    onPressed: () => context.pushNamed(
-                      AppRoutes.student,
-                      pathParameters: <String, String>{'id': '${s.id}'},
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  IconButton(
-                    tooltip: 'تعديل',
-                    icon: const Icon(Icons.edit),
-                    iconSize: 20,
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.all(6),
-                    constraints: const BoxConstraints(),
-                    onPressed: () => _edit(s),
-                  ),
-                  const SizedBox(width: 6),
-                  IconButton(
-                    tooltip: 'حذف',
-                    icon: const Icon(Icons.delete),
-                    iconSize: 20,
-                    color: Theme.of(context).colorScheme.error,
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.all(6),
-                    constraints: const BoxConstraints(),
-                    onPressed: () => _delete(s),
-                  ),
                 ],
+              ),
+              // السطر الثاني: الأزرار وحدها، وتلتفّ إن ضاق العرض.
+              const SizedBox(height: 4),
+              Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 6,
+                  runSpacing: 2,
+                  children: <Widget>[
+                    IconButton(
+                      tooltip: 'الباج والرمز',
+                      icon: const Icon(Icons.badge),
+                      iconSize: 20,
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.all(6),
+                      constraints: const BoxConstraints(),
+                      onPressed: () => _showBadge(s),
+                    ),
+                    IconButton(
+                      tooltip: 'ملف الحضور',
+                      icon: const Icon(Icons.assessment),
+                      iconSize: 20,
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.all(6),
+                      constraints: const BoxConstraints(),
+                      onPressed: () => context.pushNamed(
+                        AppRoutes.student,
+                        pathParameters: <String, String>{'id': '${s.id}'},
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'تعديل',
+                      icon: const Icon(Icons.edit),
+                      iconSize: 20,
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.all(6),
+                      constraints: const BoxConstraints(),
+                      onPressed: () => _edit(s),
+                    ),
+                    IconButton(
+                      tooltip: 'حذف',
+                      icon: const Icon(Icons.delete),
+                      iconSize: 20,
+                      color: Theme.of(context).colorScheme.error,
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.all(6),
+                      constraints: const BoxConstraints(),
+                      onPressed: () => _delete(s),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/attendance_labels.dart';
+import '../../core/error_guard.dart';
 import '../../core/school_time.dart';
 import '../../data/db.dart';
 import '../../data/reports_service.dart';
@@ -85,18 +86,25 @@ class _ClassPicker extends StatelessWidget {
   final ValueChanged<int?> onChanged;
 
   @override
-  Widget build(BuildContext context) => StreamBuilder<List<SchoolClass>>(
-        stream: (db.select(db.schoolClasses)..where((c) => c.yearId.equals(yearId)))
+  Widget build(BuildContext context) => StreamGuard<List<SchoolClass>>(
+        stream: (db.select(db.schoolClasses)
+              ..where((c) => c.yearId.equals(yearId)))
             .watch(),
-        builder: (BuildContext context, AsyncSnapshot<List<SchoolClass>> snap) {
-          final List<SchoolClass> list = snap.data ?? <SchoolClass>[];
+        loading: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: LinearProgressIndicator(minHeight: 3),
+        ),
+        builder: (BuildContext context, List<SchoolClass> list) {
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: DropdownButtonFormField<int?>(
               key: ValueKey<int?>(classId),
               initialValue: classId,
+              // تسمية قصيرة + نص مساعدة يلتفّ: التسمية الطويلة تُقتطع ولا
+              // تظهر كاملة داخل الحقل.
               decoration: const InputDecoration(
-                labelText: 'الصف (اتركه فارغاً لقائمة الإنذار المبكر)',
+                labelText: 'الصف',
+                helperText: '«كل الصفوف» تعرض قائمة الإنذار المبكر',
               ),
               items: <DropdownMenuItem<int?>>[
                 const DropdownMenuItem<int?>(value: null, child: Text('كل الصفوف')),

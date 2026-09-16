@@ -251,26 +251,64 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 8),
           TextField(controller: _director, decoration: const InputDecoration(labelText: 'اسم المدير')),
           const SizedBox(height: 8),
+          // تسميات قصيرة + `helperText` يلتفّ: التسمية الطويلة داخل حقل نصفي
+          // العرض تُقتطع (لا تلتفّ) فتختفي آخر الكلمات.
           Row(
             children: <Widget>[
-              Expanded(child: TextField(controller: _t1, decoration: const InputDecoration(labelText: 'حد الإنذار الأول %'), keyboardType: TextInputType.number)),
+              Expanded(
+                child: TextField(
+                  controller: _t1,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'الإنذار الأول %',
+                    helperText: 'عتبة التحذير',
+                  ),
+                ),
+              ),
               const SizedBox(width: 8),
-              Expanded(child: TextField(controller: _t2, decoration: const InputDecoration(labelText: 'حد الإنذار الثاني %'), keyboardType: TextInputType.number)),
+              Expanded(
+                child: TextField(
+                  controller: _t2,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'الإنذار الثاني %',
+                    helperText: 'عتبة الخطر',
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
           Row(
             children: <Widget>[
-              Expanded(child: TextField(controller: _dayStart, decoration: const InputDecoration(labelText: 'بداية اليوم (08:00)'))),
+              Expanded(
+                child: TextField(
+                  controller: _dayStart,
+                  decoration: const InputDecoration(
+                    labelText: 'بداية اليوم',
+                    helperText: 'مثال: 08:00',
+                  ),
+                ),
+              ),
               const SizedBox(width: 8),
-              Expanded(child: TextField(controller: _lateAfter, decoration: const InputDecoration(labelText: 'دقائق السماح قبل «متأخر»'), keyboardType: TextInputType.number)),
+              Expanded(
+                child: TextField(
+                  controller: _lateAfter,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'دقائق السماح',
+                    helperText: 'بعدها يُسجَّل «متأخر»',
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
           TextField(
             controller: _pin,
             decoration: const InputDecoration(
-              labelText: 'PIN حماية الإعدادات/التصفير (اتركه فارغاً للتعطيل)',
+              labelText: 'رمز PIN',
+              helperText: 'يحمي الإعدادات والتصفير — اتركه فارغاً للتعطيل',
             ),
             obscureText: true,
           ),

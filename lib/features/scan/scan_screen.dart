@@ -1,11 +1,24 @@
 /// شاشة المسح الميدانية: كاميرا MLKit أوفلاين + منع تكرار + إقفال اليوم.
 ///
-/// حمايات ضد «الشاشة البيضاء/المعلّقة»:
-/// - متحكم الكاميرا يُنشأ داخل `try/catch` في `initState` (لا في مُهيّئ حقل)
-///   فأي فشل منصة يظهر كرسالة وزر إعادة بدل إسقاط بناء الشاشة كلها.
-/// - `WakelockPlus` و`Vibration` ملفوفان بالتقاط (جهاز بلا دعم لا يكسر المسح).
-/// - الصف والجلسة يُحلّان من القاعدة مع حالات خطأ ظاهرة.
+/// حمايات ضد «الشاشة السوداء/الكاميرا المتأخرة»:
+/// - الكاميرا تُشغَّل **فوراً في `initState` وبالتوازي** مع فتح جلسة اليوم من
+///   القاعدة. سابقاً كان المتحكم يُنشأ بـ`autoStart: false` ولا أحد يستدعي
+///   `start()` (ودجت `MobileScanner` يشغّل الكاميرا فقط عندما يكون
+///   `autoStart: true`) ⇒ تبقى الشاشة سوداء حتى يصادف التطبيق حدث
+///   `resumed` (خلفية/أمامية)، وهذا سبب «تتأخر كثيراً حتى تظهر».
+/// - `placeholderBuilder` يعرض «جارٍ تشغيل الكاميرا» بدل المربع الأسود
+///   الافتراضي الذي يرسمه `mobile_scanner` قبل اكتمال التهيئة.
+/// - إعادة محاولة محدودة للتهيئة: عطل معروف في `mobile_scanner 5.2.3` ينتج
+///   شاشة سوداء بلا رسالة خطأ، ويُصلح هنا بالتحقق من `value.isRunning` بعد كل
+///   محاولة ثم `stop()` (يمسح حالة الخطأ) و`start()` من جديد.
+/// - الفلاش يتحقق أن الكاميرا **تعمل** وأن الجهاز **يدعم** الفلاش قبل
+///   `toggleTorch()`؛ سابقاً كان `toggleTorch()` على متحكم غير مهيّأ يرمي
+///   `controllerUninitialized` فتظهر رسالة خطأ والفلاش لا يعمل.
+/// - دورة الحياة: لا إيقاف للكاميرا عند `inactive` (يفقده أندرويد لأي نافذة
+///   عابرة: طلب صلاحية، شريط إشعارات) بل عند `paused/hidden/detached` فقط.
 library;
+
+import 'dart:async';
 
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
@@ -34,8 +47,23 @@ class ScanScreen extends ConsumerStatefulWidget {
 
 class _ScanState extends ConsumerState<ScanScreen>
     with WidgetsBindingObserver {
+  /// عدد محاولات تهيئة الكاميرا قبل إعلان العطل (التهيئة الأولى قد تتعثر).
+  static const int _startAttempts = 3;
+
+  /// أخطاء لا تنفع معها إعادة المحاولة: صلاحية مرفوضة (يحتاج إعدادات النظام)
+  /// أو متحكم مُتلف. تُقارن بالاسم حتى لا ننكسر إن تغيّرت أعضاء العدد.
+  static const Set<String> _noRetryCodes = <String>{
+    'permissionDenied',
+    'controllerDisposed',
+  };
+
   MobileScannerController? _controller;
   String? _cameraError;
+
+  /// محاولة تشغيل جارية — يُنتظر مستقبلها بدل إطلاق محاولة موازية
+  /// (تشغيلان متزامنان ينتجان `controllerAlreadyInitialized`).
+  Future<void>? _cameraStartTask;
+
   final Map<String, DateTime> _debounce = <String, DateTime>{};
   final List<ScanOutcome> _feed = <ScanOutcome>[];
   ClassRef? _class;
@@ -49,8 +77,10 @@ class _ScanState extends ConsumerState<ScanScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _createController();
-    _keepAwake(true);
-    _start(widget.classRef);
+    // الكاميرا أولاً وبالتوازي مع القاعدة: لا انتظار لفتح جلسة اليوم.
+    unawaited(_startCamera());
+    unawaited(_keepAwake(true));
+    unawaited(_start(widget.classRef));
   }
 
   @override
@@ -63,14 +93,18 @@ class _ScanState extends ConsumerState<ScanScreen>
     switch (state) {
       case AppLifecycleState.resumed:
         if (!controller.value.isRunning) {
-          controller.start().catchError((Object e) {});
+          unawaited(_startCamera());
         }
       case AppLifecycleState.inactive:
+        // لا إيقاف هنا: `inactive` يُطلقه أندرويد لأي فقد تركيز عابر
+        // (نافذة الصلاحية، شريط الإشعارات، مكالمة) وإيقاف الكاميرا عنده كان
+        // يعني شاشة سوداء/إعادة تهيئة بطيئة عند كل حدث صغير.
+        return;
       case AppLifecycleState.paused:
-      case AppLifecycleState.detached:
       case AppLifecycleState.hidden:
+      case AppLifecycleState.detached:
         if (controller.value.isRunning) {
-          controller.stop().catchError((Object e) {});
+          _stopController(controller);
         }
     }
   }
@@ -79,23 +113,56 @@ class _ScanState extends ConsumerState<ScanScreen>
   void didUpdateWidget(ScanScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.classRef.id != widget.classRef.id) {
-      _start(widget.classRef);
+      unawaited(_start(widget.classRef));
     }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _keepAwake(false);
-    _controller?.dispose();
+    unawaited(_keepAwake(false));
+    final MobileScannerController? controller = _controller;
+    _controller = null;
+    if (controller != null) {
+      _disposeController(controller);
+    }
     super.dispose();
   }
 
+  /// إتلاف/إيقاف بلا تسريب عطل: على جهاز بلا كاميرا (أو في الاختبارات) ترمي
+  /// قناة المنصة استثناءً داخل مستقبل غير مُنتظَر فينهار الإطار كله بسببه.
+  void _disposeController(MobileScannerController c) {
+    unawaited(
+      c.dispose().catchError((Object e) {
+        AppErrorLog.instance.record(e, StackTrace.current, where: 'scan:dispose');
+      }),
+    );
+  }
+
+  void _stopController(MobileScannerController c) {
+    unawaited(
+      c.stop().catchError((Object e) {
+        AppErrorLog.instance.record(e, StackTrace.current, where: 'scan:stop');
+      }),
+    );
+  }
+
+  // ---------------- الكاميرا ----------------
+
   void _createController() {
+    final MobileScannerController? old = _controller;
+    if (old != null) {
+      _disposeController(old);
+    }
     try {
-      _controller?.dispose();
       _controller = MobileScannerController(
+        // التشغيل يدوي (انظر `_startCamera`) حتى لا يوقف ودجت `MobileScanner`
+        // الكاميرا عند كل إعادة بناء للجسم.
         autoStart: false,
+        detectionSpeed: DetectionSpeed.normal,
+        detectionTimeoutMs: 250,
+        facing: CameraFacing.back,
+        // صيغتا الباج فقط (QR + Code128): أقل صيغاً ⇒ كشف أسرع.
         formats: const <BarcodeFormat>[
           BarcodeFormat.qrCode,
           BarcodeFormat.code128,
@@ -109,29 +176,122 @@ class _ScanState extends ConsumerState<ScanScreen>
     }
   }
 
-  Future<void> _restartCamera() async {
+  /// يشغّل الكاميرا (أو ينتظر محاولة جارية).
+  Future<void> _startCamera() {
+    final Future<void>? inFlight = _cameraStartTask;
+    if (inFlight != null) {
+      return inFlight;
+    }
+    final Future<void> task = _runCameraStart().whenComplete(() {
+      _cameraStartTask = null;
+    });
+    _cameraStartTask = task;
+    return task;
+  }
+
+  Future<void> _runCameraStart() async {
     final MobileScannerController? c = _controller;
     if (c == null) {
-      setState(_createController);
+      return;
+    }
+    for (int attempt = 1; attempt <= _startAttempts; attempt++) {
+      if (!mounted || !identical(_controller, c)) {
+        return;
+      }
+      try {
+        await c.start();
+      } catch (e, st) {
+        // `start()` لا يرمي عادةً (يخزّن الخطأ في `value.error`) لكنه قد يرمي
+        // إن كان المتحكم مُتلفاً أو قناة المنصة غير جاهزة.
+        AppErrorLog.instance.record(e, st, where: 'scan:start');
+        _cameraError = _cameraMessage(e);
+      }
+      if (!mounted || !identical(_controller, c)) {
+        return;
+      }
+      final MobileScannerState value = c.value;
+      if (value.isRunning) {
+        _cameraError = null;
+        break;
+      }
+      final MobileScannerException? error = value.error;
+      if (error != null) {
+        _cameraError = _cameraMessage(error);
+        AppErrorLog.instance.record(error, StackTrace.current, where: 'scan:start');
+        if (_noRetryCodes.contains(error.errorCode.name)) {
+          // صلاحية مرفوضة/متحكم مُتلف: إعادة المحاولة الآلية لا تفيد.
+          break;
+        }
+      }
+      // `stop()` يمسح حالة الخطأ المخزّنة فيسمح بطلب الصلاحية/التهيئة من جديد.
+      try {
+        await c.stop();
+      } catch (_) {}
+      if (attempt < _startAttempts) {
+        await Future<void>.delayed(Duration(milliseconds: 200 * attempt));
+      }
+    }
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  /// إعادة تهيئة كاملة (زر «إعادة المحاولة»): متحكم جديد ثم تشغيل.
+  Future<void> _resetCamera() async {
+    setState(_createController);
+    await _startCamera();
+  }
+
+  String _cameraMessage(Object error) {
+    if (error is MobileScannerException) {
+      if (error.errorCode == MobileScannerErrorCode.permissionDenied) {
+        return 'صلاحية الكاميرا مرفوضة — فعّلها من إعدادات أندرويد ثم أعد المحاولة';
+      }
+      final String? details = error.errorDetails?.message;
+      return details == null || details.isEmpty
+          ? 'تعذر تشغيل الكاميرا (${error.errorCode.name})'
+          : 'تعذر تشغيل الكاميرا: $details';
+    }
+    return '$error';
+  }
+
+  /// الفلاش: يشغّل الكاميرا إن كانت متوقفة، ويرفض برسالة واضحة إن كان الجهاز
+  /// بلا فلاش — بدل استثناء `controllerUninitialized` الخام.
+  Future<void> _toggleTorch() async {
+    final MobileScannerController? c = _controller;
+    if (c == null) {
+      _snack('الكاميرا غير مهيّأة — اضغط «إعادة المحاولة»');
       return;
     }
     try {
-      await c.stop();
-    } catch (_) {}
-    try {
-      await c.start();
+      if (!c.value.isRunning) {
+        await _startCamera();
+        if (!mounted) {
+          return;
+        }
+        if (!c.value.isRunning) {
+          _snack('شغّل الكاميرا أولاً ثم أعد محاولة الفلاش');
+          return;
+        }
+      }
+      if (c.value.torchState == TorchState.unavailable) {
+        _snack('هذا الجهاز لا يدعم الفلاش');
+        return;
+      }
+      await c.toggleTorch();
       if (mounted) {
         setState(() {});
       }
     } catch (e, st) {
-      if (e is! MobileScannerException ||
-          (e.errorCode != MobileScannerErrorCode.controllerAlreadyInitialized &&
-              e.errorCode.name != 'controllerAlreadyInitialized')) {
-        AppErrorLog.instance.record(e, st, where: 'scan:restartCamera');
-        _snack('تعذر تشغيل الكاميرا: $e');
+      AppErrorLog.instance.record(e, st, where: 'scan:torch');
+      if (!mounted) {
+        return;
       }
+      _snack('تعذر تشغيل الفلاش: ${_cameraMessage(e)}');
     }
   }
+
+  // ---------------- الجلسة ----------------
 
   Future<void> _keepAwake(bool on) async {
     try {
@@ -448,10 +608,14 @@ class _ScanState extends ConsumerState<ScanScreen>
     return roster.length - recorded;
   }
 
+  // ---------------- الواجهة ----------------
+
   @override
   Widget build(BuildContext context) {
     final ClassRef? c = _class;
+    final Session? session = _session;
     final AppDb db = ref.watch(dbProvider);
+    final bool ready = !_loading && c != null && session != null;
     return Scaffold(
       appBar: AppBar(
         title: Text(c == null ? 'مسح الحضور' : 'مسح ${c.displayTitle}'),
@@ -465,93 +629,86 @@ class _ScanState extends ConsumerState<ScanScreen>
                 extra: c,
               ),
             ),
-          IconButton(
-            tooltip: 'الفلاش',
-            icon: const Icon(Icons.flashlight_on),
-            onPressed: () async {
-              try {
-                await _controller?.toggleTorch();
-              } catch (e) {
-                _snack('تعذر تشغيل الفلاش: $e');
-              }
-            },
-          ),
+          _torchButton(),
         ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : c == null || _session == null
-              ? _NoticeBody(
-                  message: _notice ?? 'لا توجد جلسة مسح لهذا الصف.',
-                  onPickClass: _options.isEmpty ? null : _pickClass,
-                  onRetry: () => _start(widget.classRef),
-                  onAddClass: _options.isEmpty
-                      ? () => context.pushNamed(AppRoutes.classes)
-                      : null,
-                )
-              : Column(
-                  children: <Widget>[
-                    _Header(
-                      session: _session,
-                      classId: c.id,
-                      db: db,
+      // الكاميرا مبنية دائماً (لا خلف مؤشر تحميل): تبدأ التهيئة فور فتح الشاشة
+      // بالتوازي مع قراءة القاعدة، وأي رسالة/عطل طبقة فوق المعاينة.
+      body: Column(
+        children: <Widget>[
+          _headerSlot(db, c, session),
+          Expanded(
+            flex: 5,
+            child: Stack(
+              fit: StackFit.expand,
+              children: <Widget>[
+                _camera(),
+                if (!ready && !_loading)
+                  ColoredBox(
+                    color: const Color(0xF2F6F8F7),
+                    child: _NoticeBody(
+                      message: _notice ?? 'لا توجد جلسة مسح لهذا الصف.',
+                      onPickClass: _options.isEmpty ? null : _pickClass,
+                      onRetry: () => unawaited(_start(widget.classRef)),
+                      onAddClass: _options.isEmpty
+                          ? () => context.pushNamed(AppRoutes.classes)
+                          : null,
                     ),
-                    Expanded(flex: 5, child: _camera()),
-                    Expanded(
-                      flex: 3,
-                      child: _feed.isEmpty
-                          ? const Center(
-                              child: Text(
-                                'امسح باج الطالب — ستظهر النتائج هنا فوراً',
-                                textAlign: TextAlign.center,
-                              ),
-                            )
-                          : ListView.builder(
-                              itemCount: _feed.length,
-                              itemBuilder: (BuildContext context, int i) {
-                                final ScanOutcome o = _feed[i];
-                                return ListTile(
-                                  dense: true,
-                                  leading: Icon(
-                                    o.isSuccess
-                                        ? Icons.check_circle
-                                        : Icons.error,
-                                    color: o.isSuccess
-                                        ? Colors.green
-                                        : Colors.red,
-                                  ),
-                                  title: Text(o.message),
-                                );
-                              },
-                            ),
-                    ),
-                    SafeArea(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: <Widget>[
-                          FilledButton.icon(
-                            onPressed: _manual,
-                            icon: const Icon(Icons.edit),
-                            label: const Text('يدوي'),
-                          ),
-                          FilledButton.icon(
-                            onPressed: _toggleClose,
-                            icon: Icon(
-                              _session?.closedAt == null
-                                  ? Icons.lock
-                                  : Icons.lock_open,
-                            ),
-                            label: Text(
-                              _session?.closedAt == null
-                                  ? 'إقفال اليوم'
-                                  : 'إعادة فتح',
-                            ),
-                          ),
-                        ],
+                  ),
+                if (ready && session?.closedAt != null)
+                  const ColoredBox(
+                    color: Color(0xAA000000),
+                    child: Center(
+                      child: Text(
+                        'الجلسة مقفلة — أعد فتحها لتسجيل قراءات',
+                        style: TextStyle(color: Colors.white, fontSize: 18),
+                        textAlign: TextAlign.center,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+              ],
+            ),
+          ),
+          Expanded(flex: 3, child: _resultsPanel()),
+          SafeArea(child: _bottomButtons(session)),
+        ],
+      ),
+    );
+  }
+
+  /// شريط أعلى المعاينة: مؤشر تحميل أثناء فتح الجلسة، ثم تاريخ اليوم وعدّاد
+  /// الحضور. (دالة منفصلة لأن ترقية `c`/`session` تحتاج فحصاً صريحاً.)
+  Widget _headerSlot(AppDb db, ClassRef? c, Session? session) {
+    if (_loading) {
+      return const LinearProgressIndicator(minHeight: 3);
+    }
+    if (c == null || session == null) {
+      return const SizedBox.shrink();
+    }
+    return _Header(session: session, classId: c.id, db: db);
+  }
+
+  /// زر الفلاش يعكس حالة المصباح الحقيقية (يعمل/مطفأ/غير مدعوم).
+  Widget _torchButton() {
+    final MobileScannerController? controller = _controller;
+    if (controller == null) {
+      return IconButton(
+        tooltip: 'الفلاش (الكاميرا غير مهيّأة)',
+        icon: const Icon(Icons.flash_off),
+        onPressed: () => unawaited(_resetCamera()),
+      );
+    }
+    return ValueListenableBuilder<MobileScannerState>(
+      valueListenable: controller,
+      builder: (BuildContext context, MobileScannerState value, Widget? child) {
+        final bool on = value.torchState == TorchState.on;
+        return IconButton(
+          tooltip: on ? 'إطفاء الفلاش' : 'تشغيل الفلاش',
+          icon: Icon(on ? Icons.flash_on : Icons.flash_off),
+          color: on ? Colors.amber.shade300 : null,
+          onPressed: () => unawaited(_toggleTorch()),
+        );
+      },
     );
   }
 
@@ -560,76 +717,128 @@ class _ScanState extends ConsumerState<ScanScreen>
     if (controller == null) {
       return _NoticeBody(
         message: 'تعذر تهيئة الكاميرا: ${_cameraError ?? 'سبب غير معروف'}',
-        onRetry: () {
-          setState(() {
-            _createController();
-          });
-        },
+        onRetry: () => unawaited(_resetCamera()),
       );
     }
-    return Stack(
-      fit: StackFit.expand,
-      children: <Widget>[
-        MobileScanner(
-          controller: controller,
-          onDetect: _onDetect,
-          errorBuilder: (
-            BuildContext context,
-            MobileScannerException error,
-            Widget? child,
-          ) {
-            if (error.errorCode ==
-                    MobileScannerErrorCode.controllerAlreadyInitialized ||
-                error.errorCode.name == 'controllerAlreadyInitialized') {
-              // المتحكم يعمل بالفعل ولا حاجة لعرض شاشة عطل أو تسجيل استثناء كاذب
-              return const SizedBox.shrink();
-            }
-            AppErrorLog.instance.record(
-              error,
-              StackTrace.current,
-              where: 'scan:camera',
-            );
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    const Icon(Icons.no_photography, size: 48),
-                    const SizedBox(height: 8),
-                    Text(
-                      error.errorCode ==
-                                  MobileScannerErrorCode.permissionDenied ||
-                              error.errorCode.name == 'permissionDenied'
-                          ? 'صلاحية الكاميرا مرفوضة — فعّلها من إعدادات أندرويد ثم أعد المحاولة'
-                          : 'تعذر تشغيل الكاميرا: ${error.errorCode.name}',
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 12),
-                    FilledButton(
-                      onPressed: _restartCamera,
-                      child: const Text('إعادة المحاولة'),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-        if (_session?.closedAt != null)
-          const ColoredBox(
-            color: Color(0xAA000000),
-            child: Center(
-              child: Text(
-                'الجلسة مقفلة — أعد فتحها لتسجيل قراءات',
-                style: TextStyle(color: Colors.white, fontSize: 18),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
-      ],
+    return MobileScanner(
+      // مفتاح بهوية المتحكم: عند إعادة التهيئة يُبنى ودجت جديد بدل أن يحتفظ
+      // `mobile_scanner` بمتحكم مُتلف داخل حالته (`late final`).
+      key: ObjectKey(controller),
+      controller: controller,
+      onDetect: _onDetect,
+      placeholderBuilder: (BuildContext context, Widget? child) =>
+          _CameraWaiting(message: _cameraError),
+      errorBuilder: (
+        BuildContext context,
+        MobileScannerException error,
+        Widget? child,
+      ) {
+        if (error.errorCode ==
+                MobileScannerErrorCode.controllerAlreadyInitialized ||
+            error.errorCode.name == 'controllerAlreadyInitialized') {
+          // المتحكم يعمل بالفعل ولا حاجة لعرض شاشة عطل أو تسجيل استثناء كاذب
+          return const SizedBox.shrink();
+        }
+        AppErrorLog.instance.record(
+          error,
+          StackTrace.current,
+          where: 'scan:camera',
+        );
+        return _NoticeBody(
+          message: _cameraMessage(error),
+          onRetry: () => unawaited(_resetCamera()),
+        );
+      },
     );
   }
+
+  /// لوحة النتائج أسفل المعاينة.
+  Widget _resultsPanel() {
+    if (_feed.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Text(
+            'امسح باج الطالب — ستظهر النتائج هنا فوراً',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+    return ListView.builder(
+      itemCount: _feed.length,
+      itemBuilder: (BuildContext context, int i) {
+        final ScanOutcome o = _feed[i];
+        return ListTile(
+          dense: true,
+          leading: Icon(
+            o.isSuccess ? Icons.check_circle : Icons.error,
+            color: o.isSuccess ? Colors.green : Colors.red,
+          ),
+          title: Text(o.message),
+        );
+      },
+    );
+  }
+
+  Widget _bottomButtons(Session? session) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: <Widget>[
+            FilledButton.icon(
+              onPressed: session == null ? null : _manual,
+              icon: const Icon(Icons.edit),
+              label: const Text('يدوي'),
+            ),
+            FilledButton.icon(
+              onPressed: session == null ? null : _toggleClose,
+              icon: Icon(
+                session?.closedAt == null ? Icons.lock : Icons.lock_open,
+              ),
+              label: Text(
+                session?.closedAt == null ? 'إقفال اليوم' : 'إعادة فتح',
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+/// طبقة الانتظار فوق المعاينة: لا مربع أسود صامت قبل اكتمال تهيئة الكاميرا.
+class _CameraWaiting extends StatelessWidget {
+  const _CameraWaiting({this.message});
+
+  final String? message;
+
+  @override
+  Widget build(BuildContext context) => ColoredBox(
+        color: const Color(0xFF101413),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              const SizedBox(
+                width: 34,
+                height: 34,
+                child: CircularProgressIndicator(
+                  strokeWidth: 3,
+                  color: Colors.white70,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  message ?? 'جارٍ تشغيل الكاميرا…',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
 }
 
 /// جسم بديل واضح (رسالة + أزرار) بدل أي فراغ أبيض.

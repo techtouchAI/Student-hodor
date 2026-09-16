@@ -116,9 +116,14 @@ class _ExportState extends ConsumerState<ExportScreen> {
         );
         final List<int> bytes = await builder.build();
         final Directory tmp = Directory.systemTemp;
-        final File f = File(
-          '${tmp.path}/hodor-${DateTime.now().millisecondsSinceEpoch}.xlsx',
+        // اسم الملف عربي واضح («كشف الحضور والغياب - المدرسة - السنة - الشهر»)
+        // بدل `hodor-<طابع زمني>.xlsx` اللاتيني الذي يصل للمستلم بلا معنى.
+        final String fileName = ExcelBuilder.exportFileName(
+          schoolName: settings['school_name'] ?? '',
+          yearName: year.name,
+          months: months,
         );
+        final File f = File('${tmp.path}/$fileName');
         await f.writeAsBytes(bytes);
         await SharePlus.instance.share(
           ShareParams(files: <XFile>[XFile(f.path)]),

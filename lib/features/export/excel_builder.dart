@@ -1,6 +1,17 @@
 /// مولّد ملف Excel: كشف حضور شهري ملوّن (أخضر/أحمر/أصفر/برتقالي)
 /// باتجاه RTL، مع مجاميع ونسب، وشهر واحد لكل ورقة + أوراق ملخّص وإجازات اختيارية.
+///
+/// الاتجاه من اليمين إلى اليسار يُفرض **مرتين**:
+/// 1. `sheet.isRTL = true` (تكتبه الحزمة في `sheetView`).
+/// 2. ترقيع صريح لـ`rightToLeft="1"` في كل `sheetView` بعد الحفظ
+///    ([_patchSheets]) حتى لا يتوقف الأمر على سلوك نسخة الحزمة — فالملف كان
+///    يُفتح أحياناً باتجاه إنكليزي (LTR) فيظهر ترتيب الأعمدة معكوساً.
+///
+/// وكذلك محاذاة خلايا النص (الاسم/الصف) تُضبط صراحةً `Right` فلا تعتمد على
+/// افتراض Excel، وأسماء الملفات المصدّرة عربية (انظر [exportFileName]).
 library;
+
+import 'dart:convert';
 
 import 'package:archive/archive.dart';
 import 'package:drift/drift.dart' hide Column;
@@ -63,7 +74,55 @@ class ExcelBuilder {
     'متأخر',
   ];
 
+  // ---------------- تخطيط الأعمدة ----------------
+  //
+  // كان اليوم الأول يُكتب في العمود D (`columnIndex: 2 + day`) فيبقى العمود C
+  // فارغاً بين اسم الطالب وأول يوم — عمود ضائع في منتصف كشف عربي. الأرقام
+  // الآن مشتقة من ثابت واحد لا مكتوبة يدوياً في كل موضع.
+
+  /// عمود التسلسل «م» (A).
+  static const int _indexColumn = 0;
+
+  /// عمود اسم الطالب (B).
+  static const int _nameColumn = 1;
+
+  /// عمود يوم `day` (1..31) ⇒ C..AG.
+  static int _dayColumn(int day) => _nameColumn + day;
+
+  static const int _absentColumn = _nameColumn + 32; // AH
+  static const int _leaveColumn = _absentColumn + 1; // AI
+  static const int _presentColumn = _leaveColumn + 1; // AJ
+  static const int _lateColumn = _presentColumn + 1; // AK
+  static const int _rateColumn = _lateColumn + 1; // AL
+
+  /// صف العنوان المدمج (1)، صف فارغ (2)، صف الترويسة (3)، ثم البيانات من 4.
+  static const int _titleRow = 0;
+  static const int _headerRow = 2;
+  static const int _firstDataRow = 3;
+
+  /// تجميد: عمودا «م» والاسم + صفوف العنوان والترويسة.
+  static const int _freezeColumns = 2;
+  static const int _freezeRows = 3;
+  static const String _topLeftCell = 'C4';
+
+  /// خلية واحدة بخط مقروء بدل `sheet.cell(CellIndex.indexByColumnRow(...))`
+  /// المتشعّب على خمسة أسطر (وهو ما كان يشترط فاصلة زائدة).
+  static Data _cellAt(Sheet sheet, int column, int row) {
+    final Data c = sheet.cell(
+      CellIndex.indexByColumnRow(columnIndex: column, rowIndex: row),
+    );
+    return c;
+  }
+
   final Set<String> _usedSheetNames = <String>{};
+
+  /// نمط ترويسة موحّد (خلفية خضراء داكنة، نص أبيض عريض، توسيط).
+  static CellStyle _headerStyle() => CellStyle(
+        backgroundColorHex: ExcelColor.fromHexString(ExcelColors.header),
+        fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
+        bold: true,
+        horizontalAlign: HorizontalAlign.Center,
+      );
 
   String _colorFor(int? status, bool schoolDay) {
     if (!schoolDay) {
@@ -110,7 +169,10 @@ class ExcelBuilder {
 
   Future<Uint8List> build() async {
     final Excel excel = Excel.createExcel();
-    excel.delete('Sheet1');
+    // ملاحظة: **لا** تُحذف ورقة القالب «Sheet1» هنا. `Excel.delete` ترفض حذف
+    // الورقة الوحيدة (`if (_sheetMap.length <= 1) return;`) فتخرج بلا أثر،
+    // ويبقى في ملف المستخدم تبويب «Sheet1» فارغ بجانب الكشوف العربية.
+    // تُحذف في [_dropTemplateSheet] بعد إنشاء كل الأوراق.
     if (includeDaily) {
       for (final MonthKey m in months) {
         for (final ExportScopeClass sc in classes) {
@@ -118,7 +180,7 @@ class ExcelBuilder {
               _sheetName('${sc.cls.grade}-${sc.cls.section}-${m.label}')];
           sheet.isRTL = true;
           _writeHeader(sheet, sc, m);
-          int row = 3;
+          int row = _firstDataRow;
           for (final Student s in sc.students) {
             final Map<String, int> byDate = <String, int>{
               for (final AttendanceRow r in await (db.select(db.attendanceRows)
@@ -128,12 +190,17 @@ class ExcelBuilder {
                   .get())
                 r.date: r.status,
             };
-            sheet
-                .cell(CellIndex.indexByString('A${row + 1}'))
-                .value = TextCellValue('${row - 2}');
-            sheet
-                .cell(CellIndex.indexByString('B${row + 1}'))
-                .value = TextCellValue(s.fullName);
+            final Data seq = sheet.cell(
+              CellIndex.indexByColumnRow(columnIndex: _indexColumn, rowIndex: row),
+            );
+            seq.value = IntCellValue(row - _firstDataRow + 1);
+            seq.cellStyle = CellStyle(horizontalAlign: HorizontalAlign.Center);
+            final Data name = sheet.cell(
+              CellIndex.indexByColumnRow(columnIndex: _nameColumn, rowIndex: row),
+            );
+            name.value = TextCellValue(s.fullName);
+            // محاذاة صريحة من اليمين: لا نترك اتجاه الاسم لافتراض Excel.
+            name.cellStyle = CellStyle(horizontalAlign: HorizontalAlign.Right);
             int absent = 0;
             int leave = 0;
             int present = 0;
@@ -150,7 +217,10 @@ class ExcelBuilder {
                 holidayKeys: holidayKeys,
               );
               final Data cell = sheet.cell(
-                CellIndex.indexByColumnRow(columnIndex: 2 + day, rowIndex: row),
+                CellIndex.indexByColumnRow(
+                  columnIndex: _dayColumn(day),
+                  rowIndex: row,
+                ),
               );
               cell.value = TextCellValue(
                 status == null ? (schoolDay ? '' : 'عطلة') : _statusAr[status],
@@ -172,23 +242,23 @@ class ExcelBuilder {
               }
             }
             final int recorded = present + absent + leave + late;
-            sheet
-                .cell(CellIndex.indexByString('AI${row + 1}'))
-                .value = IntCellValue(absent);
-            sheet
-                .cell(CellIndex.indexByString('AJ${row + 1}'))
-                .value = IntCellValue(leave);
-            sheet
-                .cell(CellIndex.indexByString('AK${row + 1}'))
-                .value = IntCellValue(present);
-            sheet
-                .cell(CellIndex.indexByString('AL${row + 1}'))
-                .value = IntCellValue(late);
-            sheet
-                .cell(CellIndex.indexByString('AM${row + 1}'))
-                .value = DoubleCellValue(
+            _cellAt(sheet, _absentColumn, row).value = IntCellValue(absent);
+            _cellAt(sheet, _leaveColumn, row).value = IntCellValue(leave);
+            _cellAt(sheet, _presentColumn, row).value = IntCellValue(present);
+            _cellAt(sheet, _lateColumn, row).value = IntCellValue(late);
+            _cellAt(sheet, _rateColumn, row).value = DoubleCellValue(
               recorded == 0 ? 100 : (present + late) * 100 / recorded,
             );
+            for (final int col in <int>[
+              _absentColumn,
+              _leaveColumn,
+              _presentColumn,
+              _lateColumn,
+              _rateColumn,
+            ]) {
+              _cellAt(sheet, col, row).cellStyle =
+                  CellStyle(horizontalAlign: HorizontalAlign.Center);
+            }
             row++;
           }
         }
@@ -200,11 +270,25 @@ class ExcelBuilder {
     if (includeLeaves) {
       await _leavesSheet(excel);
     }
+    _dropTemplateSheet(excel);
     final List<int>? bytes = excel.save();
     if (bytes == null) {
       throw StateError('excel save returned null');
     }
-    return Uint8List.fromList(_freezePanes(bytes));
+    return Uint8List.fromList(_patchSheets(bytes));
+  }
+
+  /// يحذف ورقة القالب «Sheet1» بعد أن صار في الملف أوراق حقيقية.
+  ///
+  /// تُستخدم `sheets` (لا `tables`) لأن `tables` ترمي «Corrupted Excel file»
+  /// إن كانت الخريطة فارغة. وإن لم تُنشأ أي ورقة (تصدير بلا صفوف ولا ملخص)
+  /// نُبقي «Sheet1» لأن ملف xlsx لا يصح بلا ورقة واحدة على الأقل.
+  static void _dropTemplateSheet(Excel excel) {
+    const String templateSheet = 'Sheet1';
+    final Map<String, Sheet> sheets = excel.sheets;
+    if (sheets.length > 1 && sheets.containsKey(templateSheet)) {
+      excel.delete(templateSheet);
+    }
   }
 
   Future<void> _summarySheet(Excel excel) async {
@@ -220,49 +304,43 @@ class ExcelBuilder {
       'إجازة',
       'نسبة الحضور',
     ];
-    for (int i = 0; i < head.length; i++) {
-      final Data c = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
-      c.value = TextCellValue(head[i]);
-      c.cellStyle = CellStyle(
-        backgroundColorHex: ExcelColor.fromHexString(ExcelColors.header),
-        fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
-        bold: true,
-        horizontalAlign: HorizontalAlign.Center,
-      );
-    }
-    int row = 1;
+    _writeTitle(
+      sheet,
+      '$schoolName — ملخص الحضور والغياب للسنة ${year.name} '
+      '— المدير: $directorName',
+      head.length - 1,
+    );
+    _writeColumnHeaders(sheet, head);
+    int row = _firstDataRow;
     int index = 1;
     for (final ExportScopeClass sc in classes) {
       for (final Student s in sc.students) {
         final StatusTotals t = await reports.totalsForStudent(s.id, year.id);
-        sheet
-            .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
-            .value = IntCellValue(index++);
-        sheet
-            .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
-            .value = TextCellValue('${sc.cls.grade} ـ ${sc.cls.section}');
-        sheet
-            .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
-            .value = TextCellValue(s.fullName);
-        sheet
-            .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
-            .value = IntCellValue(t.present);
-        sheet
-            .cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: row))
-            .value = IntCellValue(t.late);
-        sheet
-            .cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: row))
-            .value = IntCellValue(t.absent);
-        sheet
-            .cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: row))
-            .value = IntCellValue(t.leave);
-        sheet
-            .cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: row))
-            .value = DoubleCellValue(t.ratePct);
+        _num(
+          sheet,
+          column: 0,
+          row: row,
+          value: IntCellValue(index++),
+        );
+        _text(
+          sheet,
+          column: 1,
+          row: row,
+          value: '${sc.cls.grade} ـ ${sc.cls.section}',
+        );
+        _text(sheet, column: 2, row: row, value: s.fullName);
+        _num(sheet, column: 3, row: row, value: IntCellValue(t.present));
+        _num(sheet, column: 4, row: row, value: IntCellValue(t.late));
+        _num(sheet, column: 5, row: row, value: IntCellValue(t.absent));
+        _num(sheet, column: 6, row: row, value: IntCellValue(t.leave));
+        _num(sheet, column: 7, row: row, value: DoubleCellValue(t.ratePct));
         row++;
       }
     }
+    sheet.setColumnWidth(0, 6.0);
+    sheet.setColumnWidth(1, 18.0);
     sheet.setColumnWidth(2, 34.0);
+    sheet.setColumnWidth(7, 14.0);
   }
 
   Future<void> _leavesSheet(Excel excel) async {
@@ -275,16 +353,12 @@ class ExcelBuilder {
       'النوع',
       'السبب',
     ];
-    for (int i = 0; i < head.length; i++) {
-      final Data c = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
-      c.value = TextCellValue(head[i]);
-      c.cellStyle = CellStyle(
-        backgroundColorHex: ExcelColor.fromHexString(ExcelColors.header),
-        fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
-        bold: true,
-        horizontalAlign: HorizontalAlign.Center,
-      );
-    }
+    _writeTitle(
+      sheet,
+      '$schoolName — سجل الإجازات للسنة ${year.name} — المدير: $directorName',
+      head.length - 1,
+    );
+    _writeColumnHeaders(sheet, head);
     final List<Leave> leaves = await (db.select(db.leaves)
           ..where((l) => l.yearId.equals(year.id))
           ..orderBy(<OrderClauseGenerator<Leaves>>[
@@ -298,113 +372,262 @@ class ExcelBuilder {
         s.id: s.fullName,
     };
     const List<String> types = <String>['مرضية', 'عرضية', 'طارئة'];
-    int row = 1;
+    int row = _firstDataRow;
     for (final Leave l in leaves) {
-      sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
-          .value = TextCellValue(names[l.studentId] ?? '-');
-      sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
-          .value = TextCellValue(l.start);
-      sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
-          .value = TextCellValue(l.end);
-      sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
-          .value = TextCellValue(
-        l.type >= 0 && l.type < types.length ? types[l.type] : '${l.type}',
+      _text(sheet, column: 0, row: row, value: names[l.studentId] ?? '-');
+      _text(sheet, column: 1, row: row, value: l.start);
+      _text(sheet, column: 2, row: row, value: l.end);
+      _text(
+        sheet,
+        column: 3,
+        row: row,
+        value: l.type >= 0 && l.type < types.length
+            ? types[l.type]
+            : '${l.type}',
       );
-      sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: row))
-          .value = TextCellValue(l.reason);
+      _text(sheet, column: 4, row: row, value: l.reason);
       row++;
     }
     sheet.setColumnWidth(0, 30.0);
+    sheet.setColumnWidth(4, 30.0);
+  }
+
+  /// عنوان مدمج في الصف الأول لكل ورقة.
+  ///
+  /// توحيد البنية (عنوان 1 + فراغ 2 + ترويسة 3 + بيانات 4+) يجعل تجميد
+  /// الصفوف الثلاثة الأولى صحيحاً في **كل** أوراق الملف لا في الجداول الشهرية
+  /// وحدها.
+  void _writeTitle(Sheet sheet, String text, int lastColumn) {
+    sheet.merge(
+      CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: _titleRow),
+      CellIndex.indexByColumnRow(columnIndex: lastColumn, rowIndex: _titleRow),
+    );
+    final Data title = sheet.cell(
+      CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: _titleRow),
+    );
+    title.value = TextCellValue(text);
+    title.cellStyle = _headerStyle();
+  }
+
+  void _writeColumnHeaders(Sheet sheet, List<String> head) {
+    for (int i = 0; i < head.length; i++) {
+      final Data c = sheet.cell(
+        CellIndex.indexByColumnRow(columnIndex: i, rowIndex: _headerRow),
+      );
+      c.value = TextCellValue(head[i]);
+      c.cellStyle = _headerStyle();
+    }
+  }
+
+  /// خلية نص بمحاذاة يمينية صريحة (اتجاه عربي لا يعتمد على افتراض Excel).
+  void _text(
+    Sheet sheet, {
+    required int column,
+    required int row,
+    required String value,
+  }) {
+    final Data c = sheet.cell(
+      CellIndex.indexByColumnRow(columnIndex: column, rowIndex: row),
+    );
+    c.value = TextCellValue(value);
+    c.cellStyle = CellStyle(horizontalAlign: HorizontalAlign.Right);
+  }
+
+  /// خلية رقمية موسّطة.
+  void _num(
+    Sheet sheet, {
+    required int column,
+    required int row,
+    required CellValue value,
+  }) {
+    final Data c = _cellAt(sheet, column, row);
+    c.value = value;
+    c.cellStyle = CellStyle(horizontalAlign: HorizontalAlign.Center);
   }
 
   void _writeHeader(Sheet sheet, ExportScopeClass sc, MonthKey m) {
-    sheet.merge(
-      CellIndex.indexByString('A1'),
-      CellIndex.indexByString('AM1'),
-    );
-    final Data title = sheet.cell(CellIndex.indexByString('A1'));
-    title.value = TextCellValue(
+    _writeTitle(
+      sheet,
       '$schoolName — كشف حضور ${sc.cls.grade} ـ ${sc.cls.section} '
       '— ${m.label} — المدير: $directorName',
+      _rateColumn,
     );
-    title.cellStyle = CellStyle(
-      backgroundColorHex: ExcelColor.fromHexString(ExcelColors.header),
-      fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
-      bold: true,
-      horizontalAlign: HorizontalAlign.Center,
-    );
-    sheet
-        .cell(CellIndex.indexByString('A3'))
-        .value = TextCellValue('م');
-    sheet
-        .cell(CellIndex.indexByString('B3'))
-        .value = TextCellValue('اسم الطالب');
+    _cellAt(sheet, _indexColumn, _headerRow).value = TextCellValue('م');
+    _cellAt(sheet, _nameColumn, _headerRow).value =
+        TextCellValue('اسم الطالب');
     for (int day = 1; day <= 31; day++) {
-      final Data c = sheet.cell(
-        CellIndex.indexByColumnRow(columnIndex: 2 + day, rowIndex: 2),
-      );
+      final Data c = _cellAt(sheet, _dayColumn(day), _headerRow);
       c.value = TextCellValue(m.isValidDay(day) ? '$day' : '');
-      c.cellStyle = CellStyle(
-        backgroundColorHex: ExcelColor.fromHexString(ExcelColors.header),
-        fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
-        bold: true,
-        horizontalAlign: HorizontalAlign.Center,
-      );
+      c.cellStyle = _headerStyle();
     }
-    const Map<String, String> tails = <String, String>{
-      'AI3': 'غياب',
-      'AJ3': 'إجازة',
-      'AK3': 'حضور',
-      'AL3': 'متأخر',
-      'AM3': 'نسبة الحضور',
-    };
-    tails.forEach((String ref, String label) {
-      sheet.cell(CellIndex.indexByString(ref)).value = TextCellValue(label);
-    });
-    for (final String col in <String>['A3', 'B3', 'AI3', 'AJ3', 'AK3', 'AL3', 'AM3']) {
-      sheet.cell(CellIndex.indexByString(col)).cellStyle = CellStyle(
-            backgroundColorHex: ExcelColor.fromHexString(ExcelColors.header),
-            fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
-            bold: true,
-            horizontalAlign: HorizontalAlign.Center,
-          );
+    final List<(int, String)> tails = <(int, String)>[
+      (_absentColumn, 'غياب'),
+      (_leaveColumn, 'إجازة'),
+      (_presentColumn, 'حضور'),
+      (_lateColumn, 'متأخر'),
+      (_rateColumn, 'نسبة الحضور'),
+    ];
+    for (final (int col, String label) in tails) {
+      _cellAt(sheet, col, _headerRow).value = TextCellValue(label);
     }
-    sheet.setColumnWidth(1, 34.0);
+    for (final int col in <int>[
+      _indexColumn,
+      _nameColumn,
+      _absentColumn,
+      _leaveColumn,
+      _presentColumn,
+      _lateColumn,
+      _rateColumn,
+    ]) {
+      _cellAt(sheet, col, _headerRow).cellStyle = _headerStyle();
+    }
+    sheet.setColumnWidth(_indexColumn, 6.0);
+    sheet.setColumnWidth(_nameColumn, 34.0);
+    sheet.setColumnWidth(_rateColumn, 14.0);
   }
 
-  /// تجميد أول عمودين وصفّي العنوان عبر ترقيع sheetView داخل الـxlsx.
-  List<int> _freezePanes(List<int> bytes) {
+  /// ترقيع أوراق الـxlsx بعد الحفظ: **فرض الاتجاه من اليمين إلى اليسار**
+  /// (`rightToLeft="1"`) + تجميد أول عمودين وصفوف العنوان.
+  ///
+  /// لماذا يدوياً؟ اتجاه الورقة في Excel سمة `sheetView`، وأي خلل فيها يفتح
+  /// الملف باتجاه إنكليزي (LTR) فينعكس ترتيب الأعمدة ويظهر الاسم في الجهة
+  /// الخطأ. نفرضها هنا صراحةً ولا نتكل على ما تكتبه نسخة الحزمة.
+  ///
+  /// الفكّ والتركيب بـUTF-8 (لا `String.fromCharCodes`/`codeUnits`) حتى لا
+  /// تفسد أي نصوص عربية داخل الأوراق.
+  List<int> _patchSheets(List<int> bytes) {
     final Archive archive = ZipDecoder().decodeBytes(bytes);
     final Archive out = Archive();
     for (final ArchiveFile f in archive) {
-      if (f.name.startsWith('xl/worksheets/sheet') && f.name.endsWith('.xml')) {
-        String xml = String.fromCharCodes(f.content as List<int>);
-        const String pane =
-            '<pane xSplit="2" ySplit="3" topLeftCell="C4" activePane="bottomRight" state="frozen"/>';
-        if (xml.contains('<sheetView')) {
-          if (RegExp(r'<sheetView[^>]*/>').hasMatch(xml)) {
-            xml = xml.replaceFirstMapped(
-              RegExp(r'<sheetView([^>]*)/>'),
-              (Match m) => '<sheetView${m.group(1)}>$pane</sheetView>',
-            );
-          } else {
-            xml = xml.replaceFirstMapped(
-              RegExp(r'<sheetView([^>]*)>'),
-              (Match m) => '<sheetView${m.group(1)}>$pane',
-            );
-          }
-        }
-        final List<int> b = xml.codeUnits;
-        out.addFile(ArchiveFile(f.name, b.length, b));
-      } else {
+      if (!_isWorksheetXml(f.name)) {
         out.addFile(f);
+        continue;
       }
+      final String xml =
+          utf8.decode(f.content as List<int>, allowMalformed: true);
+      final List<int> patched = utf8.encode(_patchSheetView(xml));
+      out.addFile(ArchiveFile(f.name, patched.length, patched));
     }
     return ZipEncoder().encode(out)!;
+  }
+
+  static bool _isWorksheetXml(String name) =>
+      name.startsWith('xl/worksheets/sheet') && name.endsWith('.xml');
+
+  /// يعيد بناء `sheetViews` بناءً قانونياً: **كتلة واحدة** في الموضع الذي
+  /// يشترطه مخطط OOXML (بعد `sheetPr` و`dimension` وقبل `sheetFormatPr`
+  /// و`sheetData`)، وتحمل `rightToLeft="1"` و`pane` التجميد.
+  ///
+  /// لماذا الحذف وإعادة الإدخال بدل ترقيع الموجود؟ لأن حزمة `excel` تُدرج
+  /// `sheetViews` — حين لا تجدها في قالب الورقة — في **آخر** وسم `worksheet`،
+  /// وهو موضع مخالف لترتيب المخطط: إكسل يتجاهله أو يفتح الملف برسالة «وجدنا
+  /// مشكلة في بعض المحتوى». والنتيجة في الميدان هي شكوى المستخدم حرفياً:
+  /// كشفٌ عربي يُفتح باتجاه إنكليزي والاسم في الجهة الخطأ.
+  static String _patchSheetView(String xml) {
+    const String pane = '<pane xSplit="$_freezeColumns" ySplit="$_freezeRows" '
+        'topLeftCell="$_topLeftCell" activePane="bottomRight" state="frozen"/>';
+    // كتلة الحاوية: وسم مغلق ذاتياً أو مفتوح مع إغلاقه (غير شرهي).
+    final RegExp blocks = RegExp(
+      r'<sheetViews(?:\s[^>]*)?/>'
+      r'|<sheetViews(?:\s[^>]*)?>[\s\S]*?</sheetViews>',
+    );
+    // `\s` بعد اسم الوسم ضروري: بدونه يلتقط `<sheetViews>` (الحاوية) بالخطأ.
+    final RegExp viewTag = RegExp(r'<sheetView(?:\s[^>]*)?/?>');
+    final RegExpMatch? block = blocks.firstMatch(xml);
+    final RegExpMatch? view =
+        block == null ? null : viewTag.firstMatch(block.group(0)!);
+    // نحذف كل الكتل (قد تكون الحزمة كرّرتها) ثم نعيد كتلة واحدة نظيفة.
+    final String stripped = xml.replaceAll(blocks, '');
+    final String attrs = _withRtl(view == null ? '' : _attrsOf(view.group(0)!));
+    final String views =
+        '<sheetViews><sheetView $attrs>$pane</sheetView></sheetViews>';
+    for (final RegExp anchor in <RegExp>[
+      RegExp(r'<dimension[^>]*/>'),
+      RegExp(r'<dimension[^>]*>[\s\S]*?</dimension>'),
+      RegExp(r'<sheetPr[^>]*/>'),
+      RegExp(r'<sheetPr[^>]*>[\s\S]*?</sheetPr>'),
+      RegExp(r'<worksheet[^>]*>'),
+    ]) {
+      final RegExpMatch? m = anchor.firstMatch(stripped);
+      if (m != null) {
+        return stripped.replaceRange(m.end, m.end, views);
+      }
+    }
+    return stripped;
+  }
+
+  /// سمات وسم `sheetView` بلا اسم الوسم وبلا `/` الإغلاق الذاتي.
+  static String _attrsOf(String tag) {
+    String a = tag.substring('<sheetView'.length);
+    if (a.endsWith('/>')) {
+      a = a.substring(0, a.length - 2);
+    } else if (a.endsWith('>')) {
+      a = a.substring(0, a.length - 1);
+    }
+    return a.trim();
+  }
+
+  /// يفرض `rightToLeft="1"` في سمات وسم `sheetView`: يضيفها إن غابت ويصحّح
+  /// قيمتها إن كُتبت بخلاف `1`، ويضمن `workbookViewId` (سمة إلزامية في
+  /// المخطط).
+  static String _withRtl(String attrs) {
+    String a = attrs.trim();
+    a = a.contains('rightToLeft')
+        ? a.replaceAll(
+            RegExp(r'rightToLeft\s*=\s*"[^"]*"'),
+            'rightToLeft="1"',
+          )
+        : '$a rightToLeft="1"';
+    if (!a.contains('workbookViewId')) {
+      a = '$a workbookViewId="0"';
+    }
+    return a.trim();
+  }
+
+  // ---------------- اسم الملف المصدَّر ----------------
+
+  /// اسم ملف عربي واضح للمشاركة بدل `hodor-<طابع زمني>.xlsx` اللاتيني.
+  ///
+  /// مثال: `كشف الحضور والغياب - مدرسة النجاح - 2026-2027 - آذار 2026.xlsx`
+  static String exportFileName({
+    required String schoolName,
+    required String yearName,
+    required List<MonthKey> months,
+    DateTime? now,
+  }) {
+    final DateTime stamp = now ?? DateTime.now();
+    final String scope = switch (months.length) {
+      0 => 'ملخص',
+      1 => months.first.label,
+      _ => '${months.first.label} إلى ${months.last.label}',
+    };
+    // التاريخ والوقت يمنعان تصديرين من المشاركة في الاسم نفسه داخل المجلد
+    // المؤقت (ملف قيد الإرسال لا يُستبدل بآخر).
+    final String when = '${SchoolTime.dateKey(stamp)} '
+        '${stamp.hour.toString().padLeft(2, '0')}'
+        '-${stamp.minute.toString().padLeft(2, '0')}';
+    final String base = <String>[
+      'كشف الحضور والغياب',
+      if (schoolName.trim().isNotEmpty) schoolName.trim(),
+      if (yearName.trim().isNotEmpty) yearName.trim(),
+      scope,
+      when,
+    ].join(' - ');
+    return '${sanitizeFileName(base)}.xlsx';
+  }
+
+  /// اسم ملف صالح: يحذف المحارف الممنوعة في أنظمة الملفات ويحدّ الطول.
+  static String sanitizeFileName(String raw) {
+    String n = raw
+        .replaceAll(RegExp(r'[\\/:*?"<>|\r\n\t]'), '-')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    if (n.isEmpty) {
+      n = 'تقرير الحضور';
+    }
+    if (n.length > 90) {
+      n = n.substring(0, 90).trim();
+    }
+    return n;
   }
 }

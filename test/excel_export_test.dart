@@ -116,6 +116,19 @@ void main() {
           reason: '$name يجب أن يُفتح من اليمين إلى اليسار',
         );
         expect(xml, contains('<pane '), reason: '$name يجب أن يجمّد العنوانين');
+        // حزمة excel قد تُدرج `sheetViews` في آخر `worksheet` (موضع يخالف
+        // مخطط OOXML ⇒ إكسل يتجاهله أو يطلب إصلاح الملف). الترقيع يعيد
+        // كتابتها كتلةً واحدة قبل `sheetData`.
+        expect(
+          '<sheetViews'.allMatches(xml).length,
+          1,
+          reason: '$name: كتلة sheetViews واحدة لا مكرّرة',
+        );
+        expect(
+          xml.indexOf('rightToLeft="1"'),
+          lessThan(xml.indexOf('<sheetData')),
+          reason: '$name: الاتجاه مُعلن قبل بيانات الخلايا (ترتيب المخطط)',
+        );
       }
     });
 

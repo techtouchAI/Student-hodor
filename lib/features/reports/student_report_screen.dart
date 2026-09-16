@@ -375,12 +375,12 @@ class _Legend extends StatelessWidget {
         runSpacing: 6,
         alignment: WrapAlignment.center,
         children: <Widget>[
-          _LegendItem(Colors.green, 'حاضر'),
-          _LegendItem(Colors.red, 'غائب'),
-          _LegendItem(Colors.amber, 'إجازة'),
-          _LegendItem(Colors.orange, 'متأخر'),
+          const _LegendItem(Colors.green, 'حاضر'),
+          const _LegendItem(Colors.red, 'غائب'),
+          const _LegendItem(Colors.amber, 'إجازة'),
+          const _LegendItem(Colors.orange, 'متأخر'),
           _LegendItem(Colors.grey.shade300, 'عطلة/ليس دوام'),
-          _LegendItem(Colors.grey, 'لم يُسجَّل'),
+          const _LegendItem(Colors.grey, 'لم يُسجَّل'),
         ],
       );
 }

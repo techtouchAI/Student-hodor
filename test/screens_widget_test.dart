@@ -366,7 +366,11 @@ void main() {
       (WidgetTester tester) async {
         final AppDb db = await _seedDb(tester);
         try {
-          await _pumpScreen(tester, db, '/students?class=1');
+          await _pumpScreen(
+            tester,
+            db,
+            AppRoutes.classLocation('/students', 1, 'السادس ـ أ'),
+          );
           final Text seq = tester.widget<Text>(
             find.textContaining('رقم الطالب:').first,
           );
@@ -388,7 +392,11 @@ void main() {
         _useTallWindow(tester);
         final AppDb db = await _seedDb(tester);
         try {
-          await _pumpScreen(tester, db, '/students?class=1');
+          await _pumpScreen(
+            tester,
+            db,
+            AppRoutes.classLocation('/students', 1, 'السادس ـ أ'),
+          );
           await tester.tap(find.text('علي حسن').first);
           await _settle(tester);
           expect(tester.takeException(), isNull);
@@ -415,7 +423,11 @@ void main() {
         _useTallWindow(tester);
         final AppDb db = await _seedDb(tester);
         try {
-          await _pumpScreen(tester, db, '/students?class=1');
+          await _pumpScreen(
+            tester,
+            db,
+            AppRoutes.classLocation('/students', 1, 'السادس ـ أ'),
+          );
           await tester.tap(find.text('علي حسن').first);
           await _settle(tester);
           await tester.tap(find.byTooltip('الشهر السابق'));

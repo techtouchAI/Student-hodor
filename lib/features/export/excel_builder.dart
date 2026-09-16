@@ -105,6 +105,15 @@ class ExcelBuilder {
   static const int _freezeRows = 3;
   static const String _topLeftCell = 'C4';
 
+  /// خلية واحدة بخط مقروء بدل `sheet.cell(CellIndex.indexByColumnRow(...))`
+  /// المتشعّب على خمسة أسطر (وهو ما كان يشترط فاصلة زائدة).
+  static Data _cellAt(Sheet sheet, int column, int row) {
+    final Data c = sheet.cell(
+      CellIndex.indexByColumnRow(columnIndex: column, rowIndex: row),
+    );
+    return c;
+  }
+
   final Set<String> _usedSheetNames = <String>{};
 
   /// نمط ترويسة موحّد (خلفية خضراء داكنة، نص أبيض عريض، توسيط).
@@ -230,36 +239,11 @@ class ExcelBuilder {
               }
             }
             final int recorded = present + absent + leave + late;
-            sheet
-                .cell(CellIndex.indexByColumnRow(
-                  columnIndex: _absentColumn,
-                  rowIndex: row,
-                ))
-                .value = IntCellValue(absent);
-            sheet
-                .cell(CellIndex.indexByColumnRow(
-                  columnIndex: _leaveColumn,
-                  rowIndex: row,
-                ))
-                .value = IntCellValue(leave);
-            sheet
-                .cell(CellIndex.indexByColumnRow(
-                  columnIndex: _presentColumn,
-                  rowIndex: row,
-                ))
-                .value = IntCellValue(present);
-            sheet
-                .cell(CellIndex.indexByColumnRow(
-                  columnIndex: _lateColumn,
-                  rowIndex: row,
-                ))
-                .value = IntCellValue(late);
-            sheet
-                .cell(CellIndex.indexByColumnRow(
-                  columnIndex: _rateColumn,
-                  rowIndex: row,
-                ))
-                .value = DoubleCellValue(
+            _cellAt(sheet, _absentColumn, row).value = IntCellValue(absent);
+            _cellAt(sheet, _leaveColumn, row).value = IntCellValue(leave);
+            _cellAt(sheet, _presentColumn, row).value = IntCellValue(present);
+            _cellAt(sheet, _lateColumn, row).value = IntCellValue(late);
+            _cellAt(sheet, _rateColumn, row).value = DoubleCellValue(
               recorded == 0 ? 100 : (present + late) * 100 / recorded,
             );
             for (final int col in <int>[
@@ -269,9 +253,8 @@ class ExcelBuilder {
               _lateColumn,
               _rateColumn,
             ]) {
-              sheet
-                  .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: row))
-                  .cellStyle = CellStyle(horizontalAlign: HorizontalAlign.Center);
+              _cellAt(sheet, col, row).cellStyle =
+                  CellStyle(horizontalAlign: HorizontalAlign.Center);
             }
             row++;
           }
@@ -440,9 +423,7 @@ class ExcelBuilder {
     required int row,
     required CellValue value,
   }) {
-    final Data c = sheet.cell(
-      CellIndex.indexByColumnRow(columnIndex: column, rowIndex: row),
-    );
+    final Data c = _cellAt(sheet, column, row);
     c.value = value;
     c.cellStyle = CellStyle(horizontalAlign: HorizontalAlign.Center);
   }
@@ -454,25 +435,11 @@ class ExcelBuilder {
       '— ${m.label} — المدير: $directorName',
       _rateColumn,
     );
-    sheet
-        .cell(CellIndex.indexByColumnRow(
-          columnIndex: _indexColumn,
-          rowIndex: _headerRow,
-        ))
-        .value = TextCellValue('م');
-    sheet
-        .cell(CellIndex.indexByColumnRow(
-          columnIndex: _nameColumn,
-          rowIndex: _headerRow,
-        ))
-        .value = TextCellValue('اسم الطالب');
+    _cellAt(sheet, _indexColumn, _headerRow).value = TextCellValue('م');
+    _cellAt(sheet, _nameColumn, _headerRow).value =
+        TextCellValue('اسم الطالب');
     for (int day = 1; day <= 31; day++) {
-      final Data c = sheet.cell(
-        CellIndex.indexByColumnRow(
-          columnIndex: _dayColumn(day),
-          rowIndex: _headerRow,
-        ),
-      );
+      final Data c = _cellAt(sheet, _dayColumn(day), _headerRow);
       c.value = TextCellValue(m.isValidDay(day) ? '$day' : '');
       c.cellStyle = _headerStyle();
     }
@@ -484,9 +451,7 @@ class ExcelBuilder {
       (_rateColumn, 'نسبة الحضور'),
     ];
     for (final (int col, String label) in tails) {
-      sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: _headerRow))
-          .value = TextCellValue(label);
+      _cellAt(sheet, col, _headerRow).value = TextCellValue(label);
     }
     for (final int col in <int>[
       _indexColumn,
@@ -497,9 +462,7 @@ class ExcelBuilder {
       _lateColumn,
       _rateColumn,
     ]) {
-      sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: _headerRow))
-          .cellStyle = _headerStyle();
+      _cellAt(sheet, col, _headerRow).cellStyle = _headerStyle();
     }
     sheet.setColumnWidth(_indexColumn, 6.0);
     sheet.setColumnWidth(_nameColumn, 34.0);
@@ -534,57 +497,46 @@ class ExcelBuilder {
   static bool _isWorksheetXml(String name) =>
       name.startsWith('xl/worksheets/sheet') && name.endsWith('.xml');
 
-  /// يضيف `rightToLeft="1"` و`pane` التجميد إلى أول `sheetView`.
+  /// يعيد بناء `sheetViews` بناءً قانونياً: **كتلة واحدة** في الموضع الذي
+  /// يشترطه مخطط OOXML (بعد `sheetPr` و`dimension` وقبل `sheetFormatPr`
+  /// و`sheetData`)، وتحمل `rightToLeft="1"` و`pane` التجميد.
   ///
-  /// يغطي كل الأشكال المحتملة: وسم مغلق ذاتياً، وسم مفتوح، حاوية `sheetViews`
-  /// فارغة، أو غياب الحاوية (تُحقن في موضعها الصحيح من مخطط OOXML: بعد
-  /// `sheetPr` ثم `dimension` ثم وسم الورقة).
+  /// لماذا الحذف وإعادة الإدخال بدل ترقيع الموجود؟ لأن حزمة `excel` تُدرج
+  /// `sheetViews` — حين لا تجدها في قالب الورقة — في **آخر** وسم `worksheet`،
+  /// وهو موضع مخالف لترتيب المخطط: إكسل يتجاهله أو يفتح الملف برسالة «وجدنا
+  /// مشكلة في بعض المحتوى». والنتيجة في الميدان هي شكوى المستخدم حرفياً:
+  /// كشفٌ عربي يُفتح باتجاه إنكليزي والاسم في الجهة الخطأ.
   static String _patchSheetView(String xml) {
     const String pane = '<pane xSplit="$_freezeColumns" ySplit="$_freezeRows" '
         'topLeftCell="$_topLeftCell" activePane="bottomRight" state="frozen"/>';
+    // كتلة الحاوية: وسم مغلق ذاتياً أو مفتوح مع إغلاقه (غير شرهي).
+    final RegExp blocks = RegExp(
+      r'<sheetViews(?:\s[^>]*)?/>'
+      r'|<sheetViews(?:\s[^>]*)?>[\s\S]*?</sheetViews>',
+    );
     // `\s` بعد اسم الوسم ضروري: بدونه يلتقط `<sheetViews>` (الحاوية) بالخطأ.
-    final RegExp selfClosing = RegExp(r'<sheetView\s[^>]*?/>');
-    if (selfClosing.hasMatch(xml)) {
-      return xml.replaceFirstMapped(
-        selfClosing,
-        (Match m) =>
-            '<sheetView${_withRtl(_attrsOf(m.group(0)!))}>$pane</sheetView>',
-      );
-    }
-    final RegExp opened = RegExp(r'<sheetView\s[^>]*?>');
-    if (opened.hasMatch(xml)) {
-      return xml.replaceFirstMapped(
-        opened,
-        (Match m) => '<sheetView${_withRtl(_attrsOf(m.group(0)!))}>$pane',
-      );
-    }
-    const String views = '<sheetViews>'
-        '<sheetView workbookViewId="0" rightToLeft="1">$pane</sheetView>'
-        '</sheetViews>';
-    final RegExp emptyViews = RegExp(r'<sheetViews\s*/>');
-    if (emptyViews.hasMatch(xml)) {
-      return xml.replaceFirst(emptyViews, views);
-    }
-    final RegExp openViews = RegExp(r'<sheetViews(?:\s[^>]*)?>');
-    if (openViews.hasMatch(xml)) {
-      return xml.replaceFirst(
-        openViews,
-        '<sheetViews>'
-        '<sheetView workbookViewId="0" rightToLeft="1">$pane</sheetView>',
-      );
-    }
+    final RegExp viewTag = RegExp(r'<sheetView(?:\s[^>]*)?/?>');
+    final RegExpMatch? block = blocks.firstMatch(xml);
+    final RegExpMatch? view =
+        block == null ? null : viewTag.firstMatch(block.group(0)!);
+    // نحذف كل الكتل (قد تكون الحزمة كرّرتها) ثم نعيد كتلة واحدة نظيفة.
+    final String stripped = xml.replaceAll(blocks, '');
+    final String attrs = _withRtl(view == null ? '' : _attrsOf(view.group(0)!));
+    final String views =
+        '<sheetViews><sheetView $attrs>$pane</sheetView></sheetViews>';
     for (final RegExp anchor in <RegExp>[
-      RegExp(r'</sheetPr>'),
       RegExp(r'<dimension[^>]*/>'),
-      RegExp(r'<dimension[^>]*>'),
+      RegExp(r'<dimension[^>]*>[\s\S]*?</dimension>'),
+      RegExp(r'<sheetPr[^>]*/>'),
+      RegExp(r'<sheetPr[^>]*>[\s\S]*?</sheetPr>'),
       RegExp(r'<worksheet[^>]*>'),
     ]) {
-      final RegExpMatch? m = anchor.firstMatch(xml);
+      final RegExpMatch? m = anchor.firstMatch(stripped);
       if (m != null) {
-        return xml.replaceRange(m.end, m.end, views);
+        return stripped.replaceRange(m.end, m.end, views);
       }
     }
-    return xml;
+    return stripped;
   }
 
   /// سمات وسم `sheetView` بلا اسم الوسم وبلا `/` الإغلاق الذاتي.
@@ -598,10 +550,21 @@ class ExcelBuilder {
     return a.trim();
   }
 
-  /// يعيد السمات مع `rightToLeft="1"` إن غاب (بمسافة بادئة صحيحة).
+  /// يفرض `rightToLeft="1"` في سمات وسم `sheetView`: يضيفها إن غابت ويصحّح
+  /// قيمتها إن كُتبت بخلاف `1`، ويضمن `workbookViewId` (سمة إلزامية في
+  /// المخطط).
   static String _withRtl(String attrs) {
-    final String prefix = attrs.isEmpty ? '' : ' $attrs';
-    return attrs.contains('rightToLeft') ? prefix : '$prefix rightToLeft="1"';
+    String a = attrs.trim();
+    a = a.contains('rightToLeft')
+        ? a.replaceAll(
+            RegExp(r'rightToLeft\s*=\s*"[^"]*"'),
+            'rightToLeft="1"',
+          )
+        : '$a rightToLeft="1"';
+    if (!a.contains('workbookViewId')) {
+      a = '$a workbookViewId="0"';
+    }
+    return a.trim();
   }
 
   // ---------------- اسم الملف المصدَّر ----------------

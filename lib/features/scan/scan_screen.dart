@@ -614,6 +614,9 @@ class _ScanState extends ConsumerState<ScanScreen>
   Widget build(BuildContext context) {
     final ClassRef? c = _class;
     final Session? session = _session;
+    // تُحسب قبل `ready`: تحليل التدفق يرقّي `session` عبر المتغير المنطقي،
+    // فتصير `session?.` تحذير invalid_null_aware_operator في الشجرة أدناه.
+    final DateTime? closedAt = session?.closedAt;
     final AppDb db = ref.watch(dbProvider);
     final bool ready = !_loading && c != null && session != null;
     return Scaffold(
@@ -655,7 +658,7 @@ class _ScanState extends ConsumerState<ScanScreen>
                           : null,
                     ),
                   ),
-                if (ready && session?.closedAt != null)
+                if (ready && closedAt != null)
                   const ColoredBox(
                     color: Color(0xAA000000),
                     child: Center(

@@ -1,5 +1,2 @@
 Analyzing Student-hodor...                                      
-
-  error • A value of type 'String?' can't be assigned to a variable of type 'DateTime?'. Try changing the type of the variable, or casting the right-hand type to 'DateTime?' • lib/features/scan/scan_screen.dart:619:32 • invalid_assignment
-
-1 issue found. (ran in 13.7s)
+No issues found! (ran in 18.6s)

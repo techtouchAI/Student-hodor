@@ -112,6 +112,11 @@ void main() {
           await _pumpScreen(tester, db, '/classes');
           expect(find.text('الصفوف والشعب'), findsOneWidget);
           expect(find.text('السادس ـ أ'), findsWidgets);
+          expect(find.textContaining('طلاب: 2'), findsOneWidget);
+          expect(find.byTooltip('البادجات'), findsOneWidget);
+          expect(find.byTooltip('كشف اليوم'), findsOneWidget);
+          expect(find.byTooltip('تعديل'), findsOneWidget);
+          expect(find.byTooltip('حذف'), findsOneWidget);
           expect(tester.takeException(), isNull);
         } finally {
           await _tearDownDb(tester, db);
@@ -151,6 +156,10 @@ void main() {
           );
           expect(find.text('علي حسن'), findsOneWidget);
           expect(find.text('زيد كريم'), findsOneWidget);
+          expect(find.byTooltip('الباج والرمز'), findsWidgets);
+          expect(find.byTooltip('ملف الحضور'), findsWidgets);
+          expect(find.byTooltip('تعديل'), findsWidgets);
+          expect(find.byTooltip('حذف'), findsWidgets);
           expect(tester.takeException(), isNull);
         } finally {
           await _tearDownDb(tester, db);

@@ -1,8 +1,5 @@
 Analyzing Student-hodor...                                      
 
-   info • Use 'const' for final variables initialized to a constant value. Try replacing 'final' with 'const' • lib/features/badges/badge_print.dart:76:5 • prefer_const_declarations
-  error • The expression doesn't evaluate to a function, so it can't be invoked • lib/features/badges/badge_print.dart:166:11 • invocation_of_non_function_expression
-warning • The declaration '_header' isn't referenced. Try removing the declaration of '_header' • lib/features/badges/badge_print.dart:207:20 • unused_element
-  error • The name '_header' is already defined. Try renaming one of the declarations • lib/features/badges/badge_print.dart:207:20 • duplicate_definition
+   info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • lib/features/badges/badge_print.dart:93:19 • prefer_const_constructors
 
-4 issues found. (ran in 17.4s)
+1 issue found. (ran in 11.6s)

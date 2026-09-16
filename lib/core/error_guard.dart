@@ -39,10 +39,18 @@ void installErrorGuards() {
     _notifyBoundary(details);
     return VisibleErrorWidget(details: details);
   };
-  PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
-    AppErrorLog.instance.record(error, stack, where: 'async');
-    return true;
-  };
+  // أخطاء المنصة/غير المتزامنة التي لا تمرّ على FlutterError (مثل ردود قنوات
+  // المنصة). محاطة بمحاولة/التقاط: إن لم يكن الربط مهيّأً (كما في بعض
+  // الاختبارات) تكفي الحراستان أعلاه ولا يجوز أن ينهار الإقلاع بسببها.
+  try {
+    PlatformDispatcher.instance.onError =
+        (Object error, StackTrace stack) {
+      AppErrorLog.instance.record(error, stack, where: 'async');
+      return true;
+    };
+  } catch (_) {
+    // لا شيء: الحراسة اختيارية هنا.
+  }
 }
 
 String _contextLabel(FlutterErrorDetails details) {

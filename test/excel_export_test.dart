@@ -138,7 +138,27 @@ void main() {
       expect(decoded.tables.keys, contains('السادس-أ-أيلول 2026'));
       expect(decoded.tables.keys, contains('ملخص السنة'));
       expect(decoded.tables.keys, contains('الإجازات'));
-      expect(decoded.tables.keys, isNot(contains('Sheet1')));
+      expect(
+        decoded.tables.keys,
+        isNot(contains('Sheet1')),
+        reason: 'ورقة القالب الفارغة تصل للمستخدم تبويباً زائداً: '
+            '`Excel.delete` ترفض حذف الورقة الوحيدة، فلا يصح استدعاؤها '
+            'قبل إنشاء الكشوف',
+      );
+      // ثلاث أوراق حقيقية فقط — أي تبويب رابع يعني ورقة قالب باقية.
+      expect(decoded.tables.length, 3);
+    });
+
+    test('تصدير بلا أوراق حقيقية يُبقي ورقة واحدة ولا يُنتج ملفاً تالفاً', () async {
+      final List<int> bytes = await _buildExcel(
+        includeDaily: false,
+        includeSummary: false,
+        includeLeaves: false,
+      );
+      final Excel decoded = Excel.decodeBytes(bytes);
+      // ملف xlsx لا يصح بلا ورقة واحدة على الأقل ⇒ «Sheet1» تبقى هنا عمداً.
+      expect(decoded.tables.length, 1);
+      expect(bytes, isNotEmpty);
     });
 
     test('ترويسة الكشف اليومي: لا عمود فارغاً والمجاميع في مكانها', () async {

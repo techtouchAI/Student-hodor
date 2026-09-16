@@ -169,7 +169,10 @@ class ExcelBuilder {
 
   Future<Uint8List> build() async {
     final Excel excel = Excel.createExcel();
-    excel.delete('Sheet1');
+    // ملاحظة: **لا** تُحذف ورقة القالب «Sheet1» هنا. `Excel.delete` ترفض حذف
+    // الورقة الوحيدة (`if (_sheetMap.length <= 1) return;`) فتخرج بلا أثر،
+    // ويبقى في ملف المستخدم تبويب «Sheet1» فارغ بجانب الكشوف العربية.
+    // تُحذف في [_dropTemplateSheet] بعد إنشاء كل الأوراق.
     if (includeDaily) {
       for (final MonthKey m in months) {
         for (final ExportScopeClass sc in classes) {
@@ -267,11 +270,25 @@ class ExcelBuilder {
     if (includeLeaves) {
       await _leavesSheet(excel);
     }
+    _dropTemplateSheet(excel);
     final List<int>? bytes = excel.save();
     if (bytes == null) {
       throw StateError('excel save returned null');
     }
     return Uint8List.fromList(_patchSheets(bytes));
+  }
+
+  /// يحذف ورقة القالب «Sheet1» بعد أن صار في الملف أوراق حقيقية.
+  ///
+  /// تُستخدم `sheets` (لا `tables`) لأن `tables` ترمي «Corrupted Excel file»
+  /// إن كانت الخريطة فارغة. وإن لم تُنشأ أي ورقة (تصدير بلا صفوف ولا ملخص)
+  /// نُبقي «Sheet1» لأن ملف xlsx لا يصح بلا ورقة واحدة على الأقل.
+  static void _dropTemplateSheet(Excel excel) {
+    const String templateSheet = 'Sheet1';
+    final Map<String, Sheet> sheets = excel.sheets;
+    if (sheets.length > 1 && sheets.containsKey(templateSheet)) {
+      excel.delete(templateSheet);
+    }
   }
 
   Future<void> _summarySheet(Excel excel) async {

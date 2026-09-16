@@ -1,10 +1,10 @@
   compiling builders/aot
-  28s compiling builders/aot
+  35s compiling builders/aot
 W These options have been removed and were ignored: --delete-conflicting-outputs
   0s drift_dev on 192 inputs; lib/app.dart
-  11s drift_dev on 192 inputs: 1 output; spent 8s analyzing, 2s resolving, 1s sdk; lib/core/app_info.dart
-  12s drift_dev on 192 inputs: 55 output, 5 no-op; spent 9s analyzing, 2s resolving, 1s sdk; lib/data/error_log.dart
-  13s drift_dev on 192 inputs: 48 skipped, 91 output, 53 no-op; spent 9s analyzing, 2s resolving, 1s sdk
+  13s drift_dev on 192 inputs: 1 output; spent 10s analyzing, 2s resolving, 1s sdk; lib/core/app_info.dart
+  15s drift_dev on 192 inputs: 55 output, 5 no-op; spent 11s analyzing, 2s resolving, 1s sdk; lib/data/error_log.dart
+  15s drift_dev on 192 inputs: 48 skipped, 91 output, 53 no-op; spent 11s analyzing, 2s resolving, 1s sdk
   0s source_gen:combining_builder on 96 inputs; lib/app.dart
   0s source_gen:combining_builder on 96 inputs: 48 skipped, 1 output, 47 no-op
-  Built with build_runner/aot in 41s; wrote 92 outputs.
+  Built with build_runner/aot in 51s; wrote 92 outputs.

@@ -20,6 +20,17 @@ import 'pdf_report.dart';
 
 enum ExportFormat { excel, pdf }
 
+/// هل اختار المستخدم قسماً واحداً على الأقل من محتوى الملف؟
+/// (ورقة الإجازات خاصة بإكسل). تصدير PDF بلا أي قسم كان يبني مستنداً
+/// بلا صفحات فيفشل لحظة الطباعة بخطأ غامض بدل رسالة واضحة.
+bool exportHasContent({
+  required ExportFormat format,
+  required bool daily,
+  required bool summary,
+  required bool leaves,
+}) =>
+    daily || summary || (format == ExportFormat.excel && leaves);
+
 class ExportScreen extends ConsumerStatefulWidget {
   const ExportScreen({super.key});
 
@@ -95,6 +106,21 @@ class _ExportState extends ConsumerState<ExportScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('اختر شهراً واحداً على الأقل')),
+          );
+        }
+        return;
+      }
+      if (!exportHasContent(
+        format: _format,
+        daily: _includeDaily,
+        summary: _includeSummary,
+        leaves: _includeLeaves,
+      )) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('اختر قسماً واحداً على الأقل من محتوى الملف'),
+            ),
           );
         }
         return;

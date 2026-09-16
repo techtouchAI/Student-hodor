@@ -52,17 +52,32 @@ void main() {
   });
 
   test('ورقة A4 وباج مفرد بخط أميري: PDF صالح بعدد الصفحات الصحيح', () async {
-    BadgePrint.registerFonts(
-      _loadFont('assets/fonts/Amiri-Regular.ttf'),
-      _loadFont('assets/fonts/Amiri-Bold.ttf'),
-    );
+    final pw.Font regular = _loadFont('assets/fonts/Amiri-Regular.ttf');
+    final pw.Font bold = _loadFont('assets/fonts/Amiri-Bold.ttf');
     final List<BadgeSpec> specs =
         <BadgeSpec>[for (int i = 1; i <= 12; i++) _spec(i)];
-    final Uint8List sheet = await BadgePrint.sheet(specs).save();
+    final Uint8List sheet =
+        await BadgePrint.sheet(specs, font: regular, fontBold: bold).save();
     expect(sheet, isNotEmpty);
     expect(_pageCount(sheet), 2);
-    final Uint8List one = await BadgePrint.single(specs.first).save();
+    final Uint8List one = await BadgePrint.single(
+      specs.first,
+      font: regular,
+      fontBold: bold,
+    ).save();
     expect(one, isNotEmpty);
     expect(_pageCount(one), 1);
+  });
+
+  testWidgets('التحقق من الصورة: صالح يُقبَل وتالف/فارغ يُرفَض',
+      (WidgetTester tester) async {
+    final Uint8List? valid =
+        await BadgeSpec.validPhotoBytes(base64Decode(_tinyPng));
+    expect(valid, isNotNull);
+    expect(
+      await BadgeSpec.validPhotoBytes(utf8.encode('not-an-image')),
+      isNull,
+    );
+    expect(await BadgeSpec.validPhotoBytes(<int>[]), isNull);
   });
 }

@@ -1,9 +1,10 @@
 /// معاينة وطباعة بادجات صف كامل (ورقة A4) أو باج مفرد (CR80).
 ///
 /// ثلاث حمايات جوهرية ضد «الشاشة البيضاء»:
-/// 1. فشل تحميل الخط لم يعد يُسقط الشاشة (يُعرض تحذير وتبقى المعاينة تعمل).
-/// 2. كل طالب يُجهَّز داخل `try/catch` — صورة تالفة أو صف محذوف يتخطى ذلك
-///    الطالب بدل إسقاط القائمة كلها.
+/// 1. فشل تحميل الخط لم يعد يُسقط الشاشة (يُعرض تحذير وتبقى المعاينة تعمل)،
+///    وأزرار الطباعة (ورقة A4/بطاقة مفردة) لا تعمل قبل جهوزيته.
+/// 2. كل طالب يُجهَّز داخل `try/catch`، وصورة المحتوى التالف تُستبدل
+///    بمربع الحرف الأول — فلا شيء في طالب واحد يُسقط ورقة البادجات.
 /// 3. الصف يُحلّ من قاعدة البيانات ([AppDb.resolveClassRef]) فلا تعتمد الشاشة
 ///    على سلامة معاملة الرابط.
 library;
@@ -36,12 +37,16 @@ class BadgesScreen extends ConsumerStatefulWidget {
 }
 
 class _BadgesState extends ConsumerState<BadgesScreen> {
-  bool _fontsReady = false;
+  pw.Font? _fontRegular;
+  pw.Font? _fontBold;
   String? _fontsWarning;
   ClassRef? _class;
   Future<List<BadgeSpec>>? _specsFuture;
   List<SchoolClass> _options = <SchoolClass>[];
   String? _resolveError;
+
+  /// أزرار الطباعة لا تعمل قبل تحميل الخطين معاً.
+  bool get _fontsReady => _fontRegular != null && _fontBold != null;
 
   @override
   void initState() {
@@ -117,10 +122,10 @@ class _BadgesState extends ConsumerState<BadgesScreen> {
           pw.Font.ttf(await rootBundle.load('assets/fonts/Amiri-Regular.ttf'));
       final pw.Font bold =
           pw.Font.ttf(await rootBundle.load('assets/fonts/Amiri-Bold.ttf'));
-      BadgePrint.registerFonts(regular, bold);
       if (mounted) {
         setState(() {
-          _fontsReady = true;
+          _fontRegular = regular;
+          _fontBold = bold;
           _fontsWarning = null;
         });
       }
@@ -160,7 +165,16 @@ class _BadgesState extends ConsumerState<BadgesScreen> {
         if (photoPath != null && photoPath.isNotEmpty) {
           final File f = File(photoPath);
           if (f.existsSync()) {
-            photo = await f.readAsBytes();
+            final List<int> bytes = await f.readAsBytes();
+            photo = await BadgeSpec.validPhotoBytes(bytes);
+            if (photo == null) {
+              // محتوى تالف: يُسجَّل ويُستبدل بمربع الحرف الأول بدل إسقاط الورقة.
+              AppErrorLog.instance.record(
+                StateError('صورة تالفة أُسقطت من الباج: $photoPath'),
+                StackTrace.current,
+                where: 'badges:photo',
+              );
+            }
           }
         }
         out.add(
@@ -197,13 +211,21 @@ class _BadgesState extends ConsumerState<BadgesScreen> {
       _snack('اختر صفاً أولاً');
       return;
     }
+    final pw.Font? regular = _fontRegular;
+    final pw.Font? bold = _fontBold;
+    if (regular == null || bold == null) {
+      _snack('خط الطباعة غير جاهز بعد — أعد المحاولة');
+      return;
+    }
     try {
       final List<BadgeSpec> specs = await _specs(ref.read(dbProvider), c.id);
       if (specs.isEmpty) {
         _snack('لا بادجات جاهزة للطباعة في هذا الصف');
         return;
       }
-      await BadgePrint.layout(BadgePrint.sheet(specs));
+      await BadgePrint.layout(
+        BadgePrint.sheet(specs, font: regular, fontBold: bold),
+      );
     } catch (e, st) {
       AppErrorLog.instance.record(e, st, where: 'badges:printSheet');
       _snack('تعذرت الطباعة: $e');
@@ -211,8 +233,16 @@ class _BadgesState extends ConsumerState<BadgesScreen> {
   }
 
   Future<void> _printSingle(BadgeSpec spec) async {
+    final pw.Font? regular = _fontRegular;
+    final pw.Font? bold = _fontBold;
+    if (regular == null || bold == null) {
+      _snack('خط الطباعة غير جاهز بعد — أعد المحاولة');
+      return;
+    }
     try {
-      await BadgePrint.layout(BadgePrint.single(spec));
+      await BadgePrint.layout(
+        BadgePrint.single(spec, font: regular, fontBold: bold),
+      );
     } catch (e, st) {
       AppErrorLog.instance.record(e, st, where: 'badges:printSingle');
       _snack('تعذرت طباعة الباج: $e');

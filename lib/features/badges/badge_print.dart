@@ -21,6 +21,14 @@ import 'package:printing/printing.dart';
 import '../../core/arabic_shaping.dart';
 import 'badge_spec.dart';
 
+/// خطّا البناء (عادي/عريض) — يُمرَّران صراحةً مع كل مستند بدل سجلّ عام
+/// قابل للنسيان كان يُسقط بصمت على Helvetica فيخرّب العربية المطبوعة.
+class _BadgeFonts {
+  const _BadgeFonts(this.regular, this.bold);
+  final pw.Font regular;
+  final pw.Font bold;
+}
+
 class BadgePrint {
   const BadgePrint._();
 
@@ -45,21 +53,14 @@ class BadgePrint {
   static int pagesFor(int count) =>
       count <= 0 ? 0 : ((count - 1) ~/ _perPage) + 1;
 
-  static pw.Font? _font;
-  static pw.Font? _fontBold;
-
-  static void registerFonts(pw.Font regular, pw.Font bold) {
-    _font = regular;
-    _fontBold = bold;
-  }
-
   static pw.TextStyle _style(
+    _BadgeFonts fonts,
     double size, {
     bool bold = false,
     PdfColor? color,
   }) =>
       pw.TextStyle(
-        font: bold ? _fontBold : _font,
+        font: bold ? fonts.bold : fonts.regular,
         fontSize: size,
         color: color,
       );
@@ -67,9 +68,12 @@ class BadgePrint {
   static String _t(String s) => arabicForPdf(s);
 
   /// ورقة A4 عرضية: شبكة دقيقة من أعلى-يمين الورقة (لا توسّط).
-  static pw.Document sheet(List<BadgeSpec> specs) {
-    final pw.Font? font = _font;
-    final pw.Font? bold = _fontBold;
+  static pw.Document sheet(
+    List<BadgeSpec> specs, {
+    required pw.Font font,
+    required pw.Font fontBold,
+  }) {
+    final _BadgeFonts fonts = _BadgeFonts(font, fontBold);
     final PdfPageFormat format = PdfPageFormat.a4.landscape;
     final double bw = BadgeMetrics.widthPt;
     final double bh = BadgeMetrics.heightPt;
@@ -83,7 +87,7 @@ class BadgePrint {
     }
     final pw.Document doc = pw.Document(
       title: 'بادجات الطلاب',
-      theme: pw.ThemeData.withFont(base: font, bold: bold),
+      theme: pw.ThemeData.withFont(base: font, bold: fontBold),
     );
     for (final List<BadgeSpec> page in pages) {
       final int rowsNeeded = ((page.length - 1) ~/ _columns) + 1;
@@ -97,7 +101,7 @@ class BadgePrint {
               // العمود يبدأ من الأعلى افتراضياً: لا Spacer ولا توسّط قبله.
               for (int row = 0; row < rowsNeeded; row++) ...<pw.Widget>[
                 if (row > 0) pw.SizedBox(height: _rowGap),
-                _sheetRow(page, row, bw, bh, gapX),
+                _sheetRow(page, row, bw, bh, gapX, fonts),
               ],
             ],
           ),
@@ -115,6 +119,7 @@ class BadgePrint {
     double bw,
     double bh,
     double gapX,
+    _BadgeFonts fonts,
   ) {
     final List<BadgeSpec> cells =
         page.skip(row * _columns).take(_columns).toList();
@@ -124,7 +129,7 @@ class BadgePrint {
       if (children.isNotEmpty) {
         children.add(pw.SizedBox(width: gapX));
       }
-      children.add(_badge(cells[i], bw, bh));
+      children.add(_badge(cells[i], bw, bh, fonts));
     }
     return pw.Row(
       mainAxisAlignment: pw.MainAxisAlignment.end,
@@ -133,24 +138,29 @@ class BadgePrint {
   }
 
   /// بطاقة CR80 مفردة (لطابعات البطاقات): بلا هوامش، الباج يملأ الصفحة.
-  static pw.Document single(BadgeSpec spec) {
+  static pw.Document single(
+    BadgeSpec spec, {
+    required pw.Font font,
+    required pw.Font fontBold,
+  }) {
+    final _BadgeFonts fonts = _BadgeFonts(font, fontBold);
     final pw.Document doc = pw.Document(
       title: 'باج ${spec.studentName}',
-      theme: pw.ThemeData.withFont(base: _font, bold: _fontBold),
+      theme: pw.ThemeData.withFont(base: font, bold: fontBold),
     );
     doc.addPage(
       pw.Page(
         pageFormat: PdfPageFormat(BadgeMetrics.widthPt, BadgeMetrics.heightPt),
         margin: pw.EdgeInsets.zero,
         build: (pw.Context context) =>
-            _badge(spec, BadgeMetrics.widthPt, BadgeMetrics.heightPt),
+            _badge(spec, BadgeMetrics.widthPt, BadgeMetrics.heightPt, fonts),
       ),
     );
     return doc;
   }
 
   /// بطاقة واحدة بنسب `BadgeWidget` نفسها (كل القياسات من عرض الباج `w`).
-  static pw.Widget _badge(BadgeSpec s, double w, double h) {
+  static pw.Widget _badge(BadgeSpec s, double w, double h, _BadgeFonts fonts) {
     final double radius = w * 0.05;
     return pw.Container(
       width: w,
@@ -163,7 +173,7 @@ class BadgePrint {
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: <pw.Widget>[
-          _badgeHeader(s, w, radius),
+          _badgeHeader(s, w, radius, fonts),
           pw.Container(height: w * 0.02, color: _gold),
           pw.Expanded(
             child: pw.Padding(
@@ -171,27 +181,27 @@ class BadgePrint {
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.center,
                 children: <pw.Widget>[
-                  _photo(s, w),
+                  _photo(s, w, fonts),
                   pw.SizedBox(height: w * 0.03),
                   pw.Text(
                     _t(s.studentName),
                     textAlign: pw.TextAlign.center,
                     maxLines: 2,
-                    style: _style(w * 0.075, bold: true, color: _ink),
+                    style: _style(fonts, w * 0.075, bold: true, color: _ink),
                   ),
                   pw.SizedBox(height: w * 0.015),
                   pw.Text(
                     _t(s.classLine),
                     maxLines: 1,
-                    style: _style(w * 0.052, color: _ink),
+                    style: _style(fonts, w * 0.052, color: _ink),
                   ),
                   pw.Text(
                     _t(s.yearLine),
                     maxLines: 1,
-                    style: _style(w * 0.052, color: _ink),
+                    style: _style(fonts, w * 0.052, color: _ink),
                   ),
                   pw.Spacer(),
-                  _codes(s, w),
+                  _codes(s, w, fonts),
                 ],
               ),
             ),
@@ -204,7 +214,12 @@ class BadgePrint {
   /// الترويسة: متدرجة داكن→فاتح من الأعلى، بزاويتين علويتين مدورتين
   /// تعشّقان داخل إطار البطاقة. الترتيب معكوس عن الشاشة لأن سياق PDF
   /// LTR: النص يميناً والختم يساراً كما في العرض العربي.
-  static pw.Widget _badgeHeader(BadgeSpec s, double w, double radius) =>
+  static pw.Widget _badgeHeader(
+    BadgeSpec s,
+    double w,
+    double radius,
+    _BadgeFonts fonts,
+  ) =>
       pw.Container(
         padding: pw.EdgeInsets.symmetric(
           vertical: w * 0.045,
@@ -232,7 +247,7 @@ class BadgePrint {
                     _t(s.schoolName),
                     textAlign: pw.TextAlign.right,
                     maxLines: 2,
-                    style: _style(
+                    style: _style(fonts,
                       w * 0.062,
                       bold: true,
                       color: PdfColors.white,
@@ -243,7 +258,7 @@ class BadgePrint {
                     _t('المدير: ${s.directorName}'),
                     textAlign: pw.TextAlign.right,
                     maxLines: 1,
-                    style: _style(w * 0.04, color: PdfColors.teal50),
+                    style: _style(fonts, w * 0.04, color: PdfColors.teal50),
                   ),
                 ],
               ),
@@ -298,7 +313,7 @@ class BadgePrint {
 
   /// الصورة مؤطرة بحواف مدورة كما في العرض، وإن غابت فمربع ملوّن
   /// يحمل الحرف الأول من اسم الطالب (بديل الطباعة لأيقونة الشاشة).
-  static pw.Widget _photo(BadgeSpec s, double w) {
+  static pw.Widget _photo(BadgeSpec s, double w, _BadgeFonts fonts) {
     final double photoW = w * 0.34;
     final double photoH = w * 0.42;
     final List<int>? bytes = s.photoBytes;
@@ -329,13 +344,13 @@ class BadgePrint {
       ),
       child: pw.Text(
         _t(initial),
-        style: _style(w * 0.16, bold: true, color: _header),
+        style: _style(fonts, w * 0.16, bold: true, color: _header),
       ),
     );
   }
 
   /// شريط الرموز: QR يميناً وCode128 مع رقم الطالب يساراً كما في العرض.
-  static pw.Widget _codes(BadgeSpec s, double w) => pw.Row(
+  static pw.Widget _codes(BadgeSpec s, double w, _BadgeFonts fonts) => pw.Row(
         crossAxisAlignment: pw.CrossAxisAlignment.end,
         mainAxisAlignment: pw.MainAxisAlignment.center,
         children: <pw.Widget>[
@@ -353,7 +368,7 @@ class BadgePrint {
               pw.Text(
                 _t(s.seqLine),
                 maxLines: 1,
-                style: _style(w * 0.045, color: _ink),
+                style: _style(fonts, w * 0.045, color: _ink),
               ),
             ],
           ),

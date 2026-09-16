@@ -62,7 +62,7 @@ class BadgeSpec {
         bytes is Uint8List ? bytes : Uint8List.fromList(bytes);
     try {
       final Codec codec = await instantiateImageCodec(raw);
-      await codec.dispose();
+      codec.dispose();
       return raw;
     } catch (_) {
       return null;

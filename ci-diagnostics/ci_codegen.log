@@ -7,4 +7,4 @@ W These options have been removed and were ignored: --delete-conflicting-outputs
   15s drift_dev on 192 inputs: 48 skipped, 91 output, 53 no-op; spent 11s analyzing, 2s resolving, 1s sdk
   0s source_gen:combining_builder on 96 inputs; lib/app.dart
   0s source_gen:combining_builder on 96 inputs: 48 skipped, 1 output, 47 no-op
-  Built with build_runner/aot in 52s; wrote 92 outputs.
+  Built with build_runner/aot in 53s; wrote 92 outputs.

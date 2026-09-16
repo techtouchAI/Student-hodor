@@ -181,7 +181,7 @@ bool _isBracketCp(int cp) => _mirrors.containsKey(cp);
 /// يحوّل نصاً مُشكّلاً (أو خاماً) إلى ترتيب العرض البصري لسياق RTL:
 /// - المقاطع العربية تُعكس حرفياً.
 /// - مقاطع الأرقام/اللاتينية تحتفظ بترتيبها الداخلي وتوضع بموضعها الصحيح.
-/// - الأقواس تُكسَر عن المقاطع المجاورة عند اختلاف الاتجاه وتُعكَس صورها.
+/// - الأقواس في مقاطع مستقلة باتجاه الفقرة (RTL) وتُعكَس صورها دائماً.
 /// - نص بلا عربية إطلاقاً يُترَك كما هو (أرقام/رموز لاتينية خالصة).
 String toVisualOrder(String shaped) {
   final List<int> cps = shaped.runes.toList();
@@ -195,8 +195,6 @@ String toVisualOrder(String shaped) {
   // لا LTR — كان الافتراض السابق يقلب أمثال «(ملاحظة» في البداية.
   bool currentRtl = true;
   bool hasCurrent = false;
-  // اتجاه آخر محرف قوي (عربي/لاتيني-رقمي) لتقرير جهة الأقواس.
-  bool? prevStrongRtl;
 
   void flush() {
     if (current.isNotEmpty) {
@@ -207,35 +205,15 @@ String toVisualOrder(String shaped) {
     }
   }
 
-  bool? nextStrongRtl(int from) {
-    for (int j = from; j < cps.length; j++) {
-      final int p = cps[j];
-      if (_isRtlCp(p)) {
-        return true;
-      }
-      if (_isDigitCp(p) || _isLatinCp(p)) {
-        return false;
-      }
-    }
-    return null;
-  }
-
   for (int i = 0; i < cps.length; i++) {
     final int cp = cps[i];
     if (_isBracketCp(cp)) {
-      // القوس بين جهتين متماثلتين يتبعهما، وإلا يأخذ اتجاه الفقرة (RTL)
-      // في مقطع مستقل حتى لا يلتصق بمقطع لاتيني فينكسر زوج الأقواس.
-      final bool? next = nextStrongRtl(i + 1);
-      final bool? prev = prevStrongRtl;
-      final bool bracketRtl = (prev != null && prev == next) ? prev : true;
-      if (hasCurrent && bracketRtl == currentRtl) {
-        current.add(cp);
-      } else {
-        flush();
-        currentRtl = bracketRtl;
-        hasCurrent = true;
-        current.add(cp);
-      }
+      // القوس يأخذ اتجاه الفقرة (RTL) في مقطع مستقل دائماً: إلصاقه بمقطع
+      // لاتيني مجاور كان يعكس أحد زوجي الأقواس دون الآخر فينكسر الزوج
+      // (قوسان فاتحان بدل زوج متوازن حول خليط أرقام وعربية).
+      flush();
+      tokens.add(<int>[cp]);
+      tokenRtl.add(true);
       continue;
     }
     final bool rtl = _isRtlCp(cp);
@@ -243,10 +221,8 @@ String toVisualOrder(String shaped) {
     final bool kind;
     if (_isDigitCp(cp) || _isLatinCp(cp)) {
       kind = false;
-      prevStrongRtl = false;
     } else if (rtl) {
       kind = true;
-      prevStrongRtl = true;
     } else {
       // محايد (مسافة/ترقيم): يلتحق بالمقطع الحالي أو باتجاه الفقرة.
       kind = hasCurrent ? currentRtl : true;

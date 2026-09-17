@@ -69,6 +69,22 @@ class ExcelBuilder {
   final bool includeSummary;
   final bool includeLeaves;
 
+  /// سجل طالب واحد (من ملف الطالب): الأشهر والصفوف لا معنى لها هنا —
+  /// يُبنى عبر [buildStudentRecord] لا [build].
+  ExcelBuilder.studentRecord({
+    required this.db,
+    required this.reports,
+    required this.schoolName,
+    required this.directorName,
+    required this.year,
+    required this.workWeekdays,
+    required this.holidayKeys,
+  })  : months = const <MonthKey>[],
+        classes = const <ExportScopeClass>[],
+        includeDaily = false,
+        includeSummary = false,
+        includeLeaves = false;
+
   static const List<String> _statusAr = <String>[
     'حاضر',
     'غائب',
@@ -296,6 +312,85 @@ class ExcelBuilder {
     if (includeLeaves) {
       await _leavesSheet(excel);
     }
+    _dropTemplateSheet(excel);
+    final List<int>? bytes = excel.save();
+    if (bytes == null) {
+      throw StateError('excel save returned null');
+    }
+    return Uint8List.fromList(_patchSheets(bytes));
+  }
+
+  /// سجل طالب كامل بورقة واحدة: يوم لكل صف من بداية السنة حتى اليوم
+  /// (مكبوتاً بنهاية السنة) + كتلة الإحصائيات الكلية (غياب/إجازات/تأخر).
+  Future<Uint8List> buildStudentRecord({
+    required Student student,
+    required String classTitle,
+    DateTime? today,
+  }) async {
+    final Excel excel = Excel.createExcel();
+    final Sheet sheet = excel[_sheetName('سجل الطالب')];
+    sheet.isRTL = true;
+    final StudentRecord record = await reports.studentRecord(
+      studentId: student.id,
+      year: year,
+      workWeekdays: workWeekdays,
+      holidayKeys: holidayKeys,
+      today: today,
+    );
+    _writeTitle(
+      sheet,
+      '$schoolName — سجل الطالب ${student.fullName} — $classTitle — '
+      'السنة ${year.name} — حتى ${record.to} — المدير: $directorName',
+      3,
+    );
+    const List<String> head = <String>['م', 'التاريخ', 'اليوم', 'الحالة'];
+    _writeColumnHeaders(sheet, head);
+    int row = _firstDataRow;
+    int index = 1;
+    for (final RecordDay d in record.days) {
+      final DateTime dt = SchoolTime.parseKey(d.dateKey);
+      _num(sheet, column: 0, row: row, value: IntCellValue(index++));
+      _text(sheet, column: 1, row: row, value: d.dateKey);
+      _text(
+        sheet,
+        column: 2,
+        row: row,
+        value: SchoolTime.weekdayNames[dt.weekday - 1],
+      );
+      final Data cell = _cellAt(sheet, 3, row);
+      cell.value = TextCellValue(
+        d.status == null
+            ? (d.schoolDay ? 'لم يسجل' : 'عطلة')
+            : _statusAr[d.status],
+      );
+      cell.cellStyle = CellStyle(
+        backgroundColorHex:
+            ExcelColor.fromHexString(_colorFor(d.status, d.schoolDay)),
+        fontFamily: _fontFamily,
+        fontSize: 11,
+        horizontalAlign: HorizontalAlign.Right,
+      );
+      row++;
+    }
+    row++;
+    final StatusTotals t = record.totals;
+    final List<(String, CellValue)> stats = <(String, CellValue)>[
+      ('إجمالي الحضور', IntCellValue(t.present)),
+      ('إجمالي الغياب', IntCellValue(t.absent)),
+      ('إجمالي الإجازات', IntCellValue(t.leave)),
+      ('إجمالي التأخير', IntCellValue(t.late)),
+      ('أيام مسجلة', IntCellValue(t.recorded)),
+      ('نسبة الحضور %', DoubleCellValue(_round1(t.ratePct))),
+    ];
+    for (final (String, CellValue) st in stats) {
+      _text(sheet, column: 1, row: row, value: st.$1);
+      _num(sheet, column: 2, row: row, value: st.$2);
+      row++;
+    }
+    sheet.setColumnWidth(0, 6.0);
+    sheet.setColumnWidth(1, 16.0);
+    sheet.setColumnWidth(2, 14.0);
+    sheet.setColumnWidth(3, 14.0);
     _dropTemplateSheet(excel);
     final List<int>? bytes = excel.save();
     if (bytes == null) {
@@ -702,6 +797,22 @@ class ExcelBuilder {
       if (yearName.trim().isNotEmpty) yearName.trim(),
       scope,
       when,
+    ].join(' - ');
+    return '${sanitizeFileName(base)}.xlsx';
+  }
+
+  /// اسم ملف سجل الطالب: «سجل الطالب - الاسم - السنة - التاريخ.xlsx».
+  static String recordFileName({
+    required String studentName,
+    required String yearName,
+    DateTime? now,
+  }) {
+    final DateTime stamp = now ?? DateTime.now();
+    final String base = <String>[
+      'سجل الطالب',
+      if (studentName.trim().isNotEmpty) studentName.trim(),
+      if (yearName.trim().isNotEmpty) yearName.trim(),
+      SchoolTime.dateKey(stamp),
     ].join(' - ');
     return '${sanitizeFileName(base)}.xlsx';
   }

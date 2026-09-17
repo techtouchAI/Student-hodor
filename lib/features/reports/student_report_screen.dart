@@ -11,11 +11,21 @@
 /// كذلك جُمعت بيانات الملف (المجاميع/الخلايا/الإجازات/المسيرة) في **مستقبل
 /// واحد** يُحسب مرة لكل تغيّر (طالب/سنة/شهر) بدل أربعة `FutureBuilder` تُنشئ
 /// استعلامات جديدة عند كل إعادة بناء — أبطأ وأسهل في ظهور «تحميل» متقطع.
+///
+/// النقر على أي يوم في الشبكة يعرض تاريخه ويسمح بتغيير حالته (حاضر/
+/// غائب/إجازة/متأخر) أو مسح تسجيله، وزر التنزيل في الأعلى يصدّر سجل
+/// الطالب الكامل (من بداية السنة حتى اليوم) Excel أو PDF مع الإحصائيات.
 library;
+
+import 'dart:async' show unawaited;
+import 'dart:io';
 
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/attendance_labels.dart';
 import '../../core/error_guard.dart';
@@ -24,17 +34,155 @@ import '../../data/db.dart';
 import '../../data/error_log.dart';
 import '../../data/reports_service.dart';
 import '../../state/providers.dart';
+import '../export/excel_builder.dart';
+import '../export/student_record_pdf.dart';
 
 class StudentReportScreen extends ConsumerWidget {
   const StudentReportScreen({super.key, required this.studentId});
 
   final int studentId;
 
+  /// تنزيل سجل الطالب الكامل: اختيار الصيغة ثم البناء والمشاركة/الطباعة.
+  Future<void> _download(BuildContext context, WidgetRef ref) async {
+    final AppDb db = ref.read(dbProvider);
+    final Student? student = await db.studentById(studentId);
+    if (!context.mounted) {
+      return;
+    }
+    if (student == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('الطالب غير موجود (ربما حُذف)')),
+      );
+      return;
+    }
+    final String? format = await showDialog<String>(
+      context: context,
+      builder: (BuildContext context) => SimpleDialog(
+        title: const Text('تنزيل سجل الطالب الكامل'),
+        children: <Widget>[
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, 'excel'),
+            child: const Text('ملف Excel'),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, 'pdf'),
+            child: const Text('ملف PDF'),
+          ),
+        ],
+      ),
+    );
+    if (format == null || !context.mounted) {
+      return;
+    }
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) =>
+            const Center(child: CircularProgressIndicator()),
+      ),
+    );
+    try {
+      if (format == 'excel') {
+        await _downloadExcel(db, student);
+      } else {
+        await _downloadPdf(db, student);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذر التنزيل: $e')),
+        );
+      }
+    } finally {
+      if (context.mounted) {
+        Navigator.pop(context);
+      }
+    }
+  }
+
+  Future<(AcademicYear, Set<int>, Set<String>, String)> _recordScope(
+    AppDb db,
+    Student student,
+  ) async {
+    final AcademicYear? year = await db.activeYear();
+    if (year == null) {
+      throw StateError('لا سنة فعّالة');
+    }
+    final Map<String, String> settings = await db.effectiveSettings();
+    final Set<int> weekdays = <int>{
+      for (final String w
+          in (settings['work_weekdays'] ?? '7,1,2,3,4').split(','))
+        int.tryParse(w) ?? 0,
+    };
+    final Set<String> holidays = <String>{
+      for (final Holiday h in await db.select(db.holidays).get()) h.date,
+    };
+    final String classTitle = await db.classTitle(student.classId) ?? '';
+    return (year, weekdays, holidays, classTitle);
+  }
+
+  Future<void> _downloadExcel(AppDb db, Student student) async {
+    final (AcademicYear year, Set<int> weekdays, Set<String> holidays,
+        String classTitle) = await _recordScope(db, student);
+    final Map<String, String> settings = await db.effectiveSettings();
+    final ExcelBuilder builder = ExcelBuilder.studentRecord(
+      db: db,
+      reports: ReportsService(db),
+      schoolName: settings['school_name'] ?? '',
+      directorName: settings['director_name'] ?? '',
+      year: year,
+      workWeekdays: weekdays,
+      holidayKeys: holidays,
+    );
+    final List<int> bytes = await builder.buildStudentRecord(
+      student: student,
+      classTitle: classTitle,
+    );
+    final String fileName = ExcelBuilder.recordFileName(
+      studentName: student.fullName,
+      yearName: year.name,
+    );
+    final File f = File('${Directory.systemTemp.path}/$fileName');
+    await f.writeAsBytes(bytes);
+    await SharePlus.instance.share(
+      ShareParams(files: <XFile>[XFile(f.path)]),
+    );
+  }
+
+  Future<void> _downloadPdf(AppDb db, Student student) async {
+    final (AcademicYear year, Set<int> weekdays, Set<String> holidays,
+        String classTitle) = await _recordScope(db, student);
+    final Map<String, String> settings = await db.effectiveSettings();
+    final StudentRecordPdf record = StudentRecordPdf(
+      reports: ReportsService(db),
+      schoolName: settings['school_name'] ?? '',
+      directorName: settings['director_name'] ?? '',
+      year: year,
+      student: student,
+      classTitle: classTitle,
+      workWeekdays: weekdays,
+      holidayKeys: holidays,
+      font: pw.Font.ttf(await rootBundle.load('assets/fonts/Amiri-Regular.ttf')),
+      fontBold: pw.Font.ttf(await rootBundle.load('assets/fonts/Amiri-Bold.ttf')),
+    );
+    await record.layout();
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppDb db = ref.watch(dbProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('ملف الطالب')),
+      appBar: AppBar(
+        title: const Text('ملف الطالب'),
+        actions: <Widget>[
+          IconButton(
+            tooltip: 'تنزيل سجل الطالب الكامل',
+            icon: const Icon(Icons.download),
+            onPressed: () => _download(context, ref),
+          ),
+        ],
+      ),
       body: StreamGuard<Student?>(
         stream: (db.select(db.students)
               ..where((s) => s.id.equals(studentId)))
@@ -150,6 +298,102 @@ class _ReportBodyState extends State<_ReportBody> {
 
   void _reload() => setState(() => _load = _loadFile());
 
+  /// تعديل يوم من الشبكة: يعرض التاريخ المحدد ويسمح بتغيير حالته أو
+  /// مسح تسجيله — تسجيل يدوي صريح من المدير.
+  Future<void> _editDay(DayCell cell) async {
+    final AppDb db = widget.db;
+    final Student student = widget.student;
+    final DateTime d = SchoolTime.parseKey(cell.dateKey);
+    final int? picked = await showDialog<int?>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: Text(SchoolTime.formatFullAr(d)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text('الحالة الحالية: ${statusName(cell.status)}'),
+            if (!cell.isSchoolDay)
+              const Text(
+                'يوم عطلة — أي تسجيل هنا يدوي صريح.',
+                style: TextStyle(color: Colors.grey),
+              ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: <Widget>[
+                for (final int st in <int>[
+                  AttendanceStatus.present,
+                  AttendanceStatus.absent,
+                  AttendanceStatus.leave,
+                  AttendanceStatus.late,
+                ])
+                  ChoiceChip(
+                    label: Text(statusName(st)),
+                    selected: cell.status == st,
+                    onSelected: (_) => Navigator.pop(context, st),
+                  ),
+              ],
+            ),
+          ],
+        ),
+        actions: <Widget>[
+          if (cell.status != null)
+            TextButton(
+              onPressed: () => Navigator.pop(context, -1),
+              child: const Text(
+                'مسح التسجيل',
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('إلغاء'),
+          ),
+        ],
+      ),
+    );
+    if (picked == null || !mounted) {
+      return;
+    }
+    if (picked == -1) {
+      await db.deleteAttendance(student.id, cell.dateKey);
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('مُسح تسجيل اليوم')),
+      );
+      _reload();
+      return;
+    }
+    if (picked == cell.status) {
+      return;
+    }
+    final Session? session =
+        await db.sessionOf(student.classId, cell.dateKey);
+    if (!mounted) {
+      return;
+    }
+    await db.upsertAttendance(
+      yearId: student.yearId,
+      classId: student.classId,
+      studentId: student.id,
+      date: cell.dateKey,
+      status: picked,
+      source: AttendanceSource.manual,
+      sessionId: session?.id,
+    );
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('حُفظت الحالة: ${statusName(picked)}')),
+    );
+    _reload();
+  }
+
   /// تنقّل بين الأشهر (−1 للسابق، +1 للتالي) مع إعادة حساب خلايا الشهر.
   void _shiftMonth(int delta) {
     setState(() {
@@ -230,6 +474,7 @@ class _ReportBodyState extends State<_ReportBody> {
                 cells: data.cells,
                 onPrevious: () => _shiftMonth(-1),
                 onNext: () => _shiftMonth(1),
+                onDayTap: _editDay,
               ),
               const SizedBox(height: 12),
               const _Legend(),
@@ -300,6 +545,7 @@ class _MonthGrid extends StatelessWidget {
     required this.cells,
     required this.onPrevious,
     required this.onNext,
+    required this.onDayTap,
   });
 
   final int year;
@@ -307,6 +553,7 @@ class _MonthGrid extends StatelessWidget {
   final List<DayCell> cells;
   final VoidCallback onPrevious;
   final VoidCallback onNext;
+  final ValueChanged<DayCell> onDayTap;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -341,20 +588,24 @@ class _MonthGrid extends StatelessWidget {
               for (final DayCell c in cells)
                 Tooltip(
                   message: '${c.dateKey}: ${statusName(c.status)}',
-                  child: Container(
-                    width: 34,
-                    height: 34,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: c.isSchoolDay
-                          ? statusColor(c.status)
-                          : Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      '${SchoolTime.parseKey(c.dateKey).day}',
-                      style: TextStyle(
-                        color: c.isSchoolDay ? Colors.white : Colors.black54,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(6),
+                    onTap: () => onDayTap(c),
+                    child: Container(
+                      width: 34,
+                      height: 34,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: c.isSchoolDay
+                            ? statusColor(c.status)
+                            : Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '${SchoolTime.parseKey(c.dateKey).day}',
+                        style: TextStyle(
+                          color: c.isSchoolDay ? Colors.white : Colors.black54,
+                        ),
                       ),
                     ),
                   ),

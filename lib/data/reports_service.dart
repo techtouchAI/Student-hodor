@@ -33,6 +33,35 @@ class DayCell {
   final bool isSchoolDay;
 }
 
+/// يوم واحد في سجل الطالب الكامل (من بداية السنة حتى اليوم).
+class RecordDay {
+  const RecordDay({
+    required this.dateKey,
+    required this.status,
+    required this.schoolDay,
+  });
+
+  final String dateKey;
+  final int? status;
+  final bool schoolDay;
+}
+
+/// سجل الطالب الكامل: أيام النطاق + مجاميع السنة (المطابقة لبطاقة
+/// المجاميع في ملف الطالب) — مصدر حقيقة واحد لتصدير Excel وPDF.
+class StudentRecord {
+  const StudentRecord({
+    required this.from,
+    required this.to,
+    required this.days,
+    required this.totals,
+  });
+
+  final String from;
+  final String to;
+  final List<RecordDay> days;
+  final StatusTotals totals;
+}
+
 class ReportsService {
   ReportsService(this.db);
 
@@ -83,6 +112,55 @@ class ReportsService {
           ),
         ),
     ];
+  }
+
+  /// سجل طالب كامل من بداية السنة حتى اليوم (مكبوتاً بنهاية السنة) —
+  /// يستهلكه تصدير Excel وPDF من ملف الطالب.
+  Future<StudentRecord> studentRecord({
+    required int studentId,
+    required AcademicYear year,
+    required Set<int> workWeekdays,
+    required Set<String> holidayKeys,
+    DateTime? today,
+  }) async {
+    final DateTime now = today ?? DateTime.now();
+    DateTime end = DateTime(now.year, now.month, now.day);
+    final DateTime yearEnd = SchoolTime.parseKey(year.end);
+    if (end.isAfter(yearEnd)) {
+      end = yearEnd;
+    }
+    final DateTime from = SchoolTime.parseKey(year.start);
+    final Map<String, int> byDate = <String, int>{
+      for (final AttendanceRow r in await (db.select(db.attendanceRows)
+            ..where(
+              (a) =>
+                  a.studentId.equals(studentId) & a.yearId.equals(year.id),
+            ))
+          .get())
+        r.date: r.status,
+    };
+    final List<RecordDay> days = end.isBefore(from)
+        ? <RecordDay>[]
+        : <RecordDay>[
+            for (final String key
+                in SchoolTime.keysBetween(from, end))
+              RecordDay(
+                dateKey: key,
+                status: byDate[key],
+                schoolDay: SchoolTime.isSchoolDay(
+                  SchoolTime.parseKey(key),
+                  workWeekdays: workWeekdays,
+                  holidayKeys: holidayKeys,
+                ),
+              ),
+          ];
+    final StatusTotals totals = await totalsForStudent(studentId, year.id);
+    return StudentRecord(
+      from: SchoolTime.dateKey(from),
+      to: SchoolTime.dateKey(end.isBefore(from) ? from : end),
+      days: days,
+      totals: totals,
+    );
   }
 
   /// مصفوفة صف ليوم محدد: كل طالب وحالته (null = لم يُسجل بعد).

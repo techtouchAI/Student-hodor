@@ -184,7 +184,9 @@ class _ClassDayListState extends State<_ClassDayList> {
       );
 }
 
-/// الإنذار المبكر بعتبتين: تحذير (الأولى) وخطر (الثانية).
+/// الإنذار المبكر بعتبتين من الإعدادات: تحذير (الأولى) وخطر (الثانية).
+/// تُعاد قراءة العتبات مع كل تحديث للودجة + سحب للتحديث، حتى لا تعرض
+/// القائمة عتبات قديمة بعد تعديلها في شاشة الإعدادات والعودة.
 class _AlertsList extends StatefulWidget {
   const _AlertsList({required this.db, required this.year});
 
@@ -198,11 +200,23 @@ class _AlertsList extends StatefulWidget {
 class _AlertsListState extends State<_AlertsList> {
   late Future<Map<String, String>> _settings;
 
+  void _load() {
+    _settings = widget.db.effectiveSettings();
+  }
+
   @override
   void initState() {
     super.initState();
-    _settings = widget.db.effectiveSettings();
+    _load();
   }
+
+  @override
+  void didUpdateWidget(_AlertsList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _load();
+  }
+
+  Future<void> _refresh() async => setState(_load);
 
   @override
   Widget build(BuildContext context) => FutureBuilder<Map<String, String>>(
@@ -218,6 +232,9 @@ class _AlertsListState extends State<_AlertsList> {
               BuildContext context,
               AsyncSnapshot<List<(Student, StatusTotals)>> snap,
             ) {
+              if (snap.connectionState != ConnectionState.done) {
+                return const Center(child: CircularProgressIndicator());
+              }
               final List<(Student, StatusTotals)> list =
                   snap.data ?? <(Student, StatusTotals)>[];
               if (list.isEmpty) {
@@ -225,7 +242,9 @@ class _AlertsListState extends State<_AlertsList> {
                   child: Text('لا طلاب تجاوزوا حد الإنذار — وضع سليم'),
                 );
               }
-              return ListView.builder(
+              return RefreshIndicator(
+                onRefresh: _refresh,
+                child: ListView.builder(
                 itemCount: list.length,
                 itemBuilder: (BuildContext context, int i) {
                   final (Student s, StatusTotals t) = list[i];
@@ -247,6 +266,7 @@ class _AlertsListState extends State<_AlertsList> {
                     onTap: () => context.push('/student/${s.id}'),
                   );
                 },
+                ),
               );
             },
           );

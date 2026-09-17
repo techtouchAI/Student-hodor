@@ -1,11 +1,13 @@
 /// مولّد ملف Excel: كشف حضور شهري ملوّن (أخضر/أحمر/أصفر/برتقالي)
 /// باتجاه RTL، مع مجاميع ونسب، وشهر واحد لكل ورقة + أوراق ملخّص وإجازات اختيارية.
 ///
-/// الاتجاه من اليمين إلى اليسار يُفرض **مرتين**:
+/// الاتجاه من اليمين إلى اليسار يُفرض **ثلاث مرات**:
 /// 1. `sheet.isRTL = true` (تكتبه الحزمة في `sheetView`).
 /// 2. ترقيع صريح لـ`rightToLeft="1"` في كل `sheetView` بعد الحفظ
 ///    ([_patchSheets]) حتى لا يتوقف الأمر على سلوك نسخة الحزمة — فالملف كان
 ///    يُفتح أحياناً باتجاه إنكليزي (LTR) فيظهر ترتيب الأعمدة معكوساً.
+/// 3. اتجاه قراءة RTL صريح (`readingOrder="2"`) على كل نمط محاذاته يمين
+///    ([_patchStylesRtl])، فالمحاذاة وحدها لا تكفي لدقة اتجاه الأسماء.
 ///
 /// وكذلك محاذاة خلايا النص (الاسم/الصف) تُضبط صراحةً `Right` فلا تعتمد على
 /// افتراض Excel، وأسماء الملفات المصدّرة عربية (انظر [exportFileName]).
@@ -67,6 +69,22 @@ class ExcelBuilder {
   final bool includeSummary;
   final bool includeLeaves;
 
+  /// سجل طالب واحد (من ملف الطالب): الأشهر والصفوف لا معنى لها هنا —
+  /// يُبنى عبر [buildStudentRecord] لا [build].
+  ExcelBuilder.studentRecord({
+    required this.db,
+    required this.reports,
+    required this.schoolName,
+    required this.directorName,
+    required this.year,
+    required this.workWeekdays,
+    required this.holidayKeys,
+  })  : months = const <MonthKey>[],
+        classes = const <ExportScopeClass>[],
+        includeDaily = false,
+        includeSummary = false,
+        includeLeaves = false;
+
   static const List<String> _statusAr = <String>[
     'حاضر',
     'غائب',
@@ -116,13 +134,23 @@ class ExcelBuilder {
 
   final Set<String> _usedSheetNames = <String>{};
 
+  /// خط الكشف كله: أميري (موحّد مع التطبيق وتقرير PDF) حتى لا تظهر
+  /// العربية بخط النظام الافتراضي المختلف.
+  static const String _fontFamily = 'Amiri';
+
   /// نمط ترويسة موحّد (خلفية خضراء داكنة، نص أبيض عريض، توسيط).
   static CellStyle _headerStyle() => CellStyle(
         backgroundColorHex: ExcelColor.fromHexString(ExcelColors.header),
         fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
+        fontFamily: _fontFamily,
+        fontSize: 12,
         bold: true,
         horizontalAlign: HorizontalAlign.Center,
       );
+
+  /// تقريب النسبة لمنزلة عشرية واحدة: القيمة الخام (66.666…) تظهر في
+  /// الخلية بسلسلة كسور مزعجة بدل 66.7.
+  static double _round1(double v) => (v * 10).roundToDouble() / 10;
 
   String _colorFor(int? status, bool schoolDay) {
     if (!schoolDay) {
@@ -194,13 +222,21 @@ class ExcelBuilder {
               CellIndex.indexByColumnRow(columnIndex: _indexColumn, rowIndex: row),
             );
             seq.value = IntCellValue(row - _firstDataRow + 1);
-            seq.cellStyle = CellStyle(horizontalAlign: HorizontalAlign.Center);
+            seq.cellStyle = CellStyle(
+              fontFamily: _fontFamily,
+              fontSize: 11,
+              horizontalAlign: HorizontalAlign.Center,
+            );
             final Data name = sheet.cell(
               CellIndex.indexByColumnRow(columnIndex: _nameColumn, rowIndex: row),
             );
             name.value = TextCellValue(s.fullName);
             // محاذاة صريحة من اليمين: لا نترك اتجاه الاسم لافتراض Excel.
-            name.cellStyle = CellStyle(horizontalAlign: HorizontalAlign.Right);
+            name.cellStyle = CellStyle(
+              fontFamily: _fontFamily,
+              fontSize: 11,
+              horizontalAlign: HorizontalAlign.Right,
+            );
             int absent = 0;
             int leave = 0;
             int present = 0;
@@ -228,6 +264,8 @@ class ExcelBuilder {
               cell.cellStyle = CellStyle(
                 backgroundColorHex:
                     ExcelColor.fromHexString(_colorFor(status, schoolDay)),
+                fontFamily: _fontFamily,
+                fontSize: 11,
                 horizontalAlign: HorizontalAlign.Center,
               );
               switch (status) {
@@ -246,9 +284,10 @@ class ExcelBuilder {
             _cellAt(sheet, _leaveColumn, row).value = IntCellValue(leave);
             _cellAt(sheet, _presentColumn, row).value = IntCellValue(present);
             _cellAt(sheet, _lateColumn, row).value = IntCellValue(late);
-            _cellAt(sheet, _rateColumn, row).value = DoubleCellValue(
-              recorded == 0 ? 100 : (present + late) * 100 / recorded,
-            );
+            final double rate =
+                recorded == 0 ? 100 : (present + late) * 100 / recorded;
+            _cellAt(sheet, _rateColumn, row).value =
+                DoubleCellValue(_round1(rate));
             for (final int col in <int>[
               _absentColumn,
               _leaveColumn,
@@ -256,8 +295,11 @@ class ExcelBuilder {
               _lateColumn,
               _rateColumn,
             ]) {
-              _cellAt(sheet, col, row).cellStyle =
-                  CellStyle(horizontalAlign: HorizontalAlign.Center);
+              _cellAt(sheet, col, row).cellStyle = CellStyle(
+                fontFamily: _fontFamily,
+                fontSize: 11,
+                horizontalAlign: HorizontalAlign.Center,
+              );
             }
             row++;
           }
@@ -270,6 +312,87 @@ class ExcelBuilder {
     if (includeLeaves) {
       await _leavesSheet(excel);
     }
+    _dropTemplateSheet(excel);
+    final List<int>? bytes = excel.save();
+    if (bytes == null) {
+      throw StateError('excel save returned null');
+    }
+    return Uint8List.fromList(_patchSheets(bytes));
+  }
+
+  /// سجل طالب كامل بورقة واحدة: يوم لكل صف من بداية السنة حتى اليوم
+  /// (مكبوتاً بنهاية السنة) + كتلة الإحصائيات الكلية (غياب/إجازات/تأخر).
+  Future<Uint8List> buildStudentRecord({
+    required Student student,
+    required String classTitle,
+    DateTime? today,
+  }) async {
+    final Excel excel = Excel.createExcel();
+    final Sheet sheet = excel[_sheetName('سجل الطالب')];
+    sheet.isRTL = true;
+    final StudentRecord record = await reports.studentRecord(
+      studentId: student.id,
+      year: year,
+      workWeekdays: workWeekdays,
+      holidayKeys: holidayKeys,
+      today: today,
+    );
+    _writeTitle(
+      sheet,
+      '$schoolName — سجل الطالب ${student.fullName} — $classTitle — '
+      'السنة ${year.name} — حتى ${record.to} — المدير: $directorName',
+      3,
+    );
+    const List<String> head = <String>['م', 'التاريخ', 'اليوم', 'الحالة'];
+    _writeColumnHeaders(sheet, head);
+    int row = _firstDataRow;
+    int index = 1;
+    for (final RecordDay d in record.days) {
+      final DateTime dt = SchoolTime.parseKey(d.dateKey);
+      // متغير محلي لا d.status مباشرة: الحقول العامة لا تُرقّى بالنفي.
+      final int? status = d.status;
+      _num(sheet, column: 0, row: row, value: IntCellValue(index++));
+      _text(sheet, column: 1, row: row, value: d.dateKey);
+      _text(
+        sheet,
+        column: 2,
+        row: row,
+        value: SchoolTime.weekdayNames[dt.weekday - 1],
+      );
+      final Data cell = _cellAt(sheet, 3, row);
+      cell.value = TextCellValue(
+        status == null
+            ? (d.schoolDay ? 'لم يسجل' : 'عطلة')
+            : _statusAr[status],
+      );
+      cell.cellStyle = CellStyle(
+        backgroundColorHex:
+            ExcelColor.fromHexString(_colorFor(status, d.schoolDay)),
+        fontFamily: _fontFamily,
+        fontSize: 11,
+        horizontalAlign: HorizontalAlign.Right,
+      );
+      row++;
+    }
+    row++;
+    final StatusTotals t = record.totals;
+    final List<(String, CellValue)> stats = <(String, CellValue)>[
+      ('إجمالي الحضور', IntCellValue(t.present)),
+      ('إجمالي الغياب', IntCellValue(t.absent)),
+      ('إجمالي الإجازات', IntCellValue(t.leave)),
+      ('إجمالي التأخير', IntCellValue(t.late)),
+      ('أيام مسجلة', IntCellValue(t.recorded)),
+      ('نسبة الحضور %', DoubleCellValue(_round1(t.ratePct))),
+    ];
+    for (final (String, CellValue) st in stats) {
+      _text(sheet, column: 1, row: row, value: st.$1);
+      _num(sheet, column: 2, row: row, value: st.$2);
+      row++;
+    }
+    sheet.setColumnWidth(0, 6.0);
+    sheet.setColumnWidth(1, 16.0);
+    sheet.setColumnWidth(2, 14.0);
+    sheet.setColumnWidth(3, 14.0);
     _dropTemplateSheet(excel);
     final List<int>? bytes = excel.save();
     if (bytes == null) {
@@ -333,13 +456,21 @@ class ExcelBuilder {
         _num(sheet, column: 4, row: row, value: IntCellValue(t.late));
         _num(sheet, column: 5, row: row, value: IntCellValue(t.absent));
         _num(sheet, column: 6, row: row, value: IntCellValue(t.leave));
-        _num(sheet, column: 7, row: row, value: DoubleCellValue(t.ratePct));
+        _num(
+          sheet,
+          column: 7,
+          row: row,
+          value: DoubleCellValue(_round1(t.ratePct)),
+        );
         row++;
       }
     }
     sheet.setColumnWidth(0, 6.0);
     sheet.setColumnWidth(1, 18.0);
     sheet.setColumnWidth(2, 34.0);
+    for (int column = 3; column <= 6; column++) {
+      sheet.setColumnWidth(column, 10.0);
+    }
     sheet.setColumnWidth(7, 14.0);
   }
 
@@ -389,6 +520,9 @@ class ExcelBuilder {
       row++;
     }
     sheet.setColumnWidth(0, 30.0);
+    sheet.setColumnWidth(1, 14.0);
+    sheet.setColumnWidth(2, 14.0);
+    sheet.setColumnWidth(3, 12.0);
     sheet.setColumnWidth(4, 30.0);
   }
 
@@ -430,7 +564,11 @@ class ExcelBuilder {
       CellIndex.indexByColumnRow(columnIndex: column, rowIndex: row),
     );
     c.value = TextCellValue(value);
-    c.cellStyle = CellStyle(horizontalAlign: HorizontalAlign.Right);
+    c.cellStyle = CellStyle(
+      fontFamily: _fontFamily,
+      fontSize: 11,
+      horizontalAlign: HorizontalAlign.Right,
+    );
   }
 
   /// خلية رقمية موسّطة.
@@ -442,7 +580,11 @@ class ExcelBuilder {
   }) {
     final Data c = _cellAt(sheet, column, row);
     c.value = value;
-    c.cellStyle = CellStyle(horizontalAlign: HorizontalAlign.Center);
+    c.cellStyle = CellStyle(
+      fontFamily: _fontFamily,
+      fontSize: 11,
+      horizontalAlign: HorizontalAlign.Center,
+    );
   }
 
   void _writeHeader(Sheet sheet, ExportScopeClass sc, MonthKey m) {
@@ -483,6 +625,19 @@ class ExcelBuilder {
     }
     sheet.setColumnWidth(_indexColumn, 6.0);
     sheet.setColumnWidth(_nameColumn, 34.0);
+    // أعمدة الأيام والمجاميع بعرض صريح: بدونه تُقصّ كلمات «متأخر/إجازة»
+    // في العرض الافتراضي الضيق.
+    for (int day = 1; day <= 31; day++) {
+      sheet.setColumnWidth(_dayColumn(day), 11.0);
+    }
+    for (final int col in <int>[
+      _absentColumn,
+      _leaveColumn,
+      _presentColumn,
+      _lateColumn,
+    ]) {
+      sheet.setColumnWidth(col, 10.0);
+    }
     sheet.setColumnWidth(_rateColumn, 14.0);
   }
 
@@ -499,6 +654,13 @@ class ExcelBuilder {
     final Archive archive = ZipDecoder().decodeBytes(bytes);
     final Archive out = Archive();
     for (final ArchiveFile f in archive) {
+      if (f.name == 'xl/styles.xml') {
+        final String xml =
+            utf8.decode(f.content as List<int>, allowMalformed: true);
+        final List<int> patched = utf8.encode(_patchStylesRtl(xml));
+        out.addFile(ArchiveFile(f.name, patched.length, patched));
+        continue;
+      }
       if (!_isWorksheetXml(f.name)) {
         out.addFile(f);
         continue;
@@ -509,6 +671,31 @@ class ExcelBuilder {
       out.addFile(ArchiveFile(f.name, patched.length, patched));
     }
     return ZipEncoder().encode(out)!;
+  }
+
+  /// يضيف `readingOrder="2"` (اتجاه قراءة RTL) لكل `alignment` محاذاته
+  /// `right` في `styles.xml` — الحزمة لا تدعم اتجاه القراءة، والمحاذاة
+  /// وحدها لا تضبط اتجاه الأسماء بدقة في كل العارضات.
+  ///
+  /// آمن لأن كل الخلايا يمينية المحاذاة في ملفاتنا نص عربي أو محايد
+  /// (أسماء، صفوف، تواريخ، أسباب إجازات) — لا أرقام تُحسَب ولا عناوين
+  /// موسّطة تشاركها النمط نفسه. الوسوم الحاملة `readingOrder` مسبقاً
+  /// تُترَك كما هي (لا تكرار للسمة).
+  String _patchStylesRtl(String xml) {
+    return xml.replaceAllMapped(
+      RegExp(r'<alignment\b[^>]*>'),
+      (Match m) {
+        final String tag = m.group(0)!;
+        if (!tag.contains('horizontal="right"') ||
+            tag.contains('readingOrder=')) {
+          return tag;
+        }
+        if (tag.endsWith('/>')) {
+          return '${tag.substring(0, tag.length - 2)} readingOrder="2"/>';
+        }
+        return '${tag.substring(0, tag.length - 1)} readingOrder="2">';
+      },
+    );
   }
 
   static bool _isWorksheetXml(String name) =>
@@ -612,6 +799,22 @@ class ExcelBuilder {
       if (yearName.trim().isNotEmpty) yearName.trim(),
       scope,
       when,
+    ].join(' - ');
+    return '${sanitizeFileName(base)}.xlsx';
+  }
+
+  /// اسم ملف سجل الطالب: «سجل الطالب - الاسم - السنة - التاريخ.xlsx».
+  static String recordFileName({
+    required String studentName,
+    required String yearName,
+    DateTime? now,
+  }) {
+    final DateTime stamp = now ?? DateTime.now();
+    final String base = <String>[
+      'سجل الطالب',
+      if (studentName.trim().isNotEmpty) studentName.trim(),
+      if (yearName.trim().isNotEmpty) yearName.trim(),
+      SchoolTime.dateKey(stamp),
     ].join(' - ');
     return '${sanitizeFileName(base)}.xlsx';
   }

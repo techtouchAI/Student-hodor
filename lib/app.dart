@@ -165,7 +165,7 @@ class StudentHodorApp extends ConsumerWidget {
         ],
         theme: ThemeData(
           useMaterial3: true,
-          fontFamily: 'Tajawal',
+          fontFamily: 'Amiri',
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0D6E5F)),
           scaffoldBackgroundColor: const Color(0xFFF6F8F7),
         ),

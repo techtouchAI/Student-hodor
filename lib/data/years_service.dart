@@ -86,6 +86,7 @@ class YearsService {
                   personKey: Value(s.personKey),
                   seq: Value(nextSeq),
                   photoPath: Value(s.photoPath),
+                  phone: Value(s.phone),
                   createdAt: Value(DateTime.now().toIso8601String()),
                 ),
               );

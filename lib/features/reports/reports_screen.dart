@@ -1,6 +1,8 @@
 /// التقارير: حالة الصف لليوم، الإنذار المبكر بعتبتين، وملف الطالب التفصيلي.
 library;
 
+import 'dart:async' show StreamSubscription, unawaited;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -184,7 +186,10 @@ class _ClassDayListState extends State<_ClassDayList> {
       );
 }
 
-/// الإنذار المبكر بعتبتين: تحذير (الأولى) وخطر (الثانية).
+/// الإنذار المبكر بعتبتين **أيام غياب** من الإعدادات: تحذير (الأولى)
+/// وخطر (الثانية). القائمة حيّة: أي حفظ في الإعدادات أو أي تسجيل حضور
+/// يعيد الحساب فوراً — لا عتبات قديمة بعد العودة من الإعدادات.
+/// النسبة في السطر سياقٌ إضافي فقط؛ الترشيح والدرجة بعدد الأيام.
 class _AlertsList extends StatefulWidget {
   const _AlertsList({required this.db, required this.year});
 
@@ -196,59 +201,96 @@ class _AlertsList extends StatefulWidget {
 }
 
 class _AlertsListState extends State<_AlertsList> {
-  late Future<Map<String, String>> _settings;
+  double _t1 = 10;
+  double _t2 = 15;
+  StreamSubscription<void>? _settingsSub;
+  StreamSubscription<void>? _attendanceSub;
 
   @override
   void initState() {
     super.initState();
-    _settings = widget.db.effectiveSettings();
+    final AppDb db = widget.db;
+    _settingsSub = db.select(db.settings).watch().listen(_onSettings);
+    // عدّاد خفيف (لا كل الصفوف): أي تغيير حضور يعيد حساب القائمة.
+    _attendanceSub = db
+        .customSelect(
+          'SELECT COUNT(*) AS c FROM attendance_rows',
+          readsFrom: {db.attendanceRows},
+        )
+        .watch()
+        .listen((_) => _reload());
+  }
+
+  /// عتبات جديدة محفوظة في الإعدادات ⇒ تُعتمد فوراً وتُعاد القائمة.
+  void _onSettings(List<Setting> rows) {
+    final Map<String, String> all = <String, String>{
+      ...AppDb.settingDefaults,
+      for (final Setting s in rows) s.key: s.value,
+    };
+    _t1 = double.tryParse(all['alert_threshold_1'] ?? '10') ?? 10;
+    _t2 = double.tryParse(all['alert_threshold_2'] ?? '15') ?? 15;
+    _reload();
+  }
+
+  void _reload() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
-  Widget build(BuildContext context) => FutureBuilder<Map<String, String>>(
-        future: _settings,
-        builder: (BuildContext context, AsyncSnapshot<Map<String, String>> ss) {
-          final double t1 =
-              double.tryParse(ss.data?['alert_threshold_1'] ?? '10') ?? 10;
-          final double t2 =
-              double.tryParse(ss.data?['alert_threshold_2'] ?? '15') ?? 15;
-          return FutureBuilder<List<(Student, StatusTotals)>>(
-            future: ReportsService(widget.db).alerts(widget.year.id, t1),
-            builder: (
-              BuildContext context,
-              AsyncSnapshot<List<(Student, StatusTotals)>> snap,
-            ) {
-              final List<(Student, StatusTotals)> list =
-                  snap.data ?? <(Student, StatusTotals)>[];
-              if (list.isEmpty) {
-                return const Center(
-                  child: Text('لا طلاب تجاوزوا حد الإنذار — وضع سليم'),
+  void dispose() {
+    unawaited(_settingsSub?.cancel());
+    unawaited(_attendanceSub?.cancel());
+    super.dispose();
+  }
+
+  Future<void> _refresh() async => _reload();
+
+  @override
+  Widget build(BuildContext context) =>
+      FutureBuilder<List<(Student, StatusTotals)>>(
+        future: ReportsService(widget.db).alerts(widget.year.id, _t1),
+        builder: (
+          BuildContext context,
+          AsyncSnapshot<List<(Student, StatusTotals)>> snap,
+        ) {
+          if (snap.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final List<(Student, StatusTotals)> list =
+              snap.data ?? <(Student, StatusTotals)>[];
+          if (list.isEmpty) {
+            return const Center(
+              child: Text('لا طلاب تجاوزوا حد الإنذار — وضع سليم'),
+            );
+          }
+          return RefreshIndicator(
+            onRefresh: _refresh,
+            child: ListView.builder(
+              itemCount: list.length,
+              itemBuilder: (BuildContext context, int i) {
+                final (Student s, StatusTotals t) = list[i];
+                final double pct = t.recorded == 0
+                    ? 0
+                    : t.absent * 100 / t.recorded;
+                final bool danger = t.absent >= _t2;
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: danger ? Colors.red : Colors.orange,
+                    child:
+                        const Icon(Icons.warning_amber, color: Colors.white),
+                  ),
+                  title: Text(s.fullName),
+                  subtitle: Text(
+                    'غياب ${t.absent} من ${t.recorded} يوم '
+                    '(${pct.toStringAsFixed(1)}%)'
+                    '${danger ? ' — تجاوز الحد الثاني' : ' — تجاوز الحد الأول'}',
+                  ),
+                  onTap: () => context.push('/student/${s.id}'),
                 );
-              }
-              return ListView.builder(
-                itemCount: list.length,
-                itemBuilder: (BuildContext context, int i) {
-                  final (Student s, StatusTotals t) = list[i];
-                  final double pct = t.recorded == 0
-                      ? 0
-                      : t.absent * 100 / t.recorded;
-                  final bool danger = pct >= t2;
-                  return ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: danger ? Colors.red : Colors.orange,
-                      child: const Icon(Icons.warning_amber, color: Colors.white),
-                    ),
-                    title: Text(s.fullName),
-                    subtitle: Text(
-                      'غياب ${t.absent} من ${t.recorded} '
-                      '(${pct.toStringAsFixed(1)}%)'
-                      '${danger ? ' — تجاوز الحد الثاني' : ' — تجاوز الحد الأول'}',
-                    ),
-                    onTap: () => context.push('/student/${s.id}'),
-                  );
-                },
-              );
-            },
+              },
+            ),
           );
         },
       );

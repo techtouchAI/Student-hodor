@@ -92,6 +92,8 @@ class Students extends Table {
   TextColumn get personKey => text()();
   IntColumn get seq => integer()();
   TextColumn get photoPath => text().nullable()();
+  /// رقم هاتف الطالب (اختياري، يُترك فارغاً إن لم يوجد).
+  TextColumn get phone => text().nullable()();
   TextColumn get createdAt => text()();
   @override
   List<Set<Column<Object>>> get uniqueKeys => <Set<Column<Object>>>[
@@ -201,9 +203,9 @@ class AppDb extends _$AppDb {
 
   AppDb.forTesting(super.e);
 
-  /// الإصدار 2: فهارس على الأعمدة الساخنة (لا تغيير جداول ⇒ لا فقد بيانات).
+  /// الإصدار 3: عمود `phone` الاختياري في الطلاب (يُملأ لاحقاً، لا فقد بيانات).
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -215,6 +217,9 @@ class AppDb extends _$AppDb {
           // هجرات مرقّمة تُضاف هنا مع كل تغيير مخطط.
           if (from < 2) {
             await _ensureIndexes();
+          }
+          if (from < 3) {
+            await m.addColumn(students, students.phone);
           }
         },
       );
@@ -366,6 +371,7 @@ class AppDb extends _$AppDb {
     required int classId,
     required String fullName,
     String? photoPath,
+    String? phone,
   }) async =>
       transaction<int>(() async {
         final int seq = await nextSeqForYear(yearId);
@@ -377,6 +383,7 @@ class AppDb extends _$AppDb {
             personKey: Value(makePersonKey()),
             seq: Value(seq),
             photoPath: Value(photoPath),
+            phone: Value(phone),
             createdAt: Value(DateTime.now().toIso8601String()),
           ),
         );
@@ -560,8 +567,14 @@ class AppDb extends _$AppDb {
               .get())
           .isNotEmpty;
 
-  /// مزامنة إجازة مع سجلات الحضور المولّدة تلقائياً داخل نطاقها:
-  /// إضافة ⇒ الغياب التلقائي يصبح إجازة؛ حذف ⇒ يعود غياباً إن لم تغطّه إجازة أخرى.
+  /// وسم التحويل بالمزامنة: يميّز الغياب الذي ألغته إجازة عن إجازة
+  /// سجّلها بشر يدوياً — الأول يعود غياباً عند حذف الإجازة والثانية تبقى.
+  static const String leaveSyncNote = 'leave-sync';
+
+  /// مزامنة إجازة مع سجلات الحضور داخل نطاقها:
+  /// إضافة ⇒ أي غياب (تلقائي أو يدوي) يصبح إجازة مع بقاء مصدره؛
+  /// حذف ⇒ ما حُوّل بالمزامنة أو وُلّد تلقائياً يعود غياباً إن لم تغطّه
+  /// إجازة أخرى. الحضور والتأخر لا يُمسّان أبداً (واقعة حضور ثابتة).
   Future<int> syncLeaveToAttendance({
     required int studentId,
     required String start,
@@ -583,9 +596,6 @@ class AppDb extends _$AppDb {
             .get();
         int changed = 0;
         for (final AttendanceRow r in rows) {
-          if (r.source != AttendanceSource.autoClose) {
-            continue; // لا نلمس ما سجّله بشر يدوياً أو بالمسح
-          }
           if (added && r.status == AttendanceStatus.absent) {
             await upsertAttendance(
               yearId: r.yearId,
@@ -593,12 +603,15 @@ class AppDb extends _$AppDb {
               studentId: r.studentId,
               date: r.date,
               status: AttendanceStatus.leave,
-              source: AttendanceSource.autoClose,
+              source: r.source,
               sessionId: r.sessionId,
-              note: 'leave-sync',
+              note: leaveSyncNote,
             );
             changed++;
-          } else if (!added && r.status == AttendanceStatus.leave) {
+          } else if (!added &&
+              r.status == AttendanceStatus.leave &&
+              (r.note == leaveSyncNote ||
+                  r.source == AttendanceSource.autoClose)) {
             final bool stillCovered = await isOnLeave(studentId, r.date);
             if (!stillCovered) {
               await upsertAttendance(
@@ -607,7 +620,7 @@ class AppDb extends _$AppDb {
                 studentId: r.studentId,
                 date: r.date,
                 status: AttendanceStatus.absent,
-                source: AttendanceSource.autoClose,
+                source: r.source,
                 sessionId: r.sessionId,
                 note: null,
               );
@@ -617,6 +630,14 @@ class AppDb extends _$AppDb {
         }
         return changed;
       });
+
+  /// حذف تسجيل حضور ليوم (تصحيح يدوي من شبكة ملف الطالب).
+  Future<void> deleteAttendance(int studentId, String date) async =>
+      (delete(attendanceRows)
+            ..where(
+              (a) => a.studentId.equals(studentId) & a.date.equals(date),
+            ))
+          .go();
 
   /// إقفال جلسة اليوم: كل طالب بلا تسجيل وبلا إجازة => غائب. عملية ذرّية.
   /// يعيد عدد سجلات الغياب المولّدة.

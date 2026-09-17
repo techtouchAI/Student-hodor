@@ -20,6 +20,17 @@ import 'pdf_report.dart';
 
 enum ExportFormat { excel, pdf }
 
+/// هل اختار المستخدم قسماً واحداً على الأقل من محتوى الملف؟
+/// (ورقة الإجازات خاصة بإكسل). تصدير PDF بلا أي قسم كان يبني مستنداً
+/// بلا صفحات فيفشل لحظة الطباعة بخطأ غامض بدل رسالة واضحة.
+bool exportHasContent({
+  required ExportFormat format,
+  required bool daily,
+  required bool summary,
+  required bool leaves,
+}) =>
+    daily || summary || (format == ExportFormat.excel && leaves);
+
 class ExportScreen extends ConsumerStatefulWidget {
   const ExportScreen({super.key});
 
@@ -99,6 +110,21 @@ class _ExportState extends ConsumerState<ExportScreen> {
         }
         return;
       }
+      if (!exportHasContent(
+        format: _format,
+        daily: _includeDaily,
+        summary: _includeSummary,
+        leaves: _includeLeaves,
+      )) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('اختر قسماً واحداً على الأقل من محتوى الملف'),
+            ),
+          );
+        }
+        return;
+      }
       if (_format == ExportFormat.excel) {
         final ExcelBuilder builder = ExcelBuilder(
           db: db,
@@ -130,9 +156,9 @@ class _ExportState extends ConsumerState<ExportScreen> {
         );
       } else {
         final pw.Font regular =
-            pw.Font.ttf(await rootBundle.load('assets/fonts/Tajawal-Regular.ttf'));
+            pw.Font.ttf(await rootBundle.load('assets/fonts/Amiri-Regular.ttf'));
         final pw.Font bold =
-            pw.Font.ttf(await rootBundle.load('assets/fonts/Tajawal-Bold.ttf'));
+            pw.Font.ttf(await rootBundle.load('assets/fonts/Amiri-Bold.ttf'));
         final PdfReport report = PdfReport(
           db: db,
           reports: ReportsService(db),

@@ -41,6 +41,24 @@ class PhotoStore {
     return dst.path;
   }
 
+  /// يثبّت صورة من بايتاتها (لاسترجاع النسخ الاحتياطية) في المخزن الدائم
+  /// ويعيد مسارها الجديد. الاسم يُجرَّد من أي مسار (درء Zip-Slip)، وعند
+  /// التصادم مع ملف موجود يُسبق بطابع زمني فلا كتابة فوق صور قائمة.
+  static Future<String> install(String fileName, List<int> bytes) async {
+    final Directory dir = await _dir();
+    String safe = p.basename(fileName);
+    if (safe.isEmpty || safe == '.' || safe == '..') {
+      safe = 'photo.jpg';
+    }
+    File dst = File(p.join(dir.path, safe));
+    if (dst.existsSync()) {
+      safe = 'st-${DateTime.now().microsecondsSinceEpoch}-$safe';
+      dst = File(p.join(dir.path, safe));
+    }
+    await dst.writeAsBytes(bytes, flush: true);
+    return dst.path;
+  }
+
   static Future<void> deleteIfExists(String? path) async {
     if (path == null || path.isEmpty) {
       return;

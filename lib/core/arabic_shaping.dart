@@ -4,6 +4,16 @@
 /// الحروف مقطعة. هذه الوحدة تطبق تشكيلاً سياقياً (Isolated/Final/Initial/
 /// Medial) مع لام-ألف، ثم تحوّل النص لمنطق العرض البصري المناسب لسياق RTL.
 /// الوحدة مغطاة باختبارات وحدة في test/arabic_shaping_test.dart.
+/// جدول الأشكال مطابق لقيم يونيكود (Forms-B) ويحرسه اختبار ذهبي لكل
+/// حرف — إزاحة سابقة من ف حتى ي كانت تعرض الحرف التالي (م→ن، ف→ق...)
+/// والياء كوصلة لام-ألف، فخرجت البادجات والتقارير خربشة مقروءة.
+///
+/// تنبيه التشكيل: الناتج يستخدم أشكال التقديم (U+FE80..U+FEFC) بما فيها
+/// **المعزولة**، لذا يشترط خطاً يغطيها كاملة (Amiri المضمّن). الخط السابق
+/// كان يفتقد كل الأشكال المعزولة فكانت الحروف المفردة والطرفية تظهر مربعات.
+/// وقاعدة العرض: النص المُشكّل هنا **بصري** يُرسم باتجاه LTR دائماً — لا
+/// تلفّه بـ`Directionality(rtl)` في PDF وإلا طبّقت الحزمة خوارزمية Bidi فوقه
+/// مرة ثانية فتخربط الترتيب.
 library;
 
 /// أشكال التقديم: [معزول، نهائي، ابتدائي، وسطي]
@@ -35,22 +45,23 @@ const Map<int, List<int>> _forms = <int, List<int>>{
   0x0639: <int>[0xFEC9, 0xFECA, 0xFECB, 0xFECC],
   0x063A: <int>[0xFECD, 0xFECE, 0xFECF, 0xFED0],
   0x0640: <int>[0x0640, 0x0640, 0x0640, 0x0640],
-  0x0641: <int>[0xFED5, 0xFED6, 0xFED7, 0xFED8],
-  0x0642: <int>[0xFED9, 0xFEDA, 0xFEDB, 0xFEDC],
-  0x0643: <int>[0xFEDD, 0xFEDE, 0xFEDF, 0xFEE0],
-  0x0644: <int>[0xFEE1, 0xFEE2, 0xFEE3, 0xFEE4],
-  0x0645: <int>[0xFEE5, 0xFEE6, 0xFEE7, 0xFEE8],
-  0x0646: <int>[0xFEE9, 0xFEEA, 0xFEEB, 0xFEEC],
-  0x0647: <int>[0xFEED, 0xFEEE, 0xFEEF, 0xFEF0],
-  0x0648: <int>[0xFEF1, 0xFEF2, 0xFEF1, 0xFEF2],
-  0x0649: <int>[0xFEF3, 0xFEF4, 0xFEF3, 0xFEF4],
-  0x064A: <int>[0xFEF5, 0xFEF6, 0xFEF7, 0xFEF8],
+  0x0641: <int>[0xFED1, 0xFED2, 0xFED3, 0xFED4],
+  0x0642: <int>[0xFED5, 0xFED6, 0xFED7, 0xFED8],
+  0x0643: <int>[0xFED9, 0xFEDA, 0xFEDB, 0xFEDC],
+  0x0644: <int>[0xFEDD, 0xFEDE, 0xFEDF, 0xFEE0],
+  0x0645: <int>[0xFEE1, 0xFEE2, 0xFEE3, 0xFEE4],
+  0x0646: <int>[0xFEE5, 0xFEE6, 0xFEE7, 0xFEE8],
+  0x0647: <int>[0xFEE9, 0xFEEA, 0xFEEB, 0xFEEC],
+  0x0648: <int>[0xFEED, 0xFEEE, 0xFEED, 0xFEEE],
+  0x0649: <int>[0xFEEF, 0xFEF0, 0xFEEF, 0xFEF0],
+  0x064A: <int>[0xFEF1, 0xFEF2, 0xFEF3, 0xFEF4],
 };
 
-/// حروف لا تتصل بما بعدها (تصل من اليمين فقط).
+/// حروف لا تتصل بما بعدها (تصل من اليمين فقط) — بما فيها الهمزة
+/// (لا تتصل بأي جهة) والواو-همزة.
 const Set<int> _rightJoiningOnly = <int>{
-  0x0622, 0x0623, 0x0625, 0x0627, 0x0629, 0x062F, 0x0630, 0x0631, 0x0632,
-  0x0648, 0x0649,
+  0x0621, 0x0622, 0x0623, 0x0624, 0x0625, 0x0627, 0x0629, 0x062F,
+  0x0630, 0x0631, 0x0632, 0x0648, 0x0649,
 };
 
 /// لام-ألف: [معزول، نهائي] لكل نوع ألف.
@@ -69,8 +80,11 @@ bool _isArabicLetter(int cp) => _forms.containsKey(cp);
 
 bool _joinsNext(int cp) => _isArabicLetter(cp) && !_rightJoiningOnly.contains(cp);
 
-/// يحذف التشكيل والتطويل اختيارياً ثم يعيد تشكيل الحروف سياقيًا.
+/// يحذف التشكيل اختيارياً ثم يعيد تشكيل الحروف سياقيًا.
 /// الناتج يبقى بالترتيب المنطقي (Logical).
+///
+/// التطويل (ـ U+0640) **يُحفَظ دائماً**: التقارير تستخدمه فاصلاً
+/// («السادس ـ أ») وحذفه كان يترك فراغاً مزدوجاً يبدو كخلل في اللغة.
 String reshapeArabic(String input, {bool deleteHarakat = true}) {
   final StringBuffer out = StringBuffer();
   final Runes runes = input.runes;
@@ -78,9 +92,6 @@ String reshapeArabic(String input, {bool deleteHarakat = true}) {
   for (int i = 0; i < cps.length; i++) {
     final int cp = cps[i];
     if (deleteHarakat && _harakat.contains(cp)) {
-      continue;
-    }
-    if (cp == 0x0640 && deleteHarakat) {
       continue;
     }
     if (!_isArabicLetter(cp)) {
@@ -155,37 +166,133 @@ bool _isDigitCp(int cp) =>
 bool _isLatinCp(int cp) =>
     (cp >= 0x0041 && cp <= 0x005A) || (cp >= 0x0061 && cp <= 0x007A);
 
+/// أقواس تُعكَس صورها في السياق العربي (bidi mirroring) كما تفعل كل
+/// عارضات النصوص: القوس الفاتح منطقياً يظهر بصرياً بالشكل المناسب لاتجاه
+/// القراءة من اليمين.
+const Map<int, int> _mirrors = <int, int>{
+  0x0028: 0x0029, // ( ↔ )
+  0x0029: 0x0028,
+  0x005B: 0x005D, // [ ↔ ]
+  0x005D: 0x005B,
+  0x007B: 0x007D, // { ↔ }
+  0x007D: 0x007B,
+  0x003C: 0x003E, // < ↔ >
+  0x003E: 0x003C,
+};
+
+bool _isBracketCp(int cp) => _mirrors.containsKey(cp);
+
+/// محايدات «ملتصقة بالأرقام» (أصناف ET/CS في Bidi): تلتحق بأي مقطع
+/// لاتيني/رقمي مجاور من أي جهة، فلا ينفصل «%» عن «100» ولا «-» عن رقمه.
+bool _isNumberGlueCp(int cp) =>
+    cp == 0x0025 || // %
+    cp == 0x2030 || // ‰
+    cp == 0x002E || // .
+    cp == 0x002C || // ,
+    cp == 0x002F || // /
+    cp == 0x002D || // -
+    cp == 0x002B || // +
+    cp == 0x00B0; // °
+
 /// يحوّل نصاً مُشكّلاً (أو خاماً) إلى ترتيب العرض البصري لسياق RTL:
 /// - المقاطع العربية تُعكس حرفياً.
 /// - مقاطع الأرقام/اللاتينية تحتفظ بترتيبها الداخلي وتوضع بموضعها الصحيح.
+/// - المحايدات (مسافة/ترقيم) بين جهتين متماثلتين تلتحق بهما، وإلا انفصلت
+///   في مقطع مستقل باتجاه الفقرة (قاعدة N1 المبسطة) — عدا ملتصقات
+///   الأرقام (%, ., ,, /, -, +) فتلتحق بأي مقطع رقمي مجاور.
+/// - الأقواس في مقاطع مستقلة باتجاه الفقرة (RTL) وتُعكَس صورها دائماً.
+/// - نص بلا عربية إطلاقاً يُترَك كما هو (أرقام/رموز لاتينية خالصة).
 String toVisualOrder(String shaped) {
   final List<int> cps = shaped.runes.toList();
+  if (cps.isEmpty || !cps.any(_isRtlCp)) {
+    return shaped;
+  }
   final List<List<int>> tokens = <List<int>>[];
   final List<bool> tokenRtl = <bool>[];
   List<int> current = <int>[];
-  bool? currentRtl;
+  // اتجاه الفقرة RTL: أي محايد في البداية (مسافة/ترقيم) يأخذ اتجاه الفقرة
+  // لا LTR — كان الافتراض السابق يقلب أمثال «(ملاحظة» في البداية.
+  bool currentRtl = true;
+  bool hasCurrent = false;
+  // اتجاه آخر محرف قوي — لحلّ المحايدات بقاعدة N1 المبسطة (انظر أدناه).
+  bool? prevStrongRtl;
+
   void flush() {
     if (current.isNotEmpty) {
       tokens.add(current);
-      tokenRtl.add(currentRtl ?? true);
+      tokenRtl.add(currentRtl);
       current = <int>[];
-      currentRtl = null;
+      hasCurrent = false;
     }
   }
 
-  for (final int cp in cps) {
+  bool? nextStrongRtl(int from) {
+    for (int j = from; j < cps.length; j++) {
+      final int p = cps[j];
+      // القوس حدّ فاصل: يشكّل مقطعاً مستقلاً دائماً فلا يُرى ما بعده —
+      // وإلا التصق فراغ ما قبل القوس بالمقطع اللاتيني وتكدس فراغان.
+      if (_isBracketCp(p)) {
+        return null;
+      }
+      if (_isRtlCp(p)) {
+        return true;
+      }
+      if (_isDigitCp(p) || _isLatinCp(p)) {
+        return false;
+      }
+    }
+    return null;
+  }
+
+  for (int i = 0; i < cps.length; i++) {
+    final int cp = cps[i];
+    if (_isBracketCp(cp)) {
+      // القوس يأخذ اتجاه الفقرة (RTL) في مقطع مستقل دائماً: إلصاقه بمقطع
+      // لاتيني مجاور كان يعكس أحد زوجي الأقواس دون الآخر فينكسر الزوج
+      // (قوسان فاتحان بدل زوج متوازن حول خليط أرقام وعربية).
+      flush();
+      tokens.add(<int>[cp]);
+      tokenRtl.add(true);
+      continue;
+    }
     final bool rtl = _isRtlCp(cp);
-    // الأرقام واللاتينية مقطع LTR مستقل لا يُعكس داخلياً
-    final bool? kind =
-        (_isDigitCp(cp) || _isLatinCp(cp)) ? false : (rtl ? true : currentRtl);
-    if (currentRtl == null) {
-      currentRtl = kind ?? false;
+    // الأرقام واللاتينية مقطع LTR مستقل لا يُعكس داخلياً.
+    final bool kind;
+    if (_isDigitCp(cp) || _isLatinCp(cp)) {
+      kind = false;
+      prevStrongRtl = false;
+    } else if (rtl) {
+      kind = true;
+      prevStrongRtl = true;
+    } else {
+      // محايد (مسافة/ترقيم) بقاعدة N1 المبسطة: بين جهتين متماثلتين
+      // يلتحق بهما فتبقى «Hello World» كتلة واحدة، وإلا انفصل في مقطع
+      // مستقل باتجاه الفقرة — الالتصاق الدائم بالمقطع الحالي كان يكدّس
+      // فراغين حول أي مقطع لاتيني/رقمي محاط بفراغين.
+      final bool? next = nextStrongRtl(i + 1);
+      final bool? prev = prevStrongRtl;
+      if (prev != null && prev == next) {
+        kind = prev;
+      } else if (_isNumberGlueCp(cp) && (prev == false || next == false)) {
+        // ملتصق برقم مجاور: يلتحق بالمقطع اللاتيني/الرقمي.
+        kind = false;
+      } else {
+        flush();
+        tokens.add(<int>[cp]);
+        tokenRtl.add(true);
+        continue;
+      }
+    }
+    if (!hasCurrent) {
+      currentRtl = kind;
+      hasCurrent = true;
       current.add(cp);
-    } else if (kind == null || kind == currentRtl) {
+    } else if (kind == currentRtl) {
       current.add(cp);
     } else {
       flush();
       currentRtl = kind;
+      hasCurrent = true;
       current.add(cp);
     }
   }
@@ -194,9 +301,14 @@ String toVisualOrder(String shaped) {
   final StringBuffer out = StringBuffer();
   for (int t = tokens.length - 1; t >= 0; t--) {
     if (tokenRtl[t]) {
-      out.writeAll(tokens[t].reversed.map(String.fromCharCode));
+      for (int i = tokens[t].length - 1; i >= 0; i--) {
+        final int cp = tokens[t][i];
+        out.writeCharCode(_mirrors[cp] ?? cp);
+      }
     } else {
-      out.writeAll(tokens[t].map(String.fromCharCode));
+      for (final int cp in tokens[t]) {
+        out.writeCharCode(cp);
+      }
     }
   }
   return out.toString();

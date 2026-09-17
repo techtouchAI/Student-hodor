@@ -1,6 +1,7 @@
 /// مواصفة الباج الموحّدة: مصدر حقيقة واحد لشاشتي العرض والطباعة.
 library;
 
+import 'dart:typed_data';
 import 'dart:ui';
 
 class BadgePalette {
@@ -34,6 +35,7 @@ class BadgeSpec {
     required this.code,
     required this.sequence,
     this.photoBytes,
+    this.phone,
   });
 
   final String schoolName;
@@ -45,8 +47,36 @@ class BadgeSpec {
   final String code;
   final int sequence;
   final List<int>? photoBytes;
+  final String? phone;
 
   String get classLine => 'الصف: $grade ـ $section';
   String get yearLine => 'العام الدراسي: $yearName';
   String get seqLine => 'رقم الطالب: ${sequence.toString().padLeft(4, '0')}';
+
+  /// سطر الهاتف دائم الظهور على الباج: الرقم إن وُجد، وإلا فراغ مخصص
+  /// بعرض 11 رقماً (11 شرطة سفلية) يُكتب فيه يدوياً بعد الطباعة.
+  String get phoneLine {
+    final String? p = phone;
+    final String digits =
+        (p == null || p.isEmpty) ? '_' * 11 : p;
+    return 'الهاتف: $digits';
+  }
+
+  /// يتحقق أن بايتات الصورة قابلة للفك فعلاً قبل إدخالها في الباج.
+  ///
+  /// ملف موجود لكن محتواه تالف كان يمرّ من هنا ثم يُسقط حفظ PDF كله،
+  /// لأن الفك في حزمة pdf كسول يتم لحظة الحفظ لا لحظة البناء. التالف
+  /// يُعاد عنه `null` (فيظهر مربع الحرف الأول) ويُسجَّل في سجل الأخطاء
+  /// بدل إسقاط ورقة البادجات.
+  static Future<Uint8List?> validPhotoBytes(List<int> bytes) async {
+    final Uint8List raw =
+        bytes is Uint8List ? bytes : Uint8List.fromList(bytes);
+    try {
+      final Codec codec = await instantiateImageCodec(raw);
+      codec.dispose();
+      return raw;
+    } catch (_) {
+      return null;
+    }
+  }
 }

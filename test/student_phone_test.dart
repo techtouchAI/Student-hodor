@@ -2,7 +2,7 @@
 /// (الرقم أو فراغ 11 رقماً).
 library;
 
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:student_hodor/data/db.dart';

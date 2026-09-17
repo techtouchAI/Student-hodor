@@ -383,8 +383,14 @@ class BadgePrint {
       );
 
   /// معاينة/طباعة عبر إطار طباعة أندرويد (مشاركة، حفظ PDF، طابعة).
-  static Future<void> layout(pw.Document doc) => Printing.layoutPdf(
-        onLayout: (PdfPageFormat format) async => doc.save(),
+  ///
+  /// صيغة مهمة الطباعة [format] يجب أن تطابق صفحات المستند: الافتراضي
+  /// بورتريه، ولو خالفت الصفحات (عرضية/مخصصة) لاحتواها النظام بتحجيم
+  /// وتوسيط فيبدأ المحتوى بعيداً عن أول الورقة بشرائط فارغة.
+  static Future<void> layout(pw.Document doc, PdfPageFormat format) =>
+      Printing.layoutPdf(
+        onLayout: (PdfPageFormat f) async => doc.save(),
         name: 'بادجات الطلاب.pdf',
+        format: format,
       );
 }

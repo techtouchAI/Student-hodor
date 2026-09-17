@@ -16,6 +16,7 @@ import 'package:flutter/material.dart' hide Badge;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../../core/error_guard.dart';
@@ -225,6 +226,7 @@ class _BadgesState extends ConsumerState<BadgesScreen> {
       }
       await BadgePrint.layout(
         BadgePrint.sheet(specs, font: regular, fontBold: bold),
+        PdfPageFormat.a4.landscape,
       );
     } catch (e, st) {
       AppErrorLog.instance.record(e, st, where: 'badges:printSheet');
@@ -242,6 +244,7 @@ class _BadgesState extends ConsumerState<BadgesScreen> {
     try {
       await BadgePrint.layout(
         BadgePrint.single(spec, font: regular, fontBold: bold),
+        PdfPageFormat(BadgeMetrics.widthPt, BadgeMetrics.heightPt),
       );
     } catch (e, st) {
       AppErrorLog.instance.record(e, st, where: 'badges:printSingle');

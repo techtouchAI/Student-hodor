@@ -586,11 +586,14 @@ class PdfReport {
     }
   }
 
+  /// صيغة مهمة الطباعة عرضية مطابقة للصفحات: الافتراضي بورتريه كان
+  /// يحتوي الصفحة العرضية بتحجيم وتوسيط فتبدأ بشرائط فارغة.
   Future<void> layout() async {
     final pw.Document doc = await build();
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async => doc.save(),
       name: 'كشف الحضور والغياب.pdf',
+      format: PdfPageFormat.a4.landscape,
     );
   }
 }

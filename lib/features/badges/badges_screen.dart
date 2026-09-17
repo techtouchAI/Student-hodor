@@ -189,6 +189,7 @@ class _BadgesState extends ConsumerState<BadgesScreen> {
             code: b.code,
             sequence: s.seq,
             photoBytes: photo,
+            phone: s.phone,
           ),
         );
       } catch (e, st) {

@@ -35,6 +35,7 @@ class BadgeSpec {
     required this.code,
     required this.sequence,
     this.photoBytes,
+    this.phone,
   });
 
   final String schoolName;
@@ -46,10 +47,20 @@ class BadgeSpec {
   final String code;
   final int sequence;
   final List<int>? photoBytes;
+  final String? phone;
 
   String get classLine => 'الصف: $grade ـ $section';
   String get yearLine => 'العام الدراسي: $yearName';
   String get seqLine => 'رقم الطالب: ${sequence.toString().padLeft(4, '0')}';
+
+  /// سطر الهاتف دائم الظهور على الباج: الرقم إن وُجد، وإلا فراغ مخصص
+  /// بعرض 11 رقماً (11 شرطة سفلية) يُكتب فيه يدوياً بعد الطباعة.
+  String get phoneLine {
+    final String? p = phone;
+    final String digits =
+        (p == null || p.isEmpty) ? '_' * 11 : p;
+    return 'الهاتف: $digits';
+  }
 
   /// يتحقق أن بايتات الصورة قابلة للفك فعلاً قبل إدخالها في الباج.
   ///

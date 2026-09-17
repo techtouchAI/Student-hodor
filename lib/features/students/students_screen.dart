@@ -9,6 +9,7 @@ import 'dart:io';
 
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart' hide Badge;
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -504,6 +505,8 @@ class _StudentsState extends ConsumerState<StudentsScreen> {
     }
     final TextEditingController name =
         TextEditingController(text: s?.fullName ?? '');
+    final TextEditingController phone =
+        TextEditingController(text: s?.phone ?? '');
     String? photoPath = s?.photoPath;
     final String? originalPhoto = s?.photoPath;
     if (!mounted) {
@@ -522,6 +525,19 @@ class _StudentsState extends ConsumerState<StudentsScreen> {
                 TextField(
                   controller: name,
                   decoration: const InputDecoration(labelText: 'الاسم الكامل'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: phone,
+                  keyboardType: TextInputType.phone,
+                  inputFormatters: <TextInputFormatter>[
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(11),
+                  ],
+                  decoration: const InputDecoration(
+                    labelText: 'رقم الهاتف (اختياري)',
+                    helperText: 'أرقام فقط — يُترك فارغاً إن لم يوجد',
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Row(
@@ -593,6 +609,7 @@ class _StudentsState extends ConsumerState<StudentsScreen> {
       ),
     );
     final String trimmed = name.text.trim();
+    final String phoneDigits = phone.text.trim();
     if (ok != true) {
       return;
     }
@@ -638,6 +655,7 @@ class _StudentsState extends ConsumerState<StudentsScreen> {
           classId: classId,
           fullName: trimmed,
           photoPath: stored,
+          phone: phoneDigits.isEmpty ? null : phoneDigits,
         );
         _snack('أُضيف $trimmed');
       } else {
@@ -657,6 +675,7 @@ class _StudentsState extends ConsumerState<StudentsScreen> {
           StudentsCompanion(
             fullName: Value(trimmed),
             photoPath: Value(stored),
+            phone: Value(phoneDigits.isEmpty ? null : phoneDigits),
           ),
         );
         await db.logAudit('student_edit', trimmed);

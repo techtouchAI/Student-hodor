@@ -1,6 +1,6 @@
 /// عرض الباج على الشاشة بمطابقة النموذج البصري (docs/badge-concept-front.png):
 /// ترويسة متدرجة مع ختم دائري، شريط ذهبي، نقش guilloche خفيف، صورة مؤطرة،
-/// اسم الطالب وصفه وعامه، ثم QR + Code128 + رقم الطالب.
+/// اسم الطالب وصفه وعامه، ثم QR + Code128 + رقم الطالب ورقم هاتفه.
 library;
 
 import 'dart:math' as math;
@@ -165,6 +165,16 @@ class BadgeWidget extends StatelessWidget {
                                     SizedBox(height: width * 0.012),
                                     Text(
                                       spec.seqLine,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: width * 0.045,
+                                        color: BadgePalette.ink,
+                                      ),
+                                    ),
+                                    SizedBox(height: width * 0.012),
+                                    Text(
+                                      spec.phoneLine,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(

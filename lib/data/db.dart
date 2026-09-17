@@ -92,6 +92,8 @@ class Students extends Table {
   TextColumn get personKey => text()();
   IntColumn get seq => integer()();
   TextColumn get photoPath => text().nullable()();
+  /// رقم هاتف الطالب (اختياري، يُترك فارغاً إن لم يوجد).
+  TextColumn get phone => text().nullable()();
   TextColumn get createdAt => text()();
   @override
   List<Set<Column<Object>>> get uniqueKeys => <Set<Column<Object>>>[
@@ -201,9 +203,9 @@ class AppDb extends _$AppDb {
 
   AppDb.forTesting(super.e);
 
-  /// الإصدار 2: فهارس على الأعمدة الساخنة (لا تغيير جداول ⇒ لا فقد بيانات).
+  /// الإصدار 3: عمود `phone` الاختياري في الطلاب (يُملأ لاحقاً، لا فقد بيانات).
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -215,6 +217,9 @@ class AppDb extends _$AppDb {
           // هجرات مرقّمة تُضاف هنا مع كل تغيير مخطط.
           if (from < 2) {
             await _ensureIndexes();
+          }
+          if (from < 3) {
+            await m.addColumn(students, students.phone);
           }
         },
       );
@@ -366,6 +371,7 @@ class AppDb extends _$AppDb {
     required int classId,
     required String fullName,
     String? photoPath,
+    String? phone,
   }) async =>
       transaction<int>(() async {
         final int seq = await nextSeqForYear(yearId);
@@ -377,6 +383,7 @@ class AppDb extends _$AppDb {
             personKey: Value(makePersonKey()),
             seq: Value(seq),
             photoPath: Value(photoPath),
+            phone: Value(phone),
             createdAt: Value(DateTime.now().toIso8601String()),
           ),
         );

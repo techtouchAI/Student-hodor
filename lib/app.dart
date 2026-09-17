@@ -13,10 +13,10 @@ import 'package:go_router/go_router.dart';
 
 import 'core/error_guard.dart';
 import 'core/nav.dart';
+import 'features/about/about_screen.dart';
 import 'features/attendance/day_sheet_screen.dart';
 import 'features/badges/badges_screen.dart';
 import 'features/classes/classes_screen.dart';
-import 'features/diagnostics/diagnostics_screen.dart';
 import 'features/export/export_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/leaves/leaves_screen.dart';
@@ -83,10 +83,9 @@ GoRouter buildRouter() => GoRouter(
           builder: (_, __) => _guarded('settings', const SettingsScreen()),
         ),
         GoRoute(
-          path: '/diagnostics',
-          name: AppRoutes.diagnostics,
-          builder: (_, __) =>
-              _guarded('diagnostics', const DiagnosticsScreen()),
+          path: '/about',
+          name: AppRoutes.about,
+          builder: (_, __) => _guarded('about', const AboutScreen()),
         ),
         GoRoute(
           path: '/students',
@@ -238,9 +237,9 @@ class _RouteErrorScreen extends StatelessWidget {
             const SizedBox(height: 8),
             Center(
               child: OutlinedButton.icon(
-                onPressed: () => context.pushNamed(AppRoutes.diagnostics),
-                icon: const Icon(Icons.bug_report),
-                label: const Text('سجل الأعطال'),
+                onPressed: () => context.pushNamed(AppRoutes.about),
+                icon: const Icon(Icons.info),
+                label: const Text('حول التطبيق'),
               ),
             ),
           ],

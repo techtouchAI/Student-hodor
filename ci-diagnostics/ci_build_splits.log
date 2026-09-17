@@ -18,9 +18,9 @@ Potential fix: Your project's KGP version is typically defined in the plugins bl
 If you don't see a plugins block, your project was likely created with an older template version, in which case it is most likely defined in the top-level build.gradle file (/home/runner/work/Student-hodor/Student-hodor/android/build.gradle) by the ext.kotlin_version property.
 
 Expected to find fonts for (packages/cupertino_icons/CupertinoIcons, MaterialIcons), but found (MaterialIcons). This usually means you are referring to font families in an IconData class but not including them in the assets section of your pubspec.yaml, are missing the package that would include them, or are missing "uses-material-design: true".
-Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 6200 bytes (99.6% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
+Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 9684 bytes (99.4% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
 Caught exception: Already watching path: /home/runner/work/Student-hodor/Student-hodor/android
-Running Gradle task 'assembleRelease'...                           25.8s
-✓ Built build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk (28.5MB)
-✓ Built build/app/outputs/flutter-apk/app-arm64-v8a-release.apk (32.1MB)
-✓ Built build/app/outputs/flutter-apk/app-x86_64-release.apk (34.8MB)
+Running Gradle task 'assembleRelease'...                           12.2s
+✓ Built build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk (29.9MB)
+✓ Built build/app/outputs/flutter-apk/app-arm64-v8a-release.apk (33.3MB)
+✓ Built build/app/outputs/flutter-apk/app-x86_64-release.apk (36.0MB)

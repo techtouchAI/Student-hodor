@@ -349,6 +349,8 @@ class ExcelBuilder {
     int index = 1;
     for (final RecordDay d in record.days) {
       final DateTime dt = SchoolTime.parseKey(d.dateKey);
+      // متغير محلي لا d.status مباشرة: الحقول العامة لا تُرقّى بالنفي.
+      final int? status = d.status;
       _num(sheet, column: 0, row: row, value: IntCellValue(index++));
       _text(sheet, column: 1, row: row, value: d.dateKey);
       _text(
@@ -359,13 +361,13 @@ class ExcelBuilder {
       );
       final Data cell = _cellAt(sheet, 3, row);
       cell.value = TextCellValue(
-        d.status == null
+        status == null
             ? (d.schoolDay ? 'لم يسجل' : 'عطلة')
-            : _statusAr[d.status],
+            : _statusAr[status],
       );
       cell.cellStyle = CellStyle(
         backgroundColorHex:
-            ExcelColor.fromHexString(_colorFor(d.status, d.schoolDay)),
+            ExcelColor.fromHexString(_colorFor(status, d.schoolDay)),
         fontFamily: _fontFamily,
         fontSize: 11,
         horizontalAlign: HorizontalAlign.Right,

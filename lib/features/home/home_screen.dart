@@ -324,10 +324,7 @@ class _HomeState extends ConsumerState<HomeScreen> {
                       ),
                       Text('المدير: ${s['director_name'] ?? '-'}'),
                       if (y != null)
-                        Text('السنة: ${y.name} (${y.start} → ${y.end})'),
-                      Text(
-                        'اليوم: ${SchoolTime.formatFullAr(DateTime.now(), withHijri: s['show_hijri'] == '1')}',
-                      ),
+                        Text('السنة: ${y.start} → ${y.end}'),
                     ],
                   ),
                 ),
@@ -515,7 +512,8 @@ class _TodayCard extends StatelessWidget {
       );
 }
 
-/// صف واحد في بطاقة اليوم + دخول مباشر لكشف يومه.
+/// صف واحد في بطاقة اليوم بسطر واحد (الاسم + المسجل + الحالة)
+/// + دخول مباشر لكشف يومه.
 class _ClassDayTile extends StatelessWidget {
   const _ClassDayTile({
     required this.today,
@@ -538,8 +536,11 @@ class _ClassDayTile extends StatelessWidget {
         : (s.closedAt != null ? 'مقفلة' : 'مفتوحة');
     return ListTile(
       dense: true,
-      title: Text(title),
-      subtitle: Text('مسجل: $recorded • $state'),
+      title: Text(
+        '$title • مسجل: $recorded • $state',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
       trailing: const Icon(Icons.chevron_left),
       onTap: () => context.push(
         AppRoutes.classLocation(

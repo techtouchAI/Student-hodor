@@ -1,2 +1,5 @@
 Analyzing Student-hodor...                                      
-No issues found! (ran in 17.4s)
+
+  error • The name 'isNull' is defined in the libraries 'package:drift/src/runtime/query_builder/query_builder.dart (via package:drift/drift.dart)' and 'package:matcher/src/core_matchers.dart (via package:flutter_test/flutter_test.dart)'. Try using 'as prefix' for one of the import directives, or hiding the name from all but one of the imports • test/student_phone_test.dart:48:21 • ambiguous_import
+
+1 issue found. (ran in 16.5s)

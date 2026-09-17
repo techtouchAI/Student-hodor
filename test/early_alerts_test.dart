@@ -1,5 +1,6 @@
-/// الإنذار المبكر: عتبة نسبة الغياب تُرشّح الطلاب، والترتيب بالأكثر
-/// غياباً، ومن لا سجلات له خارج القائمة — العتبتان من إعدادات التطبيق.
+/// الإنذار المبكر بدلالة **أيام الغياب** لا النسبة: العتبة من إعدادات
+/// التطبيق، والترتيب بالأكثر غياباً، ومن لا سجلات له خارج القائمة.
+/// طالب غاب يوماً واحداً من يوم (100%) لا يُنذَر بعتبة يومين.
 library;
 
 import 'package:drift/drift.dart';
@@ -46,18 +47,19 @@ Future<AppDb> _seed() async {
   await student(
     'كثير الغياب',
     <int>[
-      ...List<int>.filled(2, AttendanceStatus.absent),
-      ...List<int>.filled(8, AttendanceStatus.present),
+      ...List<int>.filled(3, AttendanceStatus.absent),
+      ...List<int>.filled(7, AttendanceStatus.present),
     ],
   );
   await student(
     'حدّي',
     <int>[
-      AttendanceStatus.absent,
-      ...List<int>.filled(9, AttendanceStatus.present),
+      ...List<int>.filled(2, AttendanceStatus.absent),
+      ...List<int>.filled(8, AttendanceStatus.present),
     ],
   );
   await student('بلا سجلات', <int>[]);
+  await student('يوم واحد', <int>[AttendanceStatus.absent]);
   await student(
     'متأخر',
     <int>[
@@ -69,18 +71,19 @@ Future<AppDb> _seed() async {
 }
 
 void main() {
-  test('العتبة الأولى تُدخل من تجاوزها مرتبين بالأكثر غياباً', () async {
+  test('العتبة الأولى تُدخل من بلغها أياماً مرتبين بالأكثر غياباً', () async {
     final AppDb db = await _seed();
     addTearDown(db.close);
     final AcademicYear year = (await db.activeYear())!;
     final List<(Student, StatusTotals)> list =
-        await ReportsService(db).alerts(year.id, 10.0);
-    final List<String> names =
-        <String>[for (final e in list) e.$1.fullName];
+        await ReportsService(db).alerts(year.id, 2.0);
+    final List<String> names = <String>[for (final e in list) e.$1.fullName];
     expect(names, contains('كثير الغياب'));
     expect(names, contains('حدّي'));
-    expect(names, contains('متأخر'));
-    expect(list.length, 3);
+    expect(names, isNot(contains('يوم واحد')));
+    expect(names, isNot(contains('بلا سجلات')));
+    expect(names, isNot(contains('متأخر')));
+    expect(list.length, 2);
     expect(list.first.$1.fullName, 'كثير الغياب');
   });
 
@@ -89,17 +92,17 @@ void main() {
     addTearDown(db.close);
     final AcademicYear year = (await db.activeYear())!;
     final List<(Student, StatusTotals)> list =
-        await ReportsService(db).alerts(year.id, 15.0);
+        await ReportsService(db).alerts(year.id, 3.0);
     expect(list.length, 1);
     expect(list.single.$1.fullName, 'كثير الغياب');
   });
 
-  test('عتبة مستحيلة تُخرج قائمة فارغة', () async {
+  test('عتبة عالية (كـ200 يوم) تُخرج قائمة فارغة', () async {
     final AppDb db = await _seed();
     addTearDown(db.close);
     final AcademicYear year = (await db.activeYear())!;
     final List<(Student, StatusTotals)> list =
-        await ReportsService(db).alerts(year.id, 50.0);
+        await ReportsService(db).alerts(year.id, 200.0);
     expect(list, isEmpty);
   });
 }

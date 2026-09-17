@@ -182,17 +182,19 @@ class ReportsService {
     ];
   }
 
-  /// طلاب تجاوزوا نسبة غياب حدّ الإنذار.
+  /// طلاب تجاوزت أيام غيابهم حدّ الإنذار — العتبة **عدد أيام** من
+  /// الإعدادات لا نسبة مئوية (طالب غاب يوماً واحداً من يوم لا يُنذَر
+  /// بعتبة 100 — كانت النسبة تُنذره لأنه 100%).
   Future<List<(Student, StatusTotals)>> alerts(
     int yearId,
-    double thresholdPct,
+    double thresholdDays,
   ) async {
     final List<Student> students =
         await (db.select(db.students)..where((s) => s.yearId.equals(yearId))).get();
     final List<(Student, StatusTotals)> out = <(Student, StatusTotals)>[];
     for (final Student s in students) {
       final StatusTotals t = await totalsForStudent(s.id, yearId);
-      if (t.recorded > 0 && (t.absent * 100 / t.recorded) >= thresholdPct) {
+      if (t.recorded > 0 && t.absent >= thresholdDays) {
         out.add((s, t));
       }
     }

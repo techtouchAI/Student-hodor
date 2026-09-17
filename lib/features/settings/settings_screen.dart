@@ -260,8 +260,8 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
                   controller: _t1,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'الإنذار الأول %',
-                    helperText: 'عتبة التحذير',
+                    labelText: 'الإنذار الأول (أيام)',
+                    helperText: 'عتبة التحذير — أيام الغياب',
                   ),
                 ),
               ),
@@ -271,8 +271,8 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
                   controller: _t2,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'الإنذار الثاني %',
-                    helperText: 'عتبة الخطر',
+                    labelText: 'الإنذار الثاني (أيام)',
+                    helperText: 'عتبة الخطر — أيام الغياب',
                   ),
                 ),
               ),

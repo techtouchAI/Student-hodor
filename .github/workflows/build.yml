@@ -145,6 +145,9 @@ jobs:
           fi
 
       - name: Publish APKs to GitHub Release
+        # النشر للمحادثة push فقط: تشغيل PR المكرر كان يتسابق مع تشغيل الدفع
+        # على حذف/إنشاء وسم latest-apk نفسه فيفشل أحدهما ويبقى المسودة.
+        if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

@@ -75,10 +75,11 @@ void main() {
     final AcademicYear year = (await db.activeYear())!;
     final List<(Student, StatusTotals)> list =
         await ReportsService(db).alerts(year.id, 10.0);
-    expect(
-      list.map((e) => e.$1.fullName),
-      containsAll(<String>['كثير الغياب', 'حدّي', 'متأخر']),
-    );
+    final List<String> names =
+        <String>[for (final e in list) e.$1.fullName];
+    expect(names, contains('كثير الغياب'));
+    expect(names, contains('حدّي'));
+    expect(names, contains('متأخر'));
     expect(list.length, 3);
     expect(list.first.$1.fullName, 'كثير الغياب');
   });

@@ -1,6 +1,8 @@
 Analyzing Student-hodor...                                      
 
-   info • Uses 'await' on an instance of 'void', which is not a subtype of 'Future'. Try removing the 'await' or changing the expression • lib/features/badges/badge_spec.dart:65:7 • await_only_futures
-  error • This expression has a type of 'void' so its value can't be used. Try checking to see if you're using the correct API; there might be a function or call that returns void you didn't expect. Also check type parameters and variables which might also be void • lib/features/badges/badge_spec.dart:65:19 • use_of_void_result
+  error • The argument type 'int?' can't be assigned to the parameter type 'int'.  • lib/features/export/excel_builder.dart:364:25 • argument_type_not_assignable
+  error • The name 'isNull' is defined in the libraries 'package:drift/src/runtime/query_builder/query_builder.dart (via package:drift/drift.dart)' and 'package:matcher/src/core_matchers.dart (via package:flutter_test/flutter_test.dart)'. Try using 'as prefix' for one of the import directives, or hiding the name from all but one of the imports • test/leave_sync_test.dart:73:23 • ambiguous_import
+  error • The name 'isNull' is defined in the libraries 'package:drift/src/runtime/query_builder/query_builder.dart (via package:drift/drift.dart)' and 'package:matcher/src/core_matchers.dart (via package:flutter_test/flutter_test.dart)'. Try using 'as prefix' for one of the import directives, or hiding the name from all but one of the imports • test/leave_sync_test.dart:110:23 • ambiguous_import
+  error • The name 'isNull' is defined in the libraries 'package:drift/src/runtime/query_builder/query_builder.dart (via package:drift/drift.dart)' and 'package:matcher/src/core_matchers.dart (via package:flutter_test/flutter_test.dart)'. Try using 'as prefix' for one of the import directives, or hiding the name from all but one of the imports • test/student_record_test.dart:95:35 • ambiguous_import
 
-2 issues found. (ran in 17.2s)
+4 issues found. (ran in 14.3s)

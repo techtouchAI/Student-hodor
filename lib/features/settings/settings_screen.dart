@@ -9,12 +9,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../../core/app_info.dart';
 import '../../core/school_time.dart';
 import '../../data/backup_service.dart';
 import '../../data/db.dart';
 import '../../data/error_log.dart';
-import '../../features/diagnostics/diagnostics_screen.dart';
+import '../../features/about/about_screen.dart';
 import '../../state/providers.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -86,11 +85,11 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  Future<void> _diagnostics() async {
+  Future<void> _about() async {
     await Navigator.push<void>(
       context,
       MaterialPageRoute<void>(
-        builder: (BuildContext context) => const DiagnosticsScreen(),
+        builder: (BuildContext context) => const AboutScreen(),
       ),
     );
   }
@@ -359,12 +358,12 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
           ),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.bug_report),
-            title: const Text('التشخيص وسجل الأعطال'),
+            leading: const Icon(Icons.info),
+            title: const Text('حول التطبيق'),
             subtitle: const Text(
-              'الإصدار ${AppInfo.version} — عند أي شاشة بيضاء/فارغة أرسل هذا التقرير',
+              'المطور: كنان الصائغ — التطبيق حاليًا مجاني (نسخة تجريبية)',
             ),
-            onTap: _diagnostics,
+            onTap: _about,
           ),
         ],
       ),

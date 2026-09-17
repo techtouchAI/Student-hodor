@@ -404,9 +404,9 @@ class _HomeState extends ConsumerState<HomeScreen> {
                     onTap: () => _openPin(context, ref, '/settings'),
                   ),
                   _Tile(
-                    icon: Icons.bug_report,
-                    label: 'التشخيص والأعطال',
-                    onTap: () => _push(context, '/diagnostics'),
+                    icon: Icons.info,
+                    label: 'حول التطبيق',
+                    onTap: () => _push(context, '/about'),
                   ),
                 ],
               ),

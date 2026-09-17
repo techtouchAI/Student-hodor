@@ -44,7 +44,7 @@ class AppRoutes {
   static const String leaves = 'leaves';
   static const String years = 'years';
   static const String settings = 'settings';
-  static const String diagnostics = 'diagnostics';
+  static const String about = 'about';
 
   /// رابط صف مبني بترميز صحيح (يُستخدم عند الحاجة لرابط نصي).
   static String classLocation(

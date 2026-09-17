@@ -80,7 +80,9 @@ class AboutScreen extends StatelessWidget {
           Text('للتواصل', style: tt.titleLarge),
           const SizedBox(height: 8),
           const _ContactTile(
-            icon: Icons.youtube,
+            // لا أيقونة «يوتيوب» ضمن Material Icons المضمّنة: سهم تشغيل
+            // داخل الدائرة الحمراء هو العلامة البصرية المعتمدة هنا.
+            icon: Icons.play_arrow,
             color: Color(0xFFFF0000),
             label: 'يوتيوب',
             subtitle: '@kinanmajeed',

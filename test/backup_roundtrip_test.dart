@@ -1,16 +1,20 @@
-/// النسخة الاحتياطية تشمل كل الأعمدة (ومنها هاتف الطالب): تصدير
-/// بالتسلسل العام ثم استرجاع كامل، ونسخ ما قبل الهاتف تُسترجع برقم فارغ.
+/// النسخة الاحتياطية: حاوية zip (بيان + صور + تدقيق) ذهاباً وإياباً،
+/// وملف JSON القديم يُسترجع كما هو.
 library;
 
 import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 
+import 'package:archive/archive.dart';
 import 'package:drift/drift.dart' hide isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 import 'package:student_hodor/data/backup_service.dart';
 import 'package:student_hodor/data/db.dart';
 
-Future<(AppDb, Student)> _seed({String? phone}) async {
+Future<(AppDb, Student)> _seed({String? phone, String? photoPath}) async {
   final AppDb db = AppDb.forTesting(NativeDatabase.memory());
   final int year = await db.into(db.academicYears).insert(
         const AcademicYearsCompanion(
@@ -32,6 +36,7 @@ Future<(AppDb, Student)> _seed({String? phone}) async {
     classId: cls,
     fullName: 'طالب النسخة',
     phone: phone,
+    photoPath: photoPath,
   );
   final Student s = await (db.select(db.students)
         ..where((t) => t.id.equals(id)))
@@ -39,7 +44,9 @@ Future<(AppDb, Student)> _seed({String? phone}) async {
   return (db, s);
 }
 
-Future<Map<String, Object?>> _snapshotOf(AppDb db) async => <String, Object?>{
+/// بيان بصيغة 1 (بلا تدقيق ولا صور) للتوافق الرجعي.
+Future<Map<String, Object?>> _legacySnapshotOf(AppDb db) async =>
+    <String, Object?>{
       'format': 'student-hodor-backup',
       'version': 1,
       'at': DateTime.now().toIso8601String(),
@@ -66,30 +73,64 @@ void main() {
     expect(Student.fromJson(back).phone, '07712345678');
   });
 
-  test('الاسترجاع الكامل يعيد الهاتف', () async {
-    final (AppDb db1, _) = await _seed(phone: '07712345678');
+  test('حاوية zip: الصور والتدقيق والهاتف ذهاباً وإياباً', () async {
+    final Directory srcDir =
+        await Directory.systemTemp.createTemp('hodor-photo-src');
+    addTearDown(() => srcDir.delete(recursive: true));
+    final List<int> raw = List<int>.generate(256, (int i) => i % 251);
+    final File src = File(p.join(srcDir.path, 'face.jpg'));
+    await src.writeAsBytes(raw);
+    final (AppDb db1, Student s) =
+        await _seed(phone: '07712345678', photoPath: src.path);
     addTearDown(db1.close);
+    await db1.logAudit('test_action', 'test_details');
+
+    final Uint8List zip = await BackupService(db1).exportBytes();
+    final Archive archive = ZipDecoder().decodeBytes(zip);
+    final List<String> names =
+        <String>[for (final ArchiveFile f in archive) f.name];
+    expect(names, contains(BackupService.manifestName));
+    expect(names, contains('photos/${s.id}.jpg'));
+
+    final Directory dstDir =
+        await Directory.systemTemp.createTemp('hodor-photo-dst');
+    addTearDown(() => dstDir.delete(recursive: true));
     final AppDb db2 = AppDb.forTesting(NativeDatabase.memory());
     addTearDown(db2.close);
-    await BackupService(db2).restoreFull(jsonEncode(await _snapshotOf(db1)));
-    final Student s =
-        await (db2.select(db2.students)).getSingle();
-    expect(s.fullName, 'طالب النسخة');
-    expect(s.phone, '07712345678');
+    await BackupService(
+      db2,
+      photoInstaller: (String fileName, List<int> bytes) async {
+        final File f = File(p.join(dstDir.path, fileName));
+        await f.writeAsBytes(bytes);
+        return f.path;
+      },
+    ).restoreFull(zip);
+
+    final Student r = await db2.select(db2.students).getSingle();
+    expect(r.fullName, 'طالب النسخة');
+    expect(r.phone, '07712345678');
+    expect(r.photoPath, startsWith(dstDir.path));
+    expect(await File(r.photoPath!).readAsBytes(), raw);
+    final List<AuditLog> logs = await db2.select(db2.auditLogs).get();
+    expect(logs.any((AuditLog l) => l.action == 'test_action'), isTrue);
+    expect(
+      logs.any((AuditLog l) => l.action == 'backup_restore_full'),
+      isTrue,
+    );
   });
 
-  test('نسخة قديمة بلا مفتاح الهاتف تُسترجع برقم فارغ', () async {
+  test('نسخة JSON قديمة تُسترجع كاملة (بلا صور ولا تدقيق مستورد)', () async {
     final (AppDb db1, _) = await _seed(phone: '07712345678');
     addTearDown(db1.close);
-    final Map<String, Object?> snap = await _snapshotOf(db1);
+    final Map<String, Object?> snap = await _legacySnapshotOf(db1);
     final List<Map<String, Object?>> students =
-        (snap['students']! as List<Map<String, Object?>>);
+        snap['students']! as List<Map<String, Object?>>;
     students.first.remove('phone');
     final AppDb db2 = AppDb.forTesting(NativeDatabase.memory());
     addTearDown(db2.close);
-    await BackupService(db2).restoreFull(jsonEncode(snap));
-    final Student s =
-        await (db2.select(db2.students)).getSingle();
+    await BackupService(db2).restoreFull(utf8.encode(jsonEncode(snap)));
+    final Student s = await db2.select(db2.students).getSingle();
     expect(s.phone, isNull);
+    expect(s.photoPath, isNull);
   });
 }

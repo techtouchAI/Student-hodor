@@ -2,6 +2,7 @@
 library;
 
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:drift/drift.dart' hide Column;
 import 'package:file_picker/file_picker.dart';
@@ -139,7 +140,7 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
     try {
       final String path = await BackupService(ref.read(dbProvider)).exportFile();
       await SharePlus.instance.share(
-        ShareParams(files: <XFile>[XFile(path)]),
+        ShareParams(files: <XFile>[XFile(path, mimeType: 'application/zip')]),
       );
     } catch (e) {
       if (mounted) {
@@ -153,17 +154,17 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
     try {
       final List<PlatformFile> picked = await FilePicker.pickFiles(
         type: FileType.custom,
-        allowedExtensions: const <String>['json'],
+        allowedExtensions: const <String>['zip', 'json'],
       );
       final String? path = picked.isEmpty ? null : picked.single.path;
       if (path == null) {
         return;
       }
-      final String text = await File(path).readAsString();
+      final Uint8List bytes = await File(path).readAsBytes();
       final AppDb db = ref.read(dbProvider);
       final BackupService svc = BackupService(db);
       if (merge) {
-        final Map<String, int> counts = await svc.mergeImport(text);
+        final Map<String, int> counts = await svc.mergeImport(bytes);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -181,7 +182,7 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
           context: context,
           builder: (BuildContext context) => AlertDialog(
             title: const Text('استرجاع كامل'),
-            content: const Text('سيستبدل كل البيانات الحالية بمحتوى الملف. متابعة؟'),
+            content: const Text('سيستبدل كل البيانات والصور والسجل بمحتوى الملف. متابعة؟'),
             actions: <Widget>[
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
@@ -197,7 +198,7 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
         if (ok != true) {
           return;
         }
-        await svc.restoreFull(text);
+        await svc.restoreFull(bytes);
         ref.invalidate(settingsProvider);
         ref.invalidate(effectiveSettingsProvider);
         ref.invalidate(currentYearProvider);

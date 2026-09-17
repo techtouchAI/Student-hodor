@@ -148,18 +148,31 @@ jobs:
         # النشر للمحادثة push فقط: تشغيل PR المكرر كان يتسابق مع تشغيل الدفع
         # على حذف/إنشاء وسم latest-apk نفسه فيفشل أحدهما ويبقى المسودة.
         if: github.event_name != 'pull_request'
+        timeout-minutes: 15
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -e
-          cd build/app/outputs/flutter-apk
-          TAG=latest-apk
-          gh release delete "$TAG" -y --cleanup-tag || true
-          gh release create "$TAG" \
-            *.apk SHA256SUMS.txt \
-            --title "Student Hodor — أحدث APK" \
-            --notes "بُني تلقائياً من ${{ github.sha }} في $(date -u +%F' '%H:%M'UTC')" \
-            --target "${{ github.sha }}"
+          set -o pipefail
+          {
+            set -e
+            cd build/app/outputs/flutter-apk
+            TAG=latest-apk
+            # رفع ~220MB قد يتعثر عابراً: 3 محاولات مع تنظيف بينها، والسجل
+            # يُحفظ في ci_publish.log لتشخيص أي فشل لاحق.
+            for i in 1 2 3; do
+              gh release delete "$TAG" -y --cleanup-tag || true
+              if gh release create "$TAG" \
+                *.apk SHA256SUMS.txt \
+                --title "Student Hodor — أحدث APK" \
+                --notes "بُني تلقائياً من ${{ github.sha }} في $(date -u +%F' '%H:%M'UTC')" \
+                --target "${{ github.sha }}"; then
+                break
+              fi
+              echo "publish attempt $i failed"
+              [ "$i" = 3 ] && exit 1
+              sleep 15
+            done
+          } 2>&1 | tee "$GITHUB_WORKSPACE/ci_publish.log"
 
       - name: Commit diagnostics on failure
         if: failure()

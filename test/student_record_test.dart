@@ -168,9 +168,10 @@ void main() {
       sheet.cell(CellIndex.indexByString('C11')).value?.toString(),
       '1',
     );
+    // حزمة excel تُسقط .0 الزائدة عند إعادة القراءة (50.0 تُقرأ 50).
     expect(
       sheet.cell(CellIndex.indexByString('C15')).value?.toString(),
-      '50.0',
+      '50',
     );
     final Archive archive = ZipDecoder().decodeBytes(bytes);
     bool rtlFound = false;

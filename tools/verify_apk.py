@@ -48,6 +48,7 @@ import argparse
 import dataclasses
 import hashlib
 import os
+import re
 import shutil
 import struct
 import subprocess
@@ -441,7 +442,7 @@ def inspect_apk(path: Path) -> ApkFacts:
                         token = f"{key}='"
                         if token in line:
                             badging[key] = line.split(token, 1)[1].split("'", 1)[0]
-                elif line.startswith("sdkVersion:"):
+                elif line.startswith("minSdkVersion:") or line.startswith("sdkVersion:"):
                     badging["minSdk"] = line.split(":", 1)[1].strip().strip("'")
                 elif line.startswith("targetSdkVersion:"):
                     badging["targetSdk"] = line.split(":", 1)[1].strip().strip("'")
@@ -466,6 +467,7 @@ def inspect_apk(path: Path) -> ApkFacts:
             [
                 str(apksigner),
                 "verify",
+                "-v",
                 "--print-certs",
                 "--min-sdk-version",
                 min_sdk,
@@ -477,32 +479,31 @@ def inspect_apk(path: Path) -> ApkFacts:
         if code == 0:
             for line in out.splitlines():
                 line = line.strip()
-                for scheme in ("V1", "V2", "V3"):
-                    if line.startswith(scheme + " Signer:") or line.startswith(
-                        "Signer #1 certificate"
-                    ):
-                        if "certificate SHA-256 digest:" in line:
-                            sha = line.split(":", 1)[1].strip() if "digest:" in line else ""
-                            if not sha:
-                                sha = line.rsplit(":", 1)[1].strip()
-                            label = scheme if line.startswith(scheme) else "Signer"
-                            if "digest" in line:
-                                cert_sha256 = cert_sha256 or sha
-                            schemes.setdefault(label, True)
-                        if "certificate DN:" in line:
-                            cert_dn = line.split("certificate DN:", 1)[1].strip()
-            schemes = {k: True for k in schemes}
-            if not schemes:
+                # «Verified using v1 scheme (JAR signing): true»
+                match = re.match(r"Verified using (v[0-9.]*) scheme \(.*\):\s*(true|false)", line)
+                if match:
+                    schemes[match.group(1)] = match.group(2) == "true"
+                    continue
+                if "certificate SHA-256 digest:" in line:
+                    cert_sha256 = cert_sha256 or line.split("digest:", 1)[1].strip()
+                if "certificate DN:" in line:
+                    cert_dn = line.split("certificate DN:", 1)[1].strip()
+            if not cert_sha256:
                 problems.append(
                     Problem(SEVERITY_FATAL, "SIGNER_UNREADABLE", "تعذّر قراءة هوية الموقِّع من apksigner.")
                 )
-            if "V2" not in schemes and "Signer" not in schemes:
+            if not schemes.get("v2", False):
                 problems.append(
                     Problem(
                         SEVERITY_FATAL,
                         "NO_V2_SIGNATURE",
                         "الحزمة غير موقّعة بمخطط v2 — أندرويد 7.0+ يرفض تثبيتها.",
                     )
+                )
+            if not schemes.get("v1", False):
+                tool_notes.append(
+                    "بلا توقيع v1: مقبول على أندرويد 7.0+، لكن بعض مثبّتات الأجهزة "
+                    "وأنظمة إدارة الأجهزة (MDM) لا تقبل غيره."
                 )
         else:
             problems.append(
@@ -515,11 +516,14 @@ def inspect_apk(path: Path) -> ApkFacts:
     zipalign_output: str | None = None
     zipalign = _build_tool("zipalign")
     if zipalign is not None and zip_ok:
-        for args in (["-c", "-P", "16", "-v", "4"], ["-c", "4"]):
+        # -P 16: التحقق بمحاذاة صفحة 16KB (مطلب أجهزة أندرويد 15+ بصفحات 16KB).
+        checks: list[str] = []
+        for label, args in (("16KB", ["-c", "-P", "16", "-v", "4"]), ("4B", ["-c", "4"])):
             code, out = _run([str(zipalign), *args, str(path)])
-            zipalign_output = out.strip()[:400] or f"zipalign {args}: OK"
-            if code == 0:
-                break
+            checks.append(f"zipalign {label}: {'OK' if code == 0 else 'FAILED'}")
+            if code != 0 and label == "16KB":
+                checks.append("   " + (out.strip().splitlines() or [""])[-1][:200])
+        zipalign_output = " | ".join(checks)
 
     return ApkFacts(
         path=path,

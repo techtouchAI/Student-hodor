@@ -49,6 +49,26 @@ jobs:
           python3 tools/verify_apk.py inspect published/*.apk \
             --report ci-diagnostics/published-apk-report.txt 2>&1 | tee ci_publish_inspect.log
 
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve plugin manifests
+        run: flutter pub get
+
+      - name: Trace merged manifest permissions to their plugin
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          PUB_CACHE="${PUB_CACHE:-$HOME/.pub-cache}"
+          echo "pub-cache: $PUB_CACHE"
+          grep -rls -E "android\.permission\.(INTERNET|ACCESS_NETWORK_STATE)" \
+            "$PUB_CACHE"/hosted/*/*/android/src/main/AndroidManifest.xml 2>/dev/null \
+            | sed -E 's#.*/hosted/[^/]+/([^/]+)/android/.*#plugin: \1#' | sort -u \
+            > ci-diagnostics/plugin-permission-sources.txt || true
+          cat ci-diagnostics/plugin-permission-sources.txt
+
       - name: Dump manifest, badging and signature details
         continue-on-error: true
         run: |
@@ -60,7 +80,7 @@ jobs:
             echo "--- aapt2 dump badging ---"
             "$BT/aapt2" dump badging "$apk" || true
             echo "--- aapt2 dump xmltree AndroidManifest.xml ---"
-            "$BT/aapt2" dump xmltree "$apk" AndroidManifest.xml || true
+            "$BT/aapt2" dump xmltree --file AndroidManifest.xml "$apk" || true
             echo "--- apksigner verify -v ---"
             "$BT/apksigner" verify -v --print-certs --min-sdk-version 24 --max-sdk-version 36 "$apk" || true
             echo "--- zipalign -c -P 16 -v 4 ---"

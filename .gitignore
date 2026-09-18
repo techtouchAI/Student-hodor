@@ -27,6 +27,10 @@ android/gradle/wrapper/gradle-wrapper.jar
 # OS
 .DS_Store
 
+# Python (أدوات المستودع)
+__pycache__/
+*.py[cod]
+
 # Arena / caches
 .arena/
 .cache/

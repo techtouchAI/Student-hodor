@@ -624,7 +624,7 @@ def compare(previous: ApkFacts, current: ApkFacts, allow_minsdk_bump: bool) -> l
         cur_code = int(current.badging.get("versionCode", "0"))
     except ValueError:
         prev_code = cur_code = 0
-    if prev_code and cur_code and cur_code <= prev_code:
+    if prev_code and cur_code and cur_code < prev_code:
         problems.append(
             Problem(
                 SEVERITY_FATAL,

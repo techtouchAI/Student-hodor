@@ -74,9 +74,9 @@ Future<int> _seedYear(AppDb db, String yearName, String start) async {
 }
 
 Future<int> _count(AppDb db, String table) async {
-  final List<TypedResult> rows =
+  final List<QueryRow> rows =
       await db.customSelect('SELECT COUNT(*) AS c FROM $table').get();
-  return rows.single.read<int>('c');
+  return rows.single.read<int>('c') ?? 0;
 }
 
 void main() {
@@ -85,8 +85,8 @@ void main() {
     addTearDown(db.close);
     final int y1 = await _seedYear(db, '2026-2027', '2026-09-01');
     final int y2 = await _seedYear(db, '2027-2028', '2027-09-01');
-    expect(await _count(db, db.academicYears), 2);
-    expect(await _count(db, db.students), 2);
+    expect(await _count(db, 'academic_years'), 2);
+    expect(await _count(db, 'students'), 2);
 
     final String backup =
         await YearsService(db).deleteYear(y1, backup: () async => 'نسخة-قبل-الحذف');

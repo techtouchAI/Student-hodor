@@ -149,17 +149,20 @@ class LocalNotifications {
       return false;
     }
     try {
+      // v21+: الوعاء `NotificationDetails` إلزامي حول تفاصيل المنصة.
       await plugin.show(
         id: id,
         title: title,
         body: body,
-        notificationDetails: AndroidNotificationDetails(
-          _channelId,
-          _channelName,
-          channelDescription: _channelDescription,
-          importance: Importance.high,
-          priority: Priority.high,
-          icon: _icon,
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            _channelId,
+            _channelName,
+            channelDescription: _channelDescription,
+            importance: Importance.high,
+            priority: Priority.high,
+            icon: _icon,
+          ),
         ),
         payload: payload,
       );

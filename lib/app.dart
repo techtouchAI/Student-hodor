@@ -6,6 +6,8 @@
 ///   المعاملات يُنتج شاشة خطأ مقروءة (`_RouteErrorScreen`) لا بياضاً.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,6 +22,8 @@ import 'features/classes/classes_screen.dart';
 import 'features/export/export_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/leaves/leaves_screen.dart';
+import 'features/notifications/notifications_screen.dart';
+import 'features/notifications/notifications_watcher.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'features/reports/reports_screen.dart';
 import 'features/reports/student_report_screen.dart';
@@ -66,6 +70,12 @@ GoRouter buildRouter() => GoRouter(
           path: '/reports',
           name: AppRoutes.reports,
           builder: (_, __) => _guarded('reports', const ReportsScreen()),
+        ),
+        GoRoute(
+          path: '/notifications',
+          name: AppRoutes.notifications,
+          builder: (_, __) =>
+              _guarded('notifications', const NotificationsScreen()),
         ),
         GoRoute(
           path: '/export',
@@ -168,21 +178,54 @@ class StudentHodorApp extends ConsumerWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0D6E5F)),
           scaffoldBackgroundColor: const Color(0xFFF6F8F7),
         ),
-        // فرض الاتجاه RTL لكل الشاشات بدون اعتماد ترجمة المواد.
+        // فرض الاتجاه RTL لكل الشاشات + حارس التنبيهات الجذري (مُركَّب فوق
+        // كل المسارات: يمشي الاحتساب الحي وعمل الصلاحيات والروابط العميقة
+        // بلا اعتماد على أي شاشة).
         builder: (BuildContext context, Widget? child) => Directionality(
           textDirection: TextDirection.rtl,
-          child: child ?? const SizedBox.shrink(),
+          child: NotificationsWatcher(
+            child: child ?? const SizedBox.shrink(),
+          ),
         ),
-        routerConfig: router ?? buildRouter(),
+        routerConfig: router ?? ref.read(appRouterProvider),
       );
 }
 
 /// يقرر الوجهة الأولى: إعداد أولي أم شاشة رئيسة.
-class _SplashGate extends ConsumerWidget {
+///
+/// ينتظر الإقلاع الأول اكتمال تهيئة طبقة الإشعارات ([initDone]) حتى لا
+/// تفوت **نقرة إشعار نظام** أطلقت إقلاعًا باردًا (ترد بعد ذهاب/إياب قناة
+/// المنصة). مؤقّت أمان (ثانيتان) يمنع الوقوف على الشاشة الافتتاحية أبدًا.
+class _SplashGate extends ConsumerStatefulWidget {
   const _SplashGate();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_SplashGate> createState() => _SplashGateState();
+}
+
+class _SplashGateState extends ConsumerState<_SplashGate> {
+  Timer? _fallback;
+
+  @override
+  void initState() {
+    super.initState();
+    // أمان: إن لم تكتمل تهيئة الإشعارات (عطل غير متوقع) نكمل الإقلاع.
+    _fallback = Timer(const Duration(seconds: 2), () {
+      if (!mounted) {
+        return;
+      }
+      ref.read(notificationInitDoneProvider.notifier).state = true;
+    });
+  }
+
+  @override
+  void dispose() {
+    _fallback?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final AsyncValue<Map<String, String>> settings =
         ref.watch(settingsProvider);
     return settings.when(
@@ -194,11 +237,29 @@ class _SplashGate extends ConsumerWidget {
       ),
       data: (Map<String, String> s) {
         final bool configured = (s['school_name'] ?? '').isNotEmpty;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (context.mounted) {
-            context.go(configured ? '/home' : '/onboarding');
-          }
-        });
+        // المراقبة تجعل البناء يتجدد حين تصل الإشارة أو الرابط — ثم
+        // يُقرأان مجددًا داخل الـ callback (قد يتغيران قبله).
+        final bool initDone = ref.watch(notificationInitDoneProvider);
+        final String? pending = ref.watch(pendingNotificationRouteProvider);
+        if (initDone) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!context.mounted) {
+              return;
+            }
+            // نقرة إشعار نظام أطلقت إقلاعًا باردًا: بعد تحميل الإعدادات
+            // نذهب مباشرة إلى ملف الطالب لا إلى الرئيسية.
+            final String? current =
+                ref.read(pendingNotificationRouteProvider) ?? pending;
+            ref.read(pendingNotificationRouteProvider.notifier).state = null;
+            final String destination;
+            if (configured && current != null) {
+              destination = current;
+            } else {
+              destination = configured ? '/home' : '/onboarding';
+            }
+            context.go(destination);
+          });
+        }
         return const Scaffold(body: Center(child: CircularProgressIndicator()));
       },
     );

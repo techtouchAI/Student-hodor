@@ -1,6 +1,7 @@
 name: verify
 
 # بوابة تحقق سريعة (analyze + tests) دون بناء APK — للتكرار السريع على الإصلاحات.
+# عند الفشل ينشر تفاصيل الأخطاء تعليقاً على طلب السحب (يُحدَّث في كل إعادة).
 on:
   workflow_dispatch:
   pull_request:
@@ -11,6 +12,7 @@ concurrency:
 
 permissions:
   contents: read
+  pull-requests: write
 
 jobs:
   verify:
@@ -31,7 +33,32 @@ jobs:
         run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Analyze (zero warnings policy)
-        run: flutter analyze --fatal-warnings --fatal-infos
+        run: set -o pipefail; flutter analyze --fatal-warnings --fatal-infos 2>&1 | tee ci_analyze.log
 
       - name: Unit & widget tests
-        run: flutter test --reporter expanded --timeout 60s
+        run: set -o pipefail; flutter test --reporter expanded --timeout 60s 2>&1 | tee ci_test.log
+
+      - name: Report failure details to PR
+        if: failure() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo '## تفاصيل فشل التحقق (تقرير تلقائي)'
+            if [ -s ci_analyze.log ]; then
+              echo
+              echo '### flutter analyze'
+              echo '```'
+              tail -n 200 ci_analyze.log
+              echo '```'
+            fi
+            if [ -s ci_test.log ]; then
+              echo
+              echo '### flutter test (ذيل السجل)'
+              echo '```'
+              tail -n 120 ci_test.log
+              echo '```'
+            fi
+          } > report.md
+          gh pr comment "${{ github.event.pull_request.number }}" --body-file report.md --edit-last \
+            || gh pr comment "${{ github.event.pull_request.number }}" --body-file report.md

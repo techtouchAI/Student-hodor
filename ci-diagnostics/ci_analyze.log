@@ -1,6 +1,14 @@
 Analyzing Student-hodor...                                      
 
-  error • Invalid constant value • lib/features/about/about_screen.dart:83:19 • invalid_constant
-  error • The getter 'youtube' isn't defined for the type 'Icons'. Try importing the library that defines 'youtube', correcting the name to the name of an existing getter, or defining a getter or field named 'youtube' • lib/features/about/about_screen.dart:83:25 • undefined_getter
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/attendance/day_sheet_screen.dart:238:45 • use_build_context_synchronously
+  error • The property 'arrivalTime' can't be unconditionally accessed because the receiver can be 'null'. Try making the access conditional (using '?.') or adding a null check to the target ('!') • lib/features/export/excel_builder.dart:272:35 • unchecked_use_of_nullable_value
+  error • The property 'arrivalTime' can't be unconditionally accessed because the receiver can be 'null'. Try making the access conditional (using '?.') or adding a null check to the target ('!') • lib/features/export/excel_builder.dart:273:42 • unchecked_use_of_nullable_value
+  error • Expected to find '[' • lib/features/reports/reports_screen.dart:177:29 • expected_token
+  error • The operator '<' isn't defined for the type 'List<dynamic>'. Try defining the operator '<' • lib/features/reports/reports_screen.dart:177:29 • undefined_operator
+  error • Conditions must have a static type of 'bool'. Try changing the condition • lib/features/reports/reports_screen.dart:177:40 • non_bool_condition
+  error • Expected an identifier • lib/features/reports/reports_screen.dart:177:54 • missing_identifier
+  error • Expected to find ':' • lib/features/reports/reports_screen.dart:177:54 • expected_token
+  error • The operator '[]' isn't defined for the type '(Type, InvalidType)'. Try defining the operator '[]' • lib/features/reports/reports_screen.dart:177:55 • undefined_operator
+  error • Expected an identifier • lib/features/reports/reports_screen.dart:177:56 • missing_identifier
 
-2 issues found. (ran in 17.2s)
+10 issues found. (ran in 17.7s)

@@ -1,0 +1,152 @@
+===== published/app-release.apk =====
+--- aapt2 dump badging ---
+package: name='iq.techtouch.student_hodor' versionCode='5' versionName='1.3.0' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'
+minSdkVersion:'24'
+targetSdkVersion:'36'
+uses-permission: name='android.permission.CAMERA'
+uses-permission: name='android.permission.VIBRATE'
+uses-permission: name='android.permission.POST_NOTIFICATIONS'
+uses-permission: name='iq.techtouch.student_hodor.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'
+uses-permission: name='android.permission.ACCESS_NETWORK_STATE'
+uses-permission: name='android.permission.INTERNET'
+application-label:'حضور الطالب'
+application-label-af:'حضور الطالب'
+application-label-am:'حضور الطالب'
+application-label-ar:'حضور الطالب'
+application-label-as:'حضور الطالب'
+application-label-az:'حضور الطالب'
+application-label-be:'حضور الطالب'
+application-label-bg:'حضور الطالب'
+application-label-bn:'حضور الطالب'
+application-label-bs:'حضور الطالب'
+application-label-ca:'حضور الطالب'
+application-label-cs:'حضور الطالب'
+application-label-da:'حضور الطالب'
+application-label-de:'حضور الطالب'
+application-label-el:'حضور الطالب'
+application-label-en-AU:'حضور الطالب'
+application-label-en-CA:'حضور الطالب'
+application-label-en-GB:'حضور الطالب'
+application-label-en-IN:'حضور الطالب'
+application-label-en-XC:'حضور الطالب'
+application-label-es:'حضور الطالب'
+application-label-es-US:'حضور الطالب'
+application-label-et:'حضور الطالب'
+application-label-eu:'حضور الطالب'
+application-label-fa:'حضور الطالب'
+application-label-fi:'حضور الطالب'
+application-label-fr:'حضور الطالب'
+application-label-fr-CA:'حضور الطالب'
+application-label-gl:'حضور الطالب'
+application-label-gu:'حضور الطالب'
+application-label-hi:'حضور الطالب'
+application-label-hr:'حضور الطالب'
+application-label-hu:'حضور الطالب'
+application-label-hy:'حضور الطالب'
+application-label-in:'حضور الطالب'
+application-label-is:'حضور الطالب'
+application-label-it:'حضور الطالب'
+application-label-iw:'حضور الطالب'
+application-label-ja:'حضور الطالب'
+application-label-ka:'حضور الطالب'
+application-label-kk:'حضور الطالب'
+application-label-km:'حضور الطالب'
+application-label-kn:'حضور الطالب'
+application-label-ko:'حضور الطالب'
+application-label-ky:'حضور الطالب'
+application-label-lo:'حضور الطالب'
+application-label-lt:'حضور الطالب'
+application-label-lv:'حضور الطالب'
+application-label-mk:'حضور الطالب'
+application-label-ml:'حضور الطالب'
+application-label-mn:'حضور الطالب'
+application-label-mr:'حضور الطالب'
+application-label-ms:'حضور الطالب'
+application-label-my:'حضور الطالب'
+application-label-nb:'حضور الطالب'
+application-label-ne:'حضور الطالب'
+application-label-nl:'حضور الطالب'
+application-label-or:'حضور الطالب'
+application-label-pa:'حضور الطالب'
+application-label-pl:'حضور الطالب'
+application-label-pt:'حضور الطالب'
+application-label-pt-BR:'حضور الطالب'
+application-label-pt-PT:'حضور الطالب'
+application-label-ro:'حضور الطالب'
+application-label-ru:'حضور الطالب'
+application-label-si:'حضور الطالب'
+application-label-sk:'حضور الطالب'
+application-label-sl:'حضور الطالب'
+application-label-sq:'حضور الطالب'
+application-label-sr:'حضور الطالب'
+application-label-sr-Latn:'حضور الطالب'
+application-label-sv:'حضور الطالب'
+application-label-sw:'حضور الطالب'
+application-label-ta:'حضور الطالب'
+application-label-te:'حضور الطالب'
+application-label-th:'حضور الطالب'
+application-label-tl:'حضور الطالب'
+application-label-tr:'حضور الطالب'
+application-label-uk:'حضور الطالب'
+application-label-ur:'حضور الطالب'
+application-label-uz:'حضور الطالب'
+application-label-vi:'حضور الطالب'
+application-label-zh-CN:'حضور الطالب'
+application-label-zh-HK:'حضور الطالب'
+application-label-zh-TW:'حضور الطالب'
+application-label-zu:'حضور الطالب'
+application-icon-160:'res/IG.xml'
+application-icon-240:'res/IG.xml'
+application-icon-320:'res/IG.xml'
+application-icon-480:'res/IG.xml'
+application-icon-640:'res/IG.xml'
+application-icon-65534:'res/IG.xml'
+application: label='حضور الطالب' icon='res/IG.xml'
+launchable-activity: name='iq.techtouch.student_hodor.MainActivity'  label='' icon=''
+uses-library-not-required:'androidx.window.extensions'
+uses-library-not-required:'androidx.window.sidecar'
+feature-group: label=''
+  uses-feature-not-required: name='android.hardware.camera'
+  uses-feature-not-required: name='android.hardware.camera.autofocus'
+  uses-feature: name='android.hardware.faketouch'
+  uses-implied-feature: name='android.hardware.faketouch' reason='default feature for all apps'
+main
+other-activities
+other-receivers
+other-services
+supports-screens: 'small' 'normal' 'large' 'xlarge'
+supports-any-density: 'true'
+locales: '--_--' 'af' 'am' 'ar' 'as' 'az' 'be' 'bg' 'bn' 'bs' 'ca' 'cs' 'da' 'de' 'el' 'en-AU' 'en-CA' 'en-GB' 'en-IN' 'en-XC' 'es' 'es-US' 'et' 'eu' 'fa' 'fi' 'fr' 'fr-CA' 'gl' 'gu' 'hi' 'hr' 'hu' 'hy' 'in' 'is' 'it' 'iw' 'ja' 'ka' 'kk' 'km' 'kn' 'ko' 'ky' 'lo' 'lt' 'lv' 'mk' 'ml' 'mn' 'mr' 'ms' 'my' 'nb' 'ne' 'nl' 'or' 'pa' 'pl' 'pt' 'pt-BR' 'pt-PT' 'ro' 'ru' 'si' 'sk' 'sl' 'sq' 'sr' 'sr-Latn' 'sv' 'sw' 'ta' 'te' 'th' 'tl' 'tr' 'uk' 'ur' 'uz' 'vi' 'zh-CN' 'zh-HK' 'zh-TW' 'zu'
+densities: '160' '240' '320' '480' '640' '65534'
+native-code: 'arm64-v8a' 'armeabi-v7a' 'x86_64'
+--- aapt2 dump xmltree AndroidManifest.xml ---
+missing required flag --file
+
+dump xmltree [options] --file arg files...
+
+Options:
+ --help                                            Displays this help menu
+ --file arg                                        A compiled xml file to print
+--- apksigner verify -v ---
+Verifies
+Verified using v1 scheme (JAR signing): false
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): false
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v3.2 scheme (APK Signature Scheme v3.2): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+V2 Signer: certificate DN: CN=Student Hodor, OU=Schools, O=TechTouch, C=IQ
+V2 Signer: certificate SHA-256 digest: c65c2cabfd87c1d9592ab45df621f609c2a478cfee6d5e6ce474df197c671ecc
+V2 Signer: certificate SHA-1 digest: 3c241095df86f3359ea5baf8c3d6c7e33c6aa3c6
+V2 Signer: certificate MD5 digest: 6425431a8e0300a4c346f4dceaa7514f
+V2 Signer: key algorithm: RSA
+V2 Signer: key size (bits): 2048
+V2 Signer: public key SHA-256 digest: 8be2532337298cb8e871ac8842e85c4c6afdcba3eb5bb22b566e388f01dae415
+V2 Signer: public key SHA-1 digest: acc1baaa74d9c2a80e5749e05b4f74703f5ec489
+V2 Signer: public key MD5 digest: 9715bae1880eec768c8583ceb3334631
+--- zipalign -c -P 16 -v 4 ---
+zipalign 16KB: OK
+--- zipalign -c 4 ---
+zipalign 4: OK

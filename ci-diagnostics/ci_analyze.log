@@ -1,11 +1,2 @@
 Analyzing Student-hodor...                                      
-
-  error • Expected to find '[' • lib/features/reports/reports_screen.dart:177:35 • expected_token
-  error • The operator '<' isn't defined for the type 'List<dynamic>'. Try defining the operator '<' • lib/features/reports/reports_screen.dart:177:35 • undefined_operator
-  error • Conditions must have a static type of 'bool'. Try changing the condition • lib/features/reports/reports_screen.dart:177:46 • non_bool_condition
-  error • Expected an identifier • lib/features/reports/reports_screen.dart:177:60 • missing_identifier
-  error • Expected to find ':' • lib/features/reports/reports_screen.dart:177:60 • expected_token
-  error • The operator '[]' isn't defined for the type '(Type, InvalidType)'. Try defining the operator '[]' • lib/features/reports/reports_screen.dart:177:61 • undefined_operator
-  error • Expected an identifier • lib/features/reports/reports_screen.dart:177:62 • missing_identifier
-
-7 issues found. (ran in 12.1s)
+No issues found! (ran in 13.8s)

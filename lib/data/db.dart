@@ -186,6 +186,37 @@ class AuditLogs extends Table {
   TextColumn get details => text().withDefault(const Constant(''))();
 }
 
+/// تنبيهات حد الفصل داخل التطبيق: يُنشأ **مرة واحدة** لكل طالب في السنة
+/// لحظة بلوغه الحد الثاني (نفس مصدر إنذار التقارير المبكر)، ولا يتكرر؛
+/// إحصاؤه يتحدّث حيًّا ما دام الطالب على القائمة ويُجمَّد بعده.
+class AlertNotifications extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get yearId =>
+      integer().references(AcademicYears, #id, onDelete: KeyAction.cascade)();
+  IntColumn get studentId =>
+      integer().references(Students, #id, onDelete: KeyAction.cascade)();
+  /// نوع التنبيه (حاليًا حد الفصل فقط) — قابل للامتداد بأنواع قادمة.
+  TextColumn get kind => text().withDefault(const Constant('threshold_2'))();
+  /// أيام الغياب عند آخر احتساب (يتحدّث ما دام الطالب على القائمة).
+  IntColumn get absentDays => integer()();
+  /// الأيام المسجّلة عند آخر احتساب (لنسبة السطر).
+  IntColumn get recordedDays => integer()();
+  /// العتبة الثانية (أيام) وقت الحدث.
+  RealColumn get thresholdDays => real()();
+  TextColumn get occurredAt => text()();
+  /// قرأه المستخدم (فتحها من زر الجرس أو من إشعار النظام).
+  BoolColumn get read => boolean().withDefault(const Constant(false))();
+  TextColumn get readAt => text().nullable()();
+  /// عُرِض إشعار النظام (خارج التطبيق) بنجاح — العرض **مرة واحدة**:
+  /// عند الفشل (بلا صلاحية/الميزة مطفأة) يُعاد المحاولة في الاحتساب التالي،
+  /// ولا يُعاد أبدًا بعد النجاح.
+  BoolColumn get systemShown => boolean().withDefault(const Constant(false))();
+  @override
+  List<Set<Column<Object>>> get uniqueKeys => <Set<Column<Object>>>[
+        <Column<Object>>{yearId, studentId, kind},
+      ];
+}
+
 @DriftDatabase(
   tables: <Type>[
     Settings,
@@ -199,6 +230,7 @@ class AuditLogs extends Table {
     Leaves,
     Holidays,
     AuditLogs,
+    AlertNotifications,
   ],
 )
 class AppDb extends _$AppDb {
@@ -206,9 +238,9 @@ class AppDb extends _$AppDb {
 
   AppDb.forTesting(super.e);
 
-  /// الإصدار 4: عمود `arrival_time` في الحضور (وقت الوصول الفعلي للتأخر).
+  /// الإصدار 5: جدول `alert_notifications` (تنبيهات حد الفصل).
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -227,6 +259,9 @@ class AppDb extends _$AppDb {
           if (from < 4) {
             // عمود اختياري: السجلات القديمة تبقى بلا وقت ولا يُفقد شيء.
             await m.addColumn(attendanceRows, attendanceRows.arrivalTime);
+          }
+          if (from < 5) {
+            await m.createTable(alertNotifications);
           }
         },
       );
@@ -263,6 +298,8 @@ class AppDb extends _$AppDb {
     'show_hijri': '1',
     'alert_threshold_1': '10',
     'alert_threshold_2': '15',
+    // إشعارات النظام (خارج التطبيق) — مفتوحة افتراضيًا.
+    'system_notifications_enabled': '1',
     'day_start': '08:00',
     'late_after_minutes': '15',
   };
@@ -713,6 +750,136 @@ class AppDb extends _$AppDb {
             .write(const SessionsCompanion(closedAt: Value(null)));
         await logAudit('reopen_session', 'session=$sessionId');
       });
+
+  // ---------- التنبيهات (إشعارات حد الفصل) ----------
+
+  /// تنبيه نوع واحد لطالب في سنة (`null` = لم يبلغ بعد).
+  Future<AlertNotification?> alertOf(int yearId, int studentId, String kind) =>
+      (select(alertNotifications)
+            ..where(
+              (n) =>
+                  n.yearId.equals(yearId) &
+                  n.studentId.equals(studentId) &
+                  n.kind.equals(kind),
+            ))
+          .getSingleOrNull();
+
+  /// كل تنبيهات السنة (تُستخدم للقائمة ولتتبع إشعارات النظام).
+  Future<List<AlertNotification>> alertsOfYear(int yearId) =>
+      (select(alertNotifications)..where((n) => n.yearId.equals(yearId))).get();
+
+  /// تسجيل بلوغ حد الفصل: إنشاء أول مرة أو تحديث إحصاء بلا تكرار
+  /// (idempotent) — يُعيد `true` إذا وُلد التنبيه في هذه النداء.
+  Future<bool> recordAlertCrossing({
+    required int yearId,
+    required int studentId,
+    required int absentDays,
+    required int recordedDays,
+    required double thresholdDays,
+    required String kind,
+  }) async {
+    final AlertNotification? existing = await alertOf(yearId, studentId, kind);
+    if (existing == null) {
+      await into(alertNotifications).insert(
+        AlertNotificationsCompanion(
+          yearId: Value(yearId),
+          studentId: Value(studentId),
+          kind: Value(kind),
+          absentDays: Value(absentDays),
+          recordedDays: Value(recordedDays),
+          thresholdDays: Value(thresholdDays),
+          occurredAt: Value(_now()),
+        ),
+      );
+      await logAudit(
+        'alert_created',
+        'student=$studentId kind=$kind days=$absentDays',
+      );
+      return true;
+    }
+    if (existing.absentDays != absentDays ||
+        existing.recordedDays != recordedDays ||
+        (existing.thresholdDays - thresholdDays).abs() > 0.0001) {
+      await (update(alertNotifications)..where((n) => n.id.equals(existing.id)))
+          .write(
+        AlertNotificationsCompanion(
+          absentDays: Value(absentDays),
+          recordedDays: Value(recordedDays),
+          thresholdDays: Value(thresholdDays),
+        ),
+      );
+    }
+    return false;
+  }
+
+  /// قائمة الشاشة: غير المقروء أولاً ثم الأحدث.
+  Stream<List<AlertNotification>> watchAlerts(int yearId) =>
+      (select(alertNotifications)..where((n) => n.yearId.equals(yearId)))
+          .orderBy(<OrderClauseGenerator<AlertNotifications>>[
+            (t) => OrderingTerm.asc(t.read),
+            (t) => OrderingTerm.desc(t.occurredAt),
+            (t) => OrderingTerm.asc(t.id),
+          ])
+          .watch();
+
+  /// عدّاد زر الجرس: التنبيهات غير المقروءة في السنة.
+  Stream<int> unreadAlertCount(int yearId) =>
+      (select(alertNotifications)
+            ..where((n) => n.yearId.equals(yearId) & n.read.equals(false)))
+          .watch()
+          .map((List<AlertNotification> rows) => rows.length);
+
+  /// تنبيهات لم يُعرض إشعارها للنظام بعد (بانتظار الصلاحية/الميزة/إقلاع) —
+  /// لقاعدة «العرض مرة واحدة مع إعادة المحاولة».
+  Future<List<AlertNotification>> pendingSystemAlerts(int yearId) =>
+      (select(alertNotifications)
+            ..where(
+              (n) => n.yearId.equals(yearId) & n.systemShown.equals(false),
+            ))
+          .get();
+
+  /// عُرِض إشعار النظام بنجاح — لا إعادة عرض.
+  Future<void> markAlertSystemShown(int id) =>
+      (update(alertNotifications)..where((n) => n.id.equals(id)))
+          .write(const AlertNotificationsCompanion(systemShown: Value(true)));
+
+  /// وسم تنبيه واحد كمقروء (فتح من زر الجرس أو من إشعار النظام).
+  Future<void> markAlertRead(int id) =>
+      (update(alertNotifications)..where((n) => n.id.equals(id)))
+          .write(
+        AlertNotificationsCompanion(
+          read: const Value(true),
+          readAt: Value(_now()),
+        ),
+      );
+
+  /// وسم كل تنبيهات السنة مقروءة — يعيد عدد ما وُسِم.
+  Future<int> markAllAlertsRead(int yearId) =>
+      (update(alertNotifications)
+            ..where((n) => n.yearId.equals(yearId) & n.read.equals(false)))
+          .write(
+        AlertNotificationsCompanion(
+          read: const Value(true),
+          readAt: Value(_now()),
+        ),
+      );
+
+  /// تدفق مدخلات إعادة احتساب التنبيهات: أي تغيير في الحضور/الإعدادات/
+  /// الطلاب/السنة/التنبيهات ⇒ احتساب واحد (بلا لمس كل شاشة) — ويبقى
+  /// المصدر هو تقارير `ReportsService` نفسها.
+  Stream<void> watchAlertInputs() =>
+      customSelect(
+        'SELECT 1 AS x',
+        readsFrom: {
+          attendanceRows,
+          settings,
+          students,
+          academicYears,
+          alertNotifications,
+        },
+      )
+          .watch()
+          .map<void>((_) {});
 
   // ---------- تدقيق ----------
 

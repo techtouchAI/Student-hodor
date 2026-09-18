@@ -1,5 +1,8 @@
-/// الشاشة الرئيسة: بطاقة المدرسة/اليوم + جلسات اليوم + شبكة الوحدات + بوابة PIN.
+/// الشاشة الرئيسة: بطاقة المدرسة/اليوم + جلسات اليوم + شبكة الوحدات +
+/// بوابة PIN + زر التنبيهات (حد الفصل).
 library;
+
+import 'dart:async';
 
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
@@ -7,12 +10,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/error_guard.dart';
+import '../../core/local_notifications.dart';
 import '../../core/nav.dart';
 import '../../core/school_time.dart';
 import '../../data/db.dart';
 import '../../data/error_log.dart';
 import '../../data/years_service.dart';
 import '../../state/providers.dart';
+import '../notifications/notifications_bell.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -43,6 +48,81 @@ class _HomeState extends ConsumerState<HomeScreen> {
             (SchoolClasses c) => OrderingTerm.asc(c.section),
           ]))
         .watch();
+    // مرة واحدة فقط (أول إقلاع بعد الإعداد الأولي): شرح قصير ثم طلب
+    // صلاحية الإشعارات من النظام (طبقة «خارج التطبيق»).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        unawaited(_maybeRequestNotificationPermission());
+      }
+    });
+  }
+
+  /// طلب صلاحية إشعارات النظام: مرّة واحدة لكل جهاز (لا إزعاج متكرر).
+  /// إن مُنحت ⇒ يحتسب الحارس فورًا ويُظهر أي تنبيهات معلقة.
+  Future<void> _maybeRequestNotificationPermission() async {
+    final AppDb db = ref.read(dbProvider);
+    try {
+      if (await db.setting('notifications_permission_asked') != null) {
+        return;
+      }
+      await db.setSetting('notifications_permission_asked', '1');
+      // أندرويد أقدم من 13: الصلاحية ضمن التثبيت — لا حوار نظام.
+      if (await LocalNotifications.areNotificationsEnabled()) {
+        await db.setSetting('notifications_permission_state', 'granted');
+        return;
+      }
+      if (!mounted) {
+        return;
+      }
+      final bool? agreed = await showDialog<bool>(
+        context: context,
+        builder: (BuildContext dialogContext) => AlertDialog(
+          icon: const Icon(Icons.notifications, size: 40),
+          title: const Text('السماح بالإشعارات؟'),
+          content: const Text(
+            'ليُنبهك التطبيق لحظة بلوغ أي طالب الحد الثاني (حد الفصل) '
+            'يلزمه إذن بإظهار إشعارات النظام على هاتفك — إضافةً إلى '
+            'التنبيهات داخل التطبيق.',
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('ليس الآن'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('السماح'),
+            ),
+          ],
+        ),
+      );
+      if (agreed != true) {
+        return;
+      }
+      final bool granted = await LocalNotifications.requestPermission();
+      if (!mounted) {
+        return;
+      }
+      await db.setSetting(
+        'notifications_permission_state',
+        granted ? 'granted' : 'denied',
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            granted
+                ? 'فُعّلت الإشعارات — تنبيهات حد الفصل ستظهر على هاتفك'
+                : 'لم تُمنح الصلاحية — تطلبها لاحقًا من شاشة الإعدادات',
+          ),
+        ),
+      );
+    } catch (e, st) {
+      AppErrorLog.instance.record(
+        e,
+        st,
+        where: 'home:notification-permission',
+      );
+    }
   }
 
   late final Stream<List<SchoolClass>> _classes;
@@ -302,7 +382,11 @@ class _HomeState extends ConsumerState<HomeScreen> {
     final AsyncValue<AcademicYear?> year = ref.watch(currentYearProvider);
     final AsyncValue<bool> ended = ref.watch(yearEndedProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('حضور الطالب')),
+      appBar: AppBar(
+        title: const Text('حضور الطالب'),
+        // زر التنبيهات في نفس سطر اسم التطبيق: شارة بعدد غير المقروء.
+        actions: <Widget>[const NotificationsBell()],
+      ),
       body: settings.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (Object e, StackTrace st) => Center(child: Text('$e')),

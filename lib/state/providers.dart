@@ -2,7 +2,9 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../app.dart';
 import '../core/school_time.dart';
 import '../data/db.dart';
 
@@ -39,4 +41,24 @@ final FutureProvider<bool> yearEndedProvider = FutureProvider<bool>(
 
 /// بوابة PIN: true بعد إدخال رمز صحيح أو عند عدم وجود رمز.
 final StateProvider<bool> pinUnlockedProvider =
+    StateProvider<bool>((Ref ref) => false);
+
+/// راوتر التطبيق — مصدر وحيد: يستخدمه حارس التنبيهات للتنقل من نقرة
+/// إشعار نظام دون حاجة إلى سياق داخل الراوتر. (يُنشأ فقط إن لم يُحقن
+/// راوتر خاص بالاختبار في `StudentHodorApp`.)
+final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
+  final GoRouter router = buildRouter();
+  ref.onDispose(router.dispose);
+  return router;
+});
+
+/// مسار نقرة إشعار نظام أطلقت إقلاعًا باردًا: تستهلكه الشاشة الأولى بعد
+/// تحميل الإعدادات (null = إقلاع عادي).
+final StateProvider<String?> pendingNotificationRouteProvider =
+    StateProvider<String?>((Ref ref) => null);
+
+/// اكتملت تهيئة طبقة الإشعارات (نجاحًا كان أم فشلًا): تحجز بها الشاشة
+/// الأولى تنقّلها الأول حتى لا تفوت رابط نقرة الإشعار الذي يصل متأخرًا
+/// بمقدار ذهاب/إياب قناة المنصة.
+final StateProvider<bool> notificationInitDoneProvider =
     StateProvider<bool>((Ref ref) => false);

@@ -16,6 +16,9 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        // core library desugaring: إلزامي مع flutter_local_notifications حتى
+        // دون جدولة إشعارات (متطلب معلن في وثائق الوسيطة).
+        coreLibraryDesugaringEnabled true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -58,6 +61,11 @@ android {
             useLegacyPackaging = false
         }
     }
+}
+
+dependencies {
+    // مكتبة desugaring المرفقة بأندرويد (تُستخدم من compileOptions أعلاه).
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
 }
 
 flutter {

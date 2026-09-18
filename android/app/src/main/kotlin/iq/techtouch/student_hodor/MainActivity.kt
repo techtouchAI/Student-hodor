@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -15,6 +16,7 @@ class MainActivity : FlutterActivity() {
 
     private val linkChannelName = "iq.techtouch.student_hodor.links"
     private val backupChannelName = "iq.techtouch.student_hodor.backup"
+    private val notificationsChannelName = "iq.techtouch.student_hodor.notifications"
 
     /** المجلد الفرعي داخل التنزيلات الذي تُحفظ فيه كل النسخ الاحتياطية. */
     private val backupFolder = "نسخة احتياطية للغيابات"
@@ -71,6 +73,35 @@ class MainActivity : FlutterActivity() {
                     result.notImplemented()
                 }
             }
+
+        // صفحة «إشعارات التطبيق» في نظام أندرويد: على 13+ تضم مفتاح صلاحية
+        // POST_NOTIFICATIONS نفسها، وعلى 8+ مفتاح قناة «تنبيهات حد الفصل» —
+        // يُستخدم حين يريد المستخدم إعادة تفعيل الإشعارات بعد رفضها.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, notificationsChannelName)
+            .setMethodCallHandler { call, result ->
+                if (call.method == "openNotificationSettings") {
+                    try {
+                        openNotificationSettings()
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("OPEN_FAILED", e.message, null)
+                    }
+                } else {
+                    result.notImplemented()
+                }
+            }
+    }
+
+    /**
+     * يفتح صفحة إعدادات إشعارات هذا التطبيق في نظام أندرويد
+     * (ACTION_APP_NOTIFICATION_SETTINGS — متوفرة منذ API 19، وminSdk هنا 21).
+     */
+    private fun openNotificationSettings() {
+        val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+            putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        startActivity(intent)
     }
 
     /**

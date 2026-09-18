@@ -1,6 +1,8 @@
-/// الإعدادات: مدرسة/مدير/أيام الدوام/هجري/حدود الإنذار/نافذة التأخر/PIN/عطل/نسخ ودمج.
+/// الإعدادات: مدرسة/مدير/أيام الدوام/هجري/حدود الإنذار/نافذة التأخر/PIN/
+/// عطل/تنبيهات (صلاحية وشبكة)/نسخ ودمج.
 library;
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:drift/drift.dart' hide Column;
@@ -9,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../core/local_notifications.dart';
 import '../../core/school_time.dart';
 import '../../data/backup_service.dart';
 import '../../data/db.dart';
@@ -34,6 +37,11 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
   // نسخة قابلة للتعديل: المجموعة الافتراضية const ولا تقبل الإضافة.
   Set<int> _weekdays = <int>{...SchoolTime.defaultWorkWeekdays};
   bool _hijri = true;
+  /// إشعارات النظام (خارج التطبيق) — مفتوحة افتراضيًا.
+  bool _systemNotif = true;
+  /// حالة صلاحية إشعارات النظام على الجهاز (تُحدَّث حيًّا).
+  bool _permGranted = false;
+  String _permLabel = '…';
   bool _loaded = false;
   String? _loadError;
 
@@ -70,6 +78,7 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
         _pin.text = s['pin'] ?? '';
         _dayStart.text = s['day_start'] ?? '08:00';
         _lateAfter.text = s['late_after_minutes'] ?? '15';
+        _systemNotif = s['system_notifications_enabled'] != '0';
         _hijri = s['show_hijri'] == '1';
         _weekdays = <int>{
           for (final String w in (s['work_weekdays'] ?? '7,1,2,3,4').split(','))
@@ -78,11 +87,70 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
         _loaded = true;
         _loadError = null;
       });
+      unawaited(_refreshPermissionState());
     } catch (e) {
       if (mounted) {
         setState(() => _loadError = '$e');
       }
     }
+  }
+
+  /// حالة صلاحية إشعارات النظام على هذا الجهاز (نداء حي — لا يخزَّن
+  /// كحقيقة، ويُخزَّن فقط كسجل حالة).
+  Future<void> _refreshPermissionState() async {
+    final bool ok = await LocalNotifications.areNotificationsEnabled();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _permGranted = ok;
+      _permLabel = ok
+          ? 'مسموح — ستظهر إشعارات منبثقة على هاتفك'
+          : 'غير مسموح — لن تظهر إشعارات منبثقة';
+    });
+    unawaited(
+      ref
+          .read(dbProvider)
+          .setSetting('notifications_permission_state', ok ? 'granted' : 'denied'),
+    );
+  }
+
+  Future<void> _requestPermission() async {
+    try {
+      final bool granted = await LocalNotifications.requestPermission();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              granted
+                  ? 'فُعّلت الإشعارات'
+                  : 'لم تُمنح الصلاحية — جرّب من «إعدادات النظام»',
+            ),
+          ),
+        );
+      }
+    } catch (e, st) {
+      AppErrorLog.instance.record(
+        e,
+        st,
+        where: 'settings:notification-permission',
+      );
+    }
+    await _refreshPermissionState();
+  }
+
+  /// صفحة النظام لإشعارات التطبيق (أندرويد 13+: مفتاح الصلاحية نفسه).
+  Future<void> _openNotificationSettings() async {
+    try {
+      await LocalNotifications.openNotificationSettings();
+    } catch (e, st) {
+      AppErrorLog.instance.record(
+        e,
+        st,
+        where: 'settings:open-notification-settings',
+      );
+    }
+    await _refreshPermissionState();
   }
 
   Future<void> _about() async {
@@ -116,9 +184,13 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
     await db.setSetting('director_name', _director.text.trim());
     await db.setSetting('alert_threshold_1', _t1.text.trim());
     await db.setSetting('alert_threshold_2', _t2.text.trim());
-    await db.setSetting('pin', _pin.text.trim());
-    await db.setSetting('day_start', _dayStart.text.trim());
-    await db.setSetting('late_after_minutes', _lateAfter.text.trim());
+      await db.setSetting('pin', _pin.text.trim());
+      await db.setSetting(
+        'system_notifications_enabled',
+        _systemNotif ? '1' : '0',
+      );
+      await db.setSetting('day_start', _dayStart.text.trim());
+      await db.setSetting('late_after_minutes', _lateAfter.text.trim());
     await db.setSetting('show_hijri', _hijri ? '1' : '0');
     await db.setSetting('work_weekdays', _weekdays.join(','));
     await db.logAudit('settings_save', '');
@@ -311,6 +383,51 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
             ),
             obscureText: true,
           ),
+          const SizedBox(height: 16),
+          const Text(
+            'التنبيهات والإشعارات',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          SwitchListTile(
+            value: _systemNotif,
+            title: const Text('إشعارات النظام (خارج التطبيق)'),
+            subtitle: const Text(
+              'إشعار منبثق على الهاتف عند بلوغ الطالب حد الفصل — '
+              'التنبيه داخل التطبيق (زر الجرس) يعمل دائمًا',
+            ),
+            secondary: const Icon(Icons.notifications),
+            onChanged: (bool v) => setState(() => _systemNotif = v),
+          ),
+          ListTile(
+            leading: const Icon(Icons.phone_android),
+            title: const Text('صلاحية الإشعارات'),
+            subtitle: Text(_permLabel),
+            trailing: _permGranted
+                ? const Icon(Icons.check_circle, color: Colors.green)
+                : const Icon(Icons.gpp_maybe, color: Colors.orange),
+          ),
+          if (!_permGranted)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: <Widget>[
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: _requestPermission,
+                      child: const Text('طلب الصلاحية'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _openNotificationSettings,
+                      child: const Text('إعدادات النظام'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           const SizedBox(height: 12),
           const Text('أيام الدوام الأسبوعية:'),
           Wrap(

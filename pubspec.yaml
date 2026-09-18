@@ -49,6 +49,11 @@ dependencies:
   wakelock_plus: 1.8.0
   vibration: 3.2.1
 
+  # إشعارات النظام (خارج التطبيق): تنبيهات حد الفصل. أداة محلية بالكامل —
+  # لا تطلب صلاحية INTERNET ولا تُكسر بها ضمان الأوفلاين (الصلاحيات المدمجة:
+  # POST_NOTIFICATIONS على أندرويد 13+ وVIBRATE).
+  flutter_local_notifications: 22.3.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

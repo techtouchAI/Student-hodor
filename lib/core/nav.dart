@@ -40,6 +40,7 @@ class AppRoutes {
   static const String daySheet = 'daySheet';
   static const String student = 'student';
   static const String reports = 'reports';
+  static const String notifications = 'notifications';
   static const String export = 'export';
   static const String leaves = 'leaves';
   static const String years = 'years';

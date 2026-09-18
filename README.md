@@ -11,7 +11,7 @@
 نظام متكامل لإدارة حضور الطلاب في المدارس: بطاقات طلابية قابلة للطباعة، مسح فوري بالكاميرا،
 إجازات وعُطل، وتقارير Excel و PDF عربية جاهزة للمشاركة — **دون الحاجة إلى أي اتصال بالإنترنت**.
 
-![الإصدار](https://img.shields.io/badge/الإصدار-1.3.1%2B6-8A2BE2?style=for-the-badge)
+![الإصدار](https://img.shields.io/badge/الإصدار-1.3.1%2B7-8A2BE2?style=for-the-badge)
 ![البناء](https://img.shields.io/github/actions/workflow/status/techtouchAI/Student-hodor/build.yml?style=for-the-badge&logo=github&logoColor=white&label=البناء)
 ![المنصة](https://img.shields.io/badge/المنصة-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
 ![Flutter](https://img.shields.io/badge/Flutter-3.5%2B-02569B?style=for-the-badge&logo=flutter&logoColor=white)

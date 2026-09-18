@@ -695,9 +695,14 @@ def render_report(
             )
         if facts.permissions:
             lines.append("   الصلاحيات   : " + ", ".join(facts.permissions))
+        schemes_text = (
+            ", ".join(
+                f"{k}={'نعم' if v else 'لا'}" for k, v in sorted(facts.signer_schemes.items())
+            )
+            or "غير محددة"
+        )
         lines.append(
-            f"   التوقيع      : مخططات={','.join(sorted(facts.signer_schemes)) or 'غير محددة'} "
-            f"v1-files={len(facts.v1_signature_files)}"
+            f"   التوقيع      : {schemes_text} | ملفات v1={len(facts.v1_signature_files)}"
         )
         if facts.cert_dn:
             lines.append(f"   هوية الموقّع : {facts.cert_dn}")

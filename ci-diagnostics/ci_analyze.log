@@ -1,2 +1,9 @@
 Analyzing Student-hodor...                                      
-No issues found! (ran in 13.8s)
+
+  error • A value of type 'List<QueryRow>' can't be assigned to a variable of type 'List<TypedResult>'. Try changing the type of the variable, or casting the right-hand type to 'List<TypedResult>' • test/year_delete_test.dart:78:7 • invalid_assignment
+  error • A value of type 'int?' can't be returned from the function '_count' because it has a return type of 'Future<int>' • test/year_delete_test.dart:79:10 • return_of_invalid_type
+  error • The argument type 'String' can't be assigned to the parameter type 'Expression<int>'.  • test/year_delete_test.dart:79:32 • argument_type_not_assignable
+  error • The argument type '$AcademicYearsTable' can't be assigned to the parameter type 'String'.  • test/year_delete_test.dart:88:29 • argument_type_not_assignable
+  error • The argument type '$StudentsTable' can't be assigned to the parameter type 'String'.  • test/year_delete_test.dart:89:29 • argument_type_not_assignable
+
+5 issues found. (ran in 13.0s)

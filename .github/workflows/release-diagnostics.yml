@@ -5,6 +5,8 @@ name: release-diagnostics
 # التطبيق لأن الحزمة تبدو غير صالحة») على الملف الذي نزّله المستخدم، لا على
 # نسخة نظرية من الكود. لا تبني شيئاً: تشغيلها أقل من دقيقتين.
 on:
+  push:
+    branches: ["arena/**"]
   workflow_dispatch:
     inputs:
       tag:
@@ -32,9 +34,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p published
-          for asset in ${{ inputs.assets }}; do
+          for asset in ${{ inputs.assets || 'app-release.apk' }}; do
             echo "downloading $asset"
-            gh release download "${{ inputs.tag }}" \
+            gh release download "${{ inputs.tag || 'latest-apk' }}" \
               -R "${{ github.repository }}" -p "$asset" -D published
           done
           ls -la published

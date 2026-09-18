@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/school_time.dart';
 import '../../data/db.dart';
+import '../../data/error_log.dart';
 import '../../data/years_service.dart';
 import '../../state/providers.dart';
 
@@ -68,6 +69,9 @@ class YearsScreen extends ConsumerWidget {
                         await svc.closeYear(y.id);
                       case 'promote':
                         await _promote(context, ref, y);
+                      case 'delete':
+                        // مسارها (تأكيد مزدوج + نسخة إجبارية + رسالة) داخلها.
+                        await _deleteYear(context, ref, y);
                     }
                     ref.invalidate(currentYearProvider);
                   },
@@ -78,6 +82,13 @@ class YearsScreen extends ConsumerWidget {
                       const PopupMenuItem<String>(value: 'close', child: Text('إنهاء السنة')),
                     if (y.closed)
                       const PopupMenuItem<String>(value: 'promote', child: Text('ترقية الطلاب لسنة جديدة')),
+                    const PopupMenuItem<String>(
+                      value: 'delete',
+                      child: Text(
+                        'حذف السنة',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
                   ],
                 ),
               );
@@ -281,6 +292,67 @@ class YearsScreen extends ConsumerWidget {
     if (context.mounted) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('رُقّي $n طالباً ببادجات جديدة')));
+    }
+  }
+
+  /// حذف سنة واحدة بنطاقها الكامل: تأكيد مزدوج كنفس التصفير الشامل، نسخة
+  /// احتياطية إجبارية قبل الحذف، ثم رسالة بمسار النسخة. إن كانت آخر سنة
+  /// يعود التطبيق لشاشة الإعداد الأولي.
+  Future<void> _deleteYear(
+    BuildContext context,
+    WidgetRef ref,
+    AcademicYear y,
+  ) async {
+    final bool? sure1 = await _confirm(
+      context,
+      'حذف السنة ${y.name}',
+      'سيُحذف كل ما يخص هذه السنة وحدها: صفوفها وطلابها وصورهم، '
+      'الحضور والإجازات والجلسات والبادجات — وبقية السنوات لا تُمس. '
+      'سيُنشأ ملف نسخ احتياطي إجباري أولاً.',
+    );
+    if (sure1 != true) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+    final bool? sure2 = await _confirm(
+      context,
+      'تأكيد أخير',
+      'هل فهمت أن بيانات السنة ${y.name} ستُمحى من التطبيق '
+      'بعد حفظ النسخة الاحتياطية؟',
+    );
+    if (sure2 != true) {
+      return;
+    }
+    final AppDb db = ref.read(dbProvider);
+    try {
+      final String backup = await YearsService(db).deleteYear(y.id);
+      ref.invalidate(currentYearProvider);
+      ref.invalidate(yearEndedProvider);
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('حُذفت السنة ${y.name}. النسخة الاحتياطية: $backup'),
+        ),
+      );
+      final int remaining = await (db.selectOnly(db.academicYears)
+            ..addColumns(<Expression<int>>[countAll()]))
+          .map((TypedResult r) => r.read(countAll()) ?? 0)
+          .getSingle();
+      if (remaining == 0 && context.mounted) {
+        // لا سنوات إطلاقاً: العودة للإعداد الأولي كما بعد التصفير الشامل.
+        context.go('/onboarding');
+      }
+    } catch (e, st) {
+      AppErrorLog.instance.record(e, st, where: 'years:deleteYear');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذر حذف السنة: $e')),
+        );
+      }
     }
   }
 

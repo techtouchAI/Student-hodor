@@ -1,0 +1,45 @@
+النتيجة: فشل — يمنع النشر.
+==============================================================================
+تقرير فحص حزمة APK — بوابة ما قبل النشر
+الوضع: فحص فقط (بلا مقارنة)
+==============================================================================
+
+── app-release.apk: app-release.apk
+   الحجم        : 90,556,641 بايت
+   SHA-256      : f684b4572906bed9d1247eff60ed44ffeb10542abffcc7a66772cabeda7cb453
+   سلامة ZIP    : سليم
+   عدد المداخل  : 234
+   البنية       : manifest=True resources.arsc=True classes.dex=4
+   الوسم        : name=iq.techtouch.student_hodor, versionCode=5, versionName=1.3.0, targetSdk=36, native-code='arm64-v8a' 'armeabi-v7a' 'x86_64'
+   التوقيع      : مخططات=V2 v1-files=0
+   هوية الموقّع : CN=Student Hodor, OU=Schools, O=TechTouch, C=IQ
+   بصمة الشهادة : certificate SHA-256 digest: c65c2cabfd87c1d9592ab45df621f609c2a478cfee6d5e6ce474df197c671ecc
+   zipalign     : Verifying alignment of published/app-release.apk (4)...
+   مكتبات أصلية : 18
+       - lib/arm64-v8a/libapp.so (arm64-v8a) محاذاة ELF=65536 16KB✓
+       - lib/arm64-v8a/libbarhopper_v3.so (arm64-v8a) محاذاة ELF=4096 16KB✗
+       - lib/arm64-v8a/libdartjni.so (arm64-v8a) محاذاة ELF=16384 16KB✓
+       - lib/arm64-v8a/libflutter.so (arm64-v8a) محاذاة ELF=65536 16KB✓
+       - lib/arm64-v8a/libimage_processing_util_jni.so (arm64-v8a) محاذاة ELF=4096 16KB✗
+       - lib/arm64-v8a/libsqlite3.so (arm64-v8a) محاذاة ELF=16384 16KB✓
+       - lib/armeabi-v7a/libapp.so (armeabi-v7a) محاذاة ELF=16384 32bit
+       - lib/armeabi-v7a/libbarhopper_v3.so (armeabi-v7a) محاذاة ELF=4096 32bit
+       - lib/armeabi-v7a/libdartjni.so (armeabi-v7a) محاذاة ELF=16384 32bit
+       - lib/armeabi-v7a/libflutter.so (armeabi-v7a) محاذاة ELF=65536 32bit
+       - lib/armeabi-v7a/libimage_processing_util_jni.so (armeabi-v7a) محاذاة ELF=4096 32bit
+       - lib/armeabi-v7a/libsqlite3.so (armeabi-v7a) محاذاة ELF=16384 32bit
+       - lib/x86_64/libapp.so (x86_64) محاذاة ELF=65536 16KB✓
+       - lib/x86_64/libbarhopper_v3.so (x86_64) محاذاة ELF=4096 16KB✗
+       - lib/x86_64/libdartjni.so (x86_64) محاذاة ELF=16384 16KB✓
+       - lib/x86_64/libflutter.so (x86_64) محاذاة ELF=65536 16KB✓
+       - lib/x86_64/libimage_processing_util_jni.so (x86_64) محاذاة ELF=4096 16KB✗
+       - lib/x86_64/libsqlite3.so (x86_64) محاذاة ELF=16384 16KB✓
+   ملاحظة       : لا ملفات META-INF/*.RSA: حزمة بلا توقيع v1 (مقبول مع minSdk>=24).
+   [FATAL] ELF_NOT_16KB: lib/arm64-v8a/libbarhopper_v3.so: مقاطع PT_LOAD بمحاذاة 4096 بايت بدل 16384 — التثبيت يفشل على أجهزة 16KB بـ INSTALL_FAILED_INVALID_APK.
+   [FATAL] ELF_NOT_16KB: lib/arm64-v8a/libimage_processing_util_jni.so: مقاطع PT_LOAD بمحاذاة 4096 بايت بدل 16384 — التثبيت يفشل على أجهزة 16KB بـ INSTALL_FAILED_INVALID_APK.
+   [FATAL] ELF_NOT_16KB: lib/x86_64/libbarhopper_v3.so: مقاطع PT_LOAD بمحاذاة 4096 بايت بدل 16384 — التثبيت يفشل على أجهزة 16KB بـ INSTALL_FAILED_INVALID_APK.
+   [FATAL] ELF_NOT_16KB: lib/x86_64/libimage_processing_util_jni.so: مقاطع PT_LOAD بمحاذاة 4096 بايت بدل 16384 — التثبيت يفشل على أجهزة 16KB بـ INSTALL_FAILED_INVALID_APK.
+
+── بوابة التحديث (مقارنة بالإصدار المنشور)
+   [INFO] لا خروقات: التحديث متوافق مع النسخة المنشورة.
+

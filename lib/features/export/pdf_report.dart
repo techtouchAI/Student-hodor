@@ -28,6 +28,7 @@ class PdfReport {
     required this.fontBold,
     this.includeDaily = true,
     this.includeSummary = true,
+    this.includeAbsences = false,
   });
 
   final AppDb db;
@@ -43,6 +44,9 @@ class PdfReport {
   final pw.Font fontBold;
   final bool includeDaily;
   final bool includeSummary;
+
+  /// قسم «الغيابات فقط»: غيابات كل طالب وحدها — مرآة ورقة إكسل نفسها.
+  final bool includeAbsences;
 
   static const double _dayW = 17.5;
 
@@ -422,8 +426,189 @@ class PdfReport {
     if (includeSummary) {
       await _addSummary(doc);
     }
+    if (includeAbsences) {
+      await _addAbsences(doc);
+    }
     return doc;
   }
+
+  /// قسم الغيابات فقط: كل يوم غياب لكل طالب ضمن النطاق (الأشهر المحددة
+  /// أو السنة كلها)، صفحة بورتريه لكل صف مع إجمالي غياباته في الأسفل —
+  /// مطابق منطقياً لورقة «سجل الغيابات» في ملف الإكسل.
+  Future<void> _addAbsences(pw.Document doc) async {
+    final Set<String> monthKeys = <String>{
+      for (final MonthKey m in months) m.key,
+    };
+    for (final ExportScopeClass sc in classes) {
+      final List<pw.TableRow> rows = <pw.TableRow>[
+        pw.TableRow(
+          children: <pw.Widget>[
+            _th(_t('طريقة التسجيل')),
+            _th(_t('اليوم')),
+            _th(_t('تاريخ الغياب')),
+            _th(_t('اسم الطالب'), align: pw.Alignment.centerRight, padH: 6),
+            _th(_t('الصف')),
+            _th(_t('م')),
+          ],
+        ),
+      ];
+      int index = 1;
+      int total = 0;
+      for (final Student s in sc.students) {
+        final List<AttendanceRow> absences = await (db.select(db.attendanceRows)
+              ..where(
+                (a) =>
+                    a.studentId.equals(s.id) &
+                    a.yearId.equals(year.id) &
+                    a.status.equals(AttendanceStatus.absent),
+              )
+              ..orderBy(<OrderClauseGenerator<AttendanceRows>>[
+                (AttendanceRows a) => OrderingTerm.asc(a.date),
+              ]))
+            .get();
+        for (final AttendanceRow r in absences) {
+          // yyyy-MM-dd ⇒ مفتاح الشهر أول سبعة محارف.
+          if (monthKeys.isNotEmpty &&
+              !monthKeys.contains(r.date.substring(0, 7))) {
+            continue;
+          }
+          final DateTime dt = SchoolTime.parseKey(r.date);
+          rows.add(
+            pw.TableRow(
+              children: <pw.Widget>[
+                _absCell(ExcelBuilder.sourceLabel(r.source)),
+                _absCell(SchoolTime.weekdayNames[dt.weekday - 1]),
+                // تاريخ الغياب بخلية حمراء مطابقة لنظام ألوان الحالات.
+                pw.Container(
+                  height: 16,
+                  color: const PdfColor.fromInt(0xFFFFC7CE),
+                  alignment: pw.Alignment.center,
+                  child: pw.Text(
+                    r.date,
+                    style: _s(7, bold: true),
+                    textAlign: pw.TextAlign.center,
+                    maxLines: 1,
+                  ),
+                ),
+                pw.Container(
+                  height: 16,
+                  alignment: pw.Alignment.centerRight,
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 6),
+                  child: pw.Text(
+                    _t(s.fullName),
+                    style: _s(7, bold: true),
+                    maxLines: 1,
+                  ),
+                ),
+                _absCell('${sc.cls.grade} ـ ${sc.cls.section}'),
+                _absCell('$index'),
+              ],
+            ),
+          );
+          index++;
+          total++;
+        }
+      }
+      doc.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          header: (pw.Context c) => pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+            children: <pw.Widget>[
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: <pw.Widget>[
+                  pw.Text(
+                    _t('نظام حضور الطالب — سجل الغيابات'),
+                    style: _s(8, color: PdfColors.grey700),
+                  ),
+                  pw.Text(
+                    _t(
+                      _join(<String>[
+                        schoolName,
+                        'سجل الغيابات',
+                        '${sc.cls.grade} ـ ${sc.cls.section}',
+                      ]),
+                    ),
+                    style: _s(11, bold: true, color: PdfColors.teal900),
+                  ),
+                ],
+              ),
+              pw.SizedBox(height: 3),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: <pw.Widget>[
+                  pw.Text(
+                    _t(
+                      months.isEmpty
+                          ? 'النطاق: السنة الدراسية ${year.name} كاملة'
+                          : 'النطاق: ${months.first.label}'
+                              '${months.length > 1 ? ' إلى ${months.last.label}' : ''}',
+                    ),
+                    style: _s(8),
+                  ),
+                  if (directorName.trim().isNotEmpty)
+                    pw.Text(
+                      _t('المدير: $directorName'),
+                      style: _s(8, bold: true),
+                    ),
+                ],
+              ),
+              pw.SizedBox(height: 6),
+            ],
+          ),
+          build: (pw.Context c) => <pw.Widget>[
+            if (total == 0)
+              pw.Center(
+                child: pw.Padding(
+                  padding: const pw.EdgeInsets.all(32),
+                  child: pw.Text(
+                    _t('لا غيابات مسجلة لهذا الصف ضمن النطاق المحدد'),
+                    style: _s(10),
+                  ),
+                ),
+              )
+            else ...<pw.Widget>[
+              pw.Table(
+                columnWidths: <int, pw.TableColumnWidth>{
+                  0: const pw.FixedColumnWidth(85),
+                  1: const pw.FixedColumnWidth(75),
+                  2: const pw.FixedColumnWidth(80),
+                  3: const pw.FlexColumnWidth(1),
+                  4: const pw.FixedColumnWidth(90),
+                  5: const pw.FixedColumnWidth(25),
+                },
+                border: pw.TableBorder.all(
+                  width: 0.5,
+                  color: PdfColors.grey400,
+                ),
+                defaultVerticalAlignment: pw.TableCellVerticalAlignment.middle,
+                children: rows,
+              ),
+              pw.SizedBox(height: 8),
+              pw.Text(
+                _t('إجمالي أيام الغياب: $total'),
+                style: _s(9, bold: true, color: PdfColors.teal900),
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+  }
+
+  /// خلية موسّطة في جدول الغيابات.
+  pw.Widget _absCell(String text) => pw.Container(
+        height: 16,
+        alignment: pw.Alignment.center,
+        child: pw.Text(
+          _t(text),
+          style: _s(7),
+          textAlign: pw.TextAlign.center,
+          maxLines: 1,
+        ),
+      );
 
   Future<void> _addSummary(pw.Document doc) async {
     for (final ExportScopeClass sc in classes) {

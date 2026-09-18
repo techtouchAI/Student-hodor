@@ -21,8 +21,8 @@ import 'pdf_report.dart';
 enum ExportFormat { excel, pdf }
 
 /// هل اختار المستخدم قسماً واحداً على الأقل من محتوى الملف؟
-/// (ورقتا الإجازات والغيابات خاصة بإكسل). تصدير PDF بلا أي قسم كان يبني
-/// مستنداً بلا صفحات فيفشل لحظة الطباعة بخطأ غامض بدل رسالة واضحة.
+/// (ورقة الإجازات خاصة بإكسل؛ الغيابات في الصيغتين). تصدير بلا أي قسم كان
+/// يبني ملفاً بلا صفحات فيفشل لحظة الطباعة بخطأ غامض بدل رسالة واضحة.
 /// [absences] اختيارية بقيمة افتراضية حتى لا ينكسر مستدعٍ قديم.
 bool exportHasContent({
   required ExportFormat format,
@@ -31,9 +31,7 @@ bool exportHasContent({
   required bool leaves,
   bool absences = false,
 }) =>
-    daily ||
-    summary ||
-    (format == ExportFormat.excel && (leaves || absences));
+    daily || summary || absences || (format == ExportFormat.excel && leaves);
 
 class ExportScreen extends ConsumerStatefulWidget {
   const ExportScreen({super.key});
@@ -191,6 +189,7 @@ class _ExportState extends ConsumerState<ExportScreen> {
           fontBold: bold,
           includeDaily: _includeDaily,
           includeSummary: _includeSummary,
+          includeAbsences: _includeAbsences,
         );
         await report.layout();
       }
@@ -307,15 +306,14 @@ class _ExportState extends ConsumerState<ExportScreen> {
                   title: const Text('ورقة الإجازات'),
                   onChanged: (bool v) => setState(() => _includeLeaves = v),
                 ),
-              if (_format == ExportFormat.excel)
-                SwitchListTile(
-                  value: _includeAbsences,
-                  title: const Text('ورقة الغيابات فقط'),
-                  subtitle: const Text(
-                    'غيابات كل طالب وحدها — بلا أشهر محددة تشمل السنة كلها',
-                  ),
-                  onChanged: (bool v) => setState(() => _includeAbsences = v),
+              SwitchListTile(
+                value: _includeAbsences,
+                title: const Text('الغيابات فقط'),
+                subtitle: const Text(
+                  'غيابات كل طالب وحدها — بلا أشهر محددة تشمل السنة كلها',
                 ),
+                onChanged: (bool v) => setState(() => _includeAbsences = v),
+              ),
               const SizedBox(height: 20),
               FilledButton.icon(
                 onPressed: _busy || (!includeAnything) ? null : _generate,
@@ -332,5 +330,6 @@ class _ExportState extends ConsumerState<ExportScreen> {
   bool get includeAnything =>
       _includeDaily ||
       _includeSummary ||
-      (_format == ExportFormat.excel && (_includeLeaves || _includeAbsences));
+      _includeAbsences ||
+      (_format == ExportFormat.excel && _includeLeaves);
 }

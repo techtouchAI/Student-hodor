@@ -1,15 +1,21 @@
 /// تصدير الغيابات فقط: ورقة «سجل الغيابات» تعرض لكل طالب غياباته وحدها
-/// (بلا حضور ولا إجازات ولا تأخر)، تحترم الأشهر المحددة، ولها اسم ملف عربي.
+/// (بلا حضور ولا إجازات ولا تأخر)، تحترم الأشهر المحددة، ولها اسم ملف عربي —
+/// في **الصيغتين**: ملف الإكسل ومستند PDF.
 library;
+
+import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:excel/excel.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pdf/widgets.dart' as pw;
 import 'package:student_hodor/core/school_time.dart';
 import 'package:student_hodor/data/db.dart';
 import 'package:student_hodor/data/reports_service.dart';
 import 'package:student_hodor/features/export/excel_builder.dart';
+import 'package:student_hodor/features/export/pdf_report.dart';
 
 /// غيابان في شهرين مختلفين + حضور + تأخر: في ورقة الغيابات يظهر الغيابان فقط.
 Future<(AppDb, AcademicYear, List<ExportScopeClass>)> _seed() async {
@@ -177,4 +183,70 @@ void main() {
       );
     });
   });
+
+  group('PDF الغيابات فقط', () {
+    test('يبني مستنداً بصفحة على الأقل غياباتٍ فقط بلا كشوف ولا ملخص', () async {
+      final (AppDb db, AcademicYear year, List<ExportScopeClass> scope) =
+          await _seed();
+      addTearDown(db.close);
+      final PdfReport report = PdfReport(
+        db: db,
+        reports: ReportsService(db),
+        schoolName: 'مدرسة النجاح',
+        directorName: 'الأستاذ كريم',
+        year: year,
+        months: const <MonthKey>[],
+        classes: scope,
+        workWeekdays: SchoolTime.defaultWorkWeekdays,
+        holidayKeys: const <String>{},
+        font: _loadFont('assets/fonts/Amiri-Regular.ttf'),
+        fontBold: _loadFont('assets/fonts/Amiri-Bold.ttf'),
+        includeDaily: false,
+        includeSummary: false,
+        includeAbsences: true,
+      );
+      final pw.Document doc = await report.build();
+      final Uint8List bytes = await doc.save();
+      expect(_pageCount(bytes), greaterThanOrEqualTo(1));
+    });
+
+    test('الترشيح بشهر محدد يبني مستنداً صالحاً أيضاً', () async {
+      final (AppDb db, AcademicYear year, List<ExportScopeClass> scope) =
+          await _seed();
+      addTearDown(db.close);
+      final PdfReport report = PdfReport(
+        db: db,
+        reports: ReportsService(db),
+        schoolName: 'مدرسة النجاح',
+        directorName: 'الأستاذ كريم',
+        year: year,
+        months: const <MonthKey>[MonthKey(2026, 9)],
+        classes: scope,
+        workWeekdays: SchoolTime.defaultWorkWeekdays,
+        holidayKeys: const <String>{},
+        font: _loadFont('assets/fonts/Amiri-Regular.ttf'),
+        fontBold: _loadFont('assets/fonts/Amiri-Bold.ttf'),
+        includeDaily: false,
+        includeSummary: false,
+        includeAbsences: true,
+      );
+      final Uint8List bytes = await (await report.build()).save();
+      expect(_pageCount(bytes), greaterThanOrEqualTo(1));
+    });
+  });
+}
+
+pw.Font _loadFont(String path) {
+  final Uint8List raw = File(path).readAsBytesSync();
+  return pw.Font.ttf(ByteData.sublistView(raw));
+}
+
+/// عدّاد صفحات مطابق لما في اختبار سجل الطالب — يؤكد مستنداً غير فارغ.
+int _pageCount(Uint8List bytes) {
+  final String raw = String.fromCharCodes(bytes);
+  int countOf(String needle) => needle.allMatches(raw).length;
+  return countOf('/Type /Page') +
+      countOf('/Type/Page') -
+      countOf('/Type /Pages') -
+      countOf('/Type/Pages');
 }

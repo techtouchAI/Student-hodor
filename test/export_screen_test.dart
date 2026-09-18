@@ -78,6 +78,7 @@ void main() {
           leaves: true,
         ),
         isFalse,
+        reason: 'ورقة الإجازات خاصة بإكسل',
       );
       expect(
         exportHasContent(
@@ -96,8 +97,8 @@ void main() {
           leaves: false,
           absences: true,
         ),
-        isFalse,
-        reason: 'ورقة الغيابات خاصة بإكسل كالإجازات',
+        isTrue,
+        reason: 'الغيابات فقط قسم صالح في الصيغتين إكسل وPDF',
       );
     });
   });

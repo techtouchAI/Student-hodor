@@ -622,7 +622,7 @@ class ExcelBuilder {
             row: row,
             value: SchoolTime.weekdayNames[dt.weekday - 1],
           );
-          _text(sheet, column: 5, row: row, value: _sourceAr(r.source));
+          _text(sheet, column: 5, row: row, value: sourceLabel(r.source));
           row++;
           total++;
         }
@@ -638,8 +638,8 @@ class ExcelBuilder {
     sheet.setColumnWidth(5, 16.0);
   }
 
-  /// تسمية مصدر التسجيل في ورقة الغيابات.
-  static String _sourceAr(int source) => switch (source) {
+  /// تسمية مصدر التسجيل في التصدير (إكسل وPDF) — مصدر حقيقة واحد للصيغتين.
+  static String sourceLabel(int source) => switch (source) {
         AttendanceSource.scan => 'مسح',
         AttendanceSource.manual => 'يدوي',
         AttendanceSource.autoClose => 'إقفال تلقائي',

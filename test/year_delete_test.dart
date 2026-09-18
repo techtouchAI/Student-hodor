@@ -76,7 +76,7 @@ Future<int> _seedYear(AppDb db, String yearName, String start) async {
 Future<int> _count(AppDb db, String table) async {
   final List<QueryRow> rows =
       await db.customSelect('SELECT COUNT(*) AS c FROM $table').get();
-  return rows.single.read<int>('c') ?? 0;
+  return rows.single.read<int>('c');
 }
 
 void main() {

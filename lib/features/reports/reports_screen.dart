@@ -173,8 +173,11 @@ class _ClassDayListState extends State<_ClassDayList> {
           if (snap.connectionState != ConnectionState.done) {
             return const Center(child: CircularProgressIndicator());
           }
-          final (List<(Student, AttendanceRow?)> matrix, String dayStart) =
-              snap.data ?? (const <(Student, AttendanceRow?)[], '08:00');
+          // لا تعبير سجل يبدأ بقائمة منمّطة: المحلل يلتبس فيه — فكّ صريح.
+          final (List<(Student, AttendanceRow?)>, String)? data = snap.data;
+          final List<(Student, AttendanceRow?)> matrix = data?.$1 ??
+              const <(Student, AttendanceRow?)>[];
+          final String dayStart = data?.$2 ?? '08:00';
           if (matrix.isEmpty) {
             return const Center(child: Text('لا طلاب في هذا الصف'));
           }

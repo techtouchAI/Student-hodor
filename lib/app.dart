@@ -225,7 +225,7 @@ class _SplashGateState extends ConsumerState<_SplashGate> {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final AsyncValue<Map<String, String>> settings =
         ref.watch(settingsProvider);
     return settings.when(

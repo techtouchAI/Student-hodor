@@ -196,7 +196,7 @@ class LocalNotifications {
       if (details == null || !details.didNotificationLaunchApp) {
         return null;
       }
-      return details.initialNotificationResponse?.payload;
+      return details.notificationResponse?.payload;
     } catch (e, st) {
       _log(e, st, 'coldLaunch');
       return null;

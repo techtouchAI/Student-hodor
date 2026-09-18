@@ -18,9 +18,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/error_log.dart';
 import '../../core/local_notifications.dart';
 import '../../data/db.dart';
+import '../../data/error_log.dart';
 import '../../data/notifications_service.dart';
 import '../../state/providers.dart';
 

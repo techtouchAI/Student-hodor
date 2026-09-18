@@ -9,17 +9,30 @@ library;
 
 import 'dart:convert';
 
-import 'package:drift/drift.dart';
+// `isNull`/`isNotNull` في drift تعاقان نظيرتيهما في `matcher` — تُخفى هنا
+// (نفس النمط في late_time_test.dart).
+import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:student_hodor/data/db.dart';
 import 'package:student_hodor/data/notifications_service.dart';
 
-/// سنة فعّالة وصف وطلبة بثلاثة أنماط:
-/// - «كثير الغياب»: 15 غياباً (بلوغ الحد الثاني 15).
-/// - «وسط»: 10 غيابات (بين العتبتين).
-/// - «يوم واحد»: غياب واحد.
-Future<(AppDb, AcademicYear, int, int, int, int)> _seed() async {
+/// بيانات البذر: قاعدة وسنة فعّالة وصف وطلبة بثلاثة أنماط:
+/// - `heavy` «كثير الغياب»: 15 غياباً (بلوغ الحد الثاني 15).
+/// - `middle` «وسط»: 10 غيابات (بين العتبتين).
+/// - `light` «يوم واحد»: غياب واحد.
+class _Seed {
+  _Seed(this.db, this.year, this.classId, this.heavy, this.middle, this.light);
+
+  final AppDb db;
+  final AcademicYear year;
+  final int classId;
+  final int heavy;
+  final int middle;
+  final int light;
+}
+
+Future<_Seed> _seed() async {
   final AppDb db = AppDb.forTesting(NativeDatabase.memory());
   await db.setSetting('alert_threshold_1', '10');
   await db.setSetting('alert_threshold_2', '15');
@@ -73,20 +86,18 @@ Future<(AppDb, AcademicYear, int, int, int, int)> _seed() async {
   );
   final int light = await student('يوم واحد', <int>[AttendanceStatus.absent]);
   final AcademicYear yearRow = (await db.activeYear())!;
-  return (db, yearRow, cls, heavy, middle, light);
+  return _Seed(db, yearRow, cls, heavy, middle, light);
 }
 
 void main() {
   test('بلوغ الحد الثاني يولّد تنبيهاً واحداً والاحتساب المتكرر لا يُكرر',
       () async {
-    final (
-      AppDb db,
-      AcademicYear year,
-      int _classId,
-      int heavy,
-      int middle,
-      int light,
-    ) = await _seed();
+    final _Seed seed = await _seed();
+    final AppDb db = seed.db;
+    final AcademicYear year = seed.year;
+    final int heavy = seed.heavy;
+    final int middle = seed.middle;
+    final int light = seed.light;
     addTearDown(db.close);
 
     final NotificationsService svc = NotificationsService(db);
@@ -120,14 +131,11 @@ void main() {
   });
 
   test('خفض العتبة في الإعدادات يُدخل من لم يكن على القائمة', () async {
-    final (
-      AppDb db,
-      AcademicYear year,
-      int _classId,
-      int _heavy,
-      int middle,
-      int light,
-    ) = await _seed();
+    final _Seed seed = await _seed();
+    final AppDb db = seed.db;
+    final AcademicYear year = seed.year;
+    final int middle = seed.middle;
+    final int light = seed.light;
     addTearDown(db.close);
 
     final NotificationsService svc = NotificationsService(db);
@@ -148,14 +156,11 @@ void main() {
   });
 
   test('ازدياد الغياب يحدّث الإحصاء بلا تنبيه جديد', () async {
-    final (
-      AppDb db,
-      AcademicYear year,
-      int classId,
-      int heavy,
-      int _middle,
-      int _light,
-    ) = await _seed();
+    final _Seed seed = await _seed();
+    final AppDb db = seed.db;
+    final AcademicYear year = seed.year;
+    final int classId = seed.classId;
+    final int heavy = seed.heavy;
     addTearDown(db.close);
 
     final NotificationsService svc = NotificationsService(db);
@@ -181,14 +186,11 @@ void main() {
   });
 
   test('من انخفض تحت العتبة يحتفظ بتنبيهه (سجل تاريخي)', () async {
-    final (
-      AppDb db,
-      AcademicYear year,
-      int classId,
-      int heavy,
-      int _middle,
-      int _light,
-    ) = await _seed();
+    final _Seed seed = await _seed();
+    final AppDb db = seed.db;
+    final AcademicYear year = seed.year;
+    final int classId = seed.classId;
+    final int heavy = seed.heavy;
     addTearDown(db.close);
 
     final NotificationsService svc = NotificationsService(db);
@@ -214,14 +216,9 @@ void main() {
   });
 
   test('وسم القراءة: فردي وجماعي — ويحرّك عدّاد الجرس', () async {
-    final (
-      AppDb db,
-      AcademicYear year,
-      int _classId,
-      int _heavy,
-      int _middle,
-      int _light,
-    ) = await _seed();
+    final _Seed seed = await _seed();
+    final AppDb db = seed.db;
+    final AcademicYear year = seed.year;
     addTearDown(db.close);
 
     final NotificationsService svc = NotificationsService(db);
@@ -232,7 +229,7 @@ void main() {
     final List<AlertNotification> rows = await db.alertsOfYear(year.id);
     await svc.markRead(rows.first.id);
     expect(await db.unreadAlertCount(year.id).first, 1);
-    final AlertNotification? marked = rows.first;
+    final AlertNotification marked = rows.first;
     final AlertNotification? after =
         await db.alertOf(year.id, marked.studentId, AlertKinds.threshold2);
     expect(after!.read, isTrue);
@@ -242,14 +239,10 @@ void main() {
   });
 
   test('حذف الطالب يحذف تنبيهه (حذف متسلسل)', () async {
-    final (
-      AppDb db,
-      AcademicYear year,
-      int _classId,
-      int heavy,
-      int _middle,
-      int _light,
-    ) = await _seed();
+    final _Seed seed = await _seed();
+    final AppDb db = seed.db;
+    final AcademicYear year = seed.year;
+    final int heavy = seed.heavy;
     addTearDown(db.close);
 
     final NotificationsService svc = NotificationsService(db);

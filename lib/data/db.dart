@@ -814,12 +814,13 @@ class AppDb extends _$AppDb {
 
   /// قائمة الشاشة: غير المقروء أولاً ثم الأحدث.
   Stream<List<AlertNotification>> watchAlerts(int yearId) =>
-      (select(alertNotifications)..where((n) => n.yearId.equals(yearId)))
-          .orderBy(<OrderClauseGenerator<AlertNotifications>>[
-            (t) => OrderingTerm.asc(t.read),
-            (t) => OrderingTerm.desc(t.occurredAt),
-            (t) => OrderingTerm.asc(t.id),
-          ])
+      (select(alertNotifications)
+            ..where((n) => n.yearId.equals(yearId))
+            ..orderBy(<OrderClauseGenerator<AlertNotifications>>[
+              (t) => OrderingTerm.asc(t.read),
+              (t) => OrderingTerm.desc(t.occurredAt),
+              (t) => OrderingTerm.asc(t.id),
+            ]))
           .watch();
 
   /// عدّاد زر الجرس: التنبيهات غير المقروءة في السنة.

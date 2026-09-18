@@ -3,6 +3,8 @@
 /// ملف الطالب ويوسمه مقروءًا، وزر «وسم الكل» يصفّر الشارة.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -163,7 +165,8 @@ class _AlertTile extends ConsumerWidget {
   Future<void> _open(BuildContext context) async {
     await NotificationsService(db).markRead(alert.id);
     if (context.mounted) {
-      context.push('/student/${alert.studentId}');
+      // الانتقال «نا» — لا نبقيه معلقًا في الـ Future.
+      unawaited(context.push('/student/${alert.studentId}'));
     }
   }
 

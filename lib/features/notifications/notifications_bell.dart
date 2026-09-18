@@ -8,7 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/nav.dart';
-import '../../data/db.dart';
+// `Badge` في قاعدة البيانات (جدول الأوسمة) يخفي `Badge` من ماديال.
+import '../../data/db.dart' hide Badge;
 import '../../state/providers.dart';
 
 class NotificationsBell extends ConsumerWidget {

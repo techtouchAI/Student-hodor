@@ -107,6 +107,9 @@ class _HomeState extends ConsumerState<HomeScreen> {
         'notifications_permission_state',
         granted ? 'granted' : 'denied',
       );
+      if (!mounted) {
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -385,7 +388,7 @@ class _HomeState extends ConsumerState<HomeScreen> {
       appBar: AppBar(
         title: const Text('حضور الطالب'),
         // زر التنبيهات في نفس سطر اسم التطبيق: شارة بعدد غير المقروء.
-        actions: <Widget>[const NotificationsBell()],
+        actions: const <Widget>[NotificationsBell()],
       ),
       body: settings.when(
         loading: () => const Center(child: CircularProgressIndicator()),

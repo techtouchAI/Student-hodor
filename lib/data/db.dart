@@ -458,6 +458,9 @@ class AppDb extends _$AppDb {
         await (delete(attendanceRows)..where((a) => a.studentId.equals(id))).go();
         await (delete(leaves)..where((l) => l.studentId.equals(id))).go();
         await (delete(badges)..where((b) => b.studentId.equals(id))).go();
+        await (delete(alertNotifications)
+              ..where((n) => n.studentId.equals(id)))
+            .go();
         await (delete(students)..where((s) => s.id.equals(id))).go();
         await logAudit('student_delete', 'id=$id');
       });

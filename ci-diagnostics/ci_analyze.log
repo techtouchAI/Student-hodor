@@ -1,6 +1,2 @@
 Analyzing Student-hodor...                                      
-
-   info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • lib/core/local_notifications.dart:156:30 • prefer_const_constructors
-  error • The argument type 'AndroidNotificationDetails' can't be assigned to the parameter type 'NotificationDetails?'.  • lib/core/local_notifications.dart:156:30 • argument_type_not_assignable
-
-2 issues found. (ran in 13.7s)
+No issues found! (ran in 12.5s)

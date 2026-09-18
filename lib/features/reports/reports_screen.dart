@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/attendance_labels.dart';
 import '../../core/error_guard.dart';
+import '../../core/late_time.dart';
 import '../../core/school_time.dart';
 import '../../data/db.dart';
 import '../../data/reports_service.dart';
@@ -136,48 +137,69 @@ class _ClassDayList extends StatefulWidget {
 }
 
 class _ClassDayListState extends State<_ClassDayList> {
-  late Future<List<(Student, int?)>> _future;
+  /// (مصفوفة اليوم، بداية الدوام من الإعدادات) — الثانية لحساب مدة التأخر
+  /// المعروضة تحت اسم كل متأخر، وتُجلب في المستقبل نفسه لا في كل بناء.
+  late Future<(List<(Student, AttendanceRow?)>, String)> _future;
+
+  Future<(List<(Student, AttendanceRow?)>, String)> _load() async {
+    final List<(Student, AttendanceRow?)> matrix =
+        await ReportsService(widget.db).classDayMatrix(widget.classId, widget.date);
+    final Map<String, String> settings = await widget.db.effectiveSettings();
+    return (matrix, settings['day_start'] ?? '08:00');
+  }
 
   @override
   void initState() {
     super.initState();
-    _future = ReportsService(widget.db).classDayMatrix(widget.classId, widget.date);
+    _future = _load();
   }
 
   @override
   void didUpdateWidget(_ClassDayList oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.classId != widget.classId || oldWidget.date != widget.date) {
-      _future =
-          ReportsService(widget.db).classDayMatrix(widget.classId, widget.date);
+      _future = _load();
     }
   }
 
   @override
-  Widget build(BuildContext context) => FutureBuilder<List<(Student, int?)>>(
+  Widget build(BuildContext context) =>
+      FutureBuilder<(List<(Student, AttendanceRow?)>, String)>(
         future: _future,
-        builder: (BuildContext context, AsyncSnapshot<List<(Student, int?)>> snap) {
-          final List<(Student, int?)> matrix = snap.data ?? <(Student, int?)>[];
+        builder: (
+          BuildContext context,
+          AsyncSnapshot<(List<(Student, AttendanceRow?)>, String)> snap,
+        ) {
           if (snap.connectionState != ConnectionState.done) {
             return const Center(child: CircularProgressIndicator());
           }
+          final (List<(Student, AttendanceRow?)> matrix, String dayStart) =
+              snap.data ?? (<(Student, AttendanceRow?)[], '08:00');
           if (matrix.isEmpty) {
             return const Center(child: Text('لا طلاب في هذا الصف'));
           }
           return ListView.builder(
             itemCount: matrix.length,
             itemBuilder: (BuildContext context, int i) {
-              final (Student s, int? st) = matrix[i];
+              final (Student s, AttendanceRow? row) = matrix[i];
+              // «فقرة التأخير»: المتأخر يظهر وقته الفعلي ومدته تحت اسمه.
+              final String line = row != null &&
+                      row.status == AttendanceStatus.late
+                  ? lateInfoLabel(
+                      arrivalTime: row.arrivalTime,
+                      dayStart: dayStart,
+                    )
+                  : statusHint(row?.status);
               return ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: statusColor(st),
+                  backgroundColor: statusColor(row?.status),
                   child: Text(
-                    statusLetter(st),
+                    statusLetter(row?.status),
                     style: const TextStyle(color: Colors.white),
                   ),
                 ),
                 title: Text(s.fullName),
-                subtitle: Text(statusHint(st)),
+                subtitle: Text(line),
                 onTap: () => context.push('/student/${s.id}'),
               );
             },

@@ -14,11 +14,13 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/attendance_labels.dart';
 import '../../core/error_guard.dart';
+import '../../core/late_time.dart';
 import '../../core/nav.dart';
 import '../../core/school_time.dart';
 import '../../data/db.dart';
 import '../../data/error_log.dart';
 import '../../state/providers.dart';
+import 'late_time_picker.dart';
 
 enum _Filter { all, missing }
 
@@ -162,7 +164,9 @@ class _DaySheetState extends ConsumerState<DaySheetScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Future<void> _setStatus(Student s, int? status) async {
+  /// [arrivalTime] وقت الوصول للتسجيل اليدوي «متأخر»؛ `null` لغيره يمسح
+  /// أي وقت سابق — تصحيح الحالة يدوياً يبدأ سجلاً نظيفاً.
+  Future<void> _setStatus(Student s, int? status, {String? arrivalTime}) async {
     try {
       final AppDb db = ref.read(dbProvider);
       final Session? ses = await db.sessionOf(s.classId, _date);
@@ -179,6 +183,7 @@ class _DaySheetState extends ConsumerState<DaySheetScreen> {
           status: status,
           source: AttendanceSource.manual,
           sessionId: ses?.id,
+          arrivalTime: arrivalTime,
         );
       }
       await db.logAudit('day_sheet_set', '${s.fullName} => $status');
@@ -223,7 +228,19 @@ class _DaySheetState extends ConsumerState<DaySheetScreen> {
     if (picked == null) {
       return;
     }
-    await _setStatus(s, picked == -1 ? null : picked);
+    if (picked == -1) {
+      await _setStatus(s, null);
+      return;
+    }
+    // تأخر يدوي ⇒ اسأل عن وقت الوصول الفعلي؛ إلغاء المنتقي يحفظه بلا وقت.
+    String? arrival;
+    if (picked == AttendanceStatus.late) {
+      arrival = await pickManualArrivalTime(context);
+      if (!mounted) {
+        return;
+      }
+    }
+    await _setStatus(s, picked, arrivalTime: arrival);
   }
 
   Future<bool> _confirmClose(int missing) async {
@@ -410,8 +427,8 @@ class _DaySheetState extends ConsumerState<DaySheetScreen> {
                 StreamGuard<List<AttendanceRow>>(
               stream: rowsStream,
               builder: (BuildContext context, List<AttendanceRow> rows) {
-                final Map<int, int> byId = <int, int>{
-                  for (final AttendanceRow r in rows) r.studentId: r.status,
+                final Map<int, AttendanceRow> byId = <int, AttendanceRow>{
+                  for (final AttendanceRow r in rows) r.studentId: r,
                 };
                 final List<Student> shown = _filter == _Filter.missing
                     ? roster
@@ -425,19 +442,24 @@ class _DaySheetState extends ConsumerState<DaySheetScreen> {
                   itemCount: shown.length,
                   itemBuilder: (BuildContext context, int i) {
                     final Student s = shown[i];
-                    final int? st = byId[s.id];
+                    final AttendanceRow? row = byId[s.id];
+                    // سجل التأخر يعرض وقته الفعلي (ساعة ودقيقة) في صفه.
+                    final String line = row != null &&
+                            row.status == AttendanceStatus.late
+                        ? lateInfoLabel(arrivalTime: row.arrivalTime)
+                        : statusHint(row?.status);
                     return ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: statusColor(st),
+                        backgroundColor: statusColor(row?.status),
                         child: Text(
-                          statusLetter(st),
+                          statusLetter(row?.status),
                           style: const TextStyle(color: Colors.white),
                         ),
                       ),
                       title: Text(s.fullName),
-                      subtitle: Text('${statusHint(st)} • رقم ${s.seq}'),
+                      subtitle: Text('$line • رقم ${s.seq}'),
                       trailing: const Icon(Icons.edit),
-                      onTap: () => _pickStatus(s, st),
+                      onTap: () => _pickStatus(s, row?.status),
                       onLongPress: () => context.pushNamed(
                         AppRoutes.student,
                         pathParameters: <String, String>{'id': '${s.id}'},

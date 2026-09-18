@@ -26,11 +26,14 @@ class StatusTotals {
 }
 
 class DayCell {
-  const DayCell(this.dateKey, this.status, this.isSchoolDay);
+  const DayCell(this.dateKey, this.status, this.isSchoolDay, {this.arrivalTime});
 
   final String dateKey;
   final int? status;
   final bool isSchoolDay;
+
+  /// وقت الوصول الفعلي `HH:mm` إن كان اليوم مسجلاً بوقت (تأخر خصوصاً).
+  final String? arrivalTime;
 }
 
 /// يوم واحد في سجل الطالب الكامل (من بداية السنة حتى اليوم).
@@ -39,11 +42,15 @@ class RecordDay {
     required this.dateKey,
     required this.status,
     required this.schoolDay,
+    this.arrivalTime,
   });
 
   final String dateKey;
   final int? status;
   final bool schoolDay;
+
+  /// وقت الوصول الفعلي `HH:mm` للسجلات المثبّتة بوقت (مسح/تأخر يدوي).
+  final String? arrivalTime;
 }
 
 /// سجل الطالب الكامل: أيام النطاق + مجاميع السنة (المطابقة لبطاقة
@@ -92,11 +99,11 @@ class ReportsService {
     required Set<int> workWeekdays,
     required Set<String> holidayKeys,
   }) async {
-    final Map<String, int> byDate = <String, int>{
+    final Map<String, AttendanceRow> byDate = <String, AttendanceRow>{
       for (final AttendanceRow r in await (db.select(db.attendanceRows)
             ..where((a) => a.studentId.equals(studentId) & a.yearId.equals(yearId)))
           .get())
-        r.date: r.status,
+        r.date: r,
     };
     final DateTime first = DateTime(year, month, 1);
     final DateTime last = DateTime(year, month + 1, 0);
@@ -104,12 +111,13 @@ class ReportsService {
       for (final String key in SchoolTime.keysBetween(first, last))
         DayCell(
           key,
-          byDate[key],
+          byDate[key]?.status,
           SchoolTime.isSchoolDay(
             SchoolTime.parseKey(key),
             workWeekdays: workWeekdays,
             holidayKeys: holidayKeys,
           ),
+          arrivalTime: byDate[key]?.arrivalTime,
         ),
     ];
   }
@@ -130,14 +138,14 @@ class ReportsService {
       end = yearEnd;
     }
     final DateTime from = SchoolTime.parseKey(year.start);
-    final Map<String, int> byDate = <String, int>{
+    final Map<String, AttendanceRow> byDate = <String, AttendanceRow>{
       for (final AttendanceRow r in await (db.select(db.attendanceRows)
             ..where(
               (a) =>
                   a.studentId.equals(studentId) & a.yearId.equals(year.id),
             ))
           .get())
-        r.date: r.status,
+        r.date: r,
     };
     final List<RecordDay> days = end.isBefore(from)
         ? <RecordDay>[]
@@ -146,12 +154,13 @@ class ReportsService {
                 in SchoolTime.keysBetween(from, end))
               RecordDay(
                 dateKey: key,
-                status: byDate[key],
+                status: byDate[key]?.status,
                 schoolDay: SchoolTime.isSchoolDay(
                   SchoolTime.parseKey(key),
                   workWeekdays: workWeekdays,
                   holidayKeys: holidayKeys,
                 ),
+                arrivalTime: byDate[key]?.arrivalTime,
               ),
           ];
     final StatusTotals totals = await totalsForStudent(studentId, year.id);
@@ -163,22 +172,26 @@ class ReportsService {
     );
   }
 
-  /// مصفوفة صف ليوم محدد: كل طالب وحالته (null = لم يُسجل بعد).
-  Future<List<(Student, int?)>> classDayMatrix(int classId, String date) async {
+  /// مصفوفة صف ليوم محدد: كل طالب وسجله الكامل (null = لم يُسجل بعد) —
+  /// السجل لا الحالة فقط لأن كشف اليوم يعرض وقت الوصول الفعلي للتأخر.
+  Future<List<(Student, AttendanceRow?)>> classDayMatrix(
+    int classId,
+    String date,
+  ) async {
     final List<Student> roster = await (db.select(db.students)
           ..where((s) => s.classId.equals(classId))
           ..orderBy(<OrderClauseGenerator<Students>>[
             (Students s) => OrderingTerm.asc(s.fullName),
           ]))
         .get();
-    final Map<int, int> status = <int, int>{
+    final Map<int, AttendanceRow> rows = <int, AttendanceRow>{
       for (final AttendanceRow r in await (db.select(db.attendanceRows)
             ..where((a) => a.classId.equals(classId) & a.date.equals(date)))
           .get())
-        r.studentId: r.status,
+        r.studentId: r,
     };
-    return <(Student, int?)>[
-      for (final Student s in roster) (s, status[s.id]),
+    return <(Student, AttendanceRow?)>[
+      for (final Student s in roster) (s, rows[s.id]),
     ];
   }
 

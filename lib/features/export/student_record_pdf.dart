@@ -124,14 +124,17 @@ class StudentRecordPdf {
           _th('التاريخ'),
           _th('اليوم'),
           _th('الحالة'),
+          // عمود وقت الوصول يثبت وقت التأخر الفعلي (ساعة ودقيقة) في التقرير.
+          _th('وقت الوصول'),
         ],
       ),
     ];
     final Map<int, pw.TableColumnWidth> widths = <int, pw.TableColumnWidth>{
       0: const pw.FixedColumnWidth(30),
-      1: const pw.FixedColumnWidth(90),
-      2: const pw.FixedColumnWidth(110),
+      1: const pw.FixedColumnWidth(80),
+      2: const pw.FixedColumnWidth(95),
       3: const pw.FlexColumnWidth(1),
+      4: const pw.FixedColumnWidth(60),
     };
     int index = 1;
     final List<List<pw.TableRow>> chunks = <List<pw.TableRow>>[];
@@ -148,6 +151,7 @@ class StudentRecordPdf {
               _statusText(d.status, d.schoolDay),
               color: _colorFor(d.status, d.schoolDay),
             ),
+            _td(d.arrivalTime ?? ''),
           ],
         ),
       );

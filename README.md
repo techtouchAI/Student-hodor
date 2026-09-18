@@ -11,7 +11,7 @@
 نظام متكامل لإدارة حضور الطلاب في المدارس: بطاقات طلابية قابلة للطباعة، مسح فوري بالكاميرا،
 إجازات وعُطل، وتقارير Excel و PDF عربية جاهزة للمشاركة — **دون الحاجة إلى أي اتصال بالإنترنت**.
 
-![الإصدار](https://img.shields.io/badge/الإصدار-1.3.0%2B5-8A2BE2?style=for-the-badge)
+![الإصدار](https://img.shields.io/badge/الإصدار-1.3.1%2B6-8A2BE2?style=for-the-badge)
 ![البناء](https://img.shields.io/github/actions/workflow/status/techtouchAI/Student-hodor/build.yml?style=for-the-badge&logo=github&logoColor=white&label=البناء)
 ![المنصة](https://img.shields.io/badge/المنصة-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
 ![Flutter](https://img.shields.io/badge/Flutter-3.5%2B-02569B?style=for-the-badge&logo=flutter&logoColor=white)
@@ -68,6 +68,11 @@
 
 لا إعلانات، لا تتبّع، لا خوادم خارجية — بيانات الطلاب لا تغادر الجهاز إلا بنسخة احتياطية يُنشئها المستخدم بنفسه.
 
+> 🔏 صلاحيات الشبكة التي تضيفها مكتبة ML Kit إلى البيان المدمج (`INTERNET` و
+> `ACCESS_NETWORK_STATE`) **مُزالة صراحةً** في `AndroidManifest.xml`، حفاظاً على
+> هذا العقد. وسياسة مفتاح التوقيع (سبب «التحديث لا يُثبَّت») موثّقة في
+> [RELEASE-SIGNING-ar.md](docs/RELEASE-SIGNING-ar.md).
+
 ---
 
 ## 🏗️ التقنيات المستخدمة
@@ -89,6 +94,13 @@
 ## 🚀 التشغيل من المصدر
 
 **المتطلبات:** حزمة [Flutter](https://docs.flutter.dev/get-started/install) المستقرة (`≥ 3.5`) مع أدوات أندرويد.
+
+**متطلب الجهاز المشغّل:** أندرويد **7.0 (API 24)** فأحدث — رُفع الحد الأدنى من
+5.0 في الإصدار 1.3.0 لأن وسائط الإشعارات الحديثة تتطلبه.
+
+**تثبيت حزمة APK جاهزة:** حمّل الملف المناسب من وسم `latest-apk` في
+[صفحة الإصدارات](../../releases/latest)، واتبع
+[دليل التثبيت وتشخيص أعطال التثبيت](docs/INSTALL-ar.md).
 
 <div dir="ltr">
 
@@ -129,6 +141,10 @@ flutter build apk --release
 - ✅ اختبارات وحدة تغطي: رموز البطاقات، التشكيل العربي، التقويم الهجري،
   مفاتيح الأشهر، مزامنة الإجازات، إقفال الجلسات، النسخ الاحتياطي، وتصدير Excel
 - ✅ بناء `APK` موقّع مع تحقق آلي من صحة التوقيع
+- ✅ **بوابة نشر** (`tools/verify_apk.py`): تمنع نشر حزمة لا تُثبَّت — سلامة
+  الأرشيف، التحقق من التوقيع بكل المخططات، محاذاة 16KB للمكتبات الأصلية،
+  و**مقارنة الحزمة الجديدة بالمنشورة فعلاً** (استمرار مفتاح التوقيع، تزايد
+  `versionCode`، عدم ارتفاع `minSdk`)
 
 ---
 

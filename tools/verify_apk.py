@@ -68,6 +68,9 @@ ATTR_VERSION_CODE = 0x0101021B
 ATTR_MIN_SDK = 0x0101020C
 ATTR_TARGET_SDK = 0x01010270
 
+# صلاحيات يمنعها عقد التطبيق (تُمرَّر من سطر الأوامر عبر --forbid-permission).
+FORBIDDEN_PERMISSIONS: list[str] = []
+
 SEVERITY_FATAL = "FATAL"
 SEVERITY_WARN = "WARN"
 SEVERITY_INFO = "INFO"
@@ -122,6 +125,7 @@ class ApkFacts:
     v1_signature_files: list[str]
     libs: list[LibInfo]
     badging: dict[str, str]
+    permissions: list[str]
     signer_schemes: dict[str, bool]
     cert_sha256: str | None
     cert_dn: str | None
@@ -432,11 +436,14 @@ def inspect_apk(path: Path) -> ApkFacts:
 
     # ---- aapt2 (badging)
     badging: dict[str, str] = {}
+    permissions: list[str] = []
     aapt2 = _build_tool("aapt2")
     if aapt2 is not None and zip_ok:
         code, out = _run([str(aapt2), "dump", "badging", str(path)])
         if code == 0:
             for line in out.splitlines():
+                if line.startswith("uses-permission: name="):
+                    permissions.append(line.split("name=", 1)[1].strip().strip("'"))
                 if line.startswith("package:"):
                     for key in ("name", "versionCode", "versionName"):
                         token = f"{key}='"
@@ -455,6 +462,17 @@ def inspect_apk(path: Path) -> ApkFacts:
         if manifest_data:
             for key, value in parse_manifest_sdk(manifest_data).items():
                 badging[key] = str(value)
+
+    for forbidden in FORBIDDEN_PERMISSIONS:
+        if forbidden in permissions:
+            problems.append(
+                Problem(
+                    SEVERITY_FATAL,
+                    "FORBIDDEN_PERMISSION",
+                    f"الحزمة تطلب صلاحية {forbidden} المخالفة لعقد التطبيق "
+                    "(أوفلاين بالكامل) — أزلها من البيان المدمج.",
+                )
+            )
 
     # ---- apksigner
     schemes: dict[str, bool] = {}
@@ -538,6 +556,7 @@ def inspect_apk(path: Path) -> ApkFacts:
         v1_signature_files=sorted(v1_files),
         libs=libs,
         badging=badging,
+        permissions=sorted(set(permissions)),
         signer_schemes=schemes,
         cert_sha256=cert_sha256,
         cert_dn=cert_dn,
@@ -674,6 +693,8 @@ def render_report(
                 "   الوسم        : "
                 + ", ".join(f"{k}={v}" for k, v in facts.badging.items())
             )
+        if facts.permissions:
+            lines.append("   الصلاحيات   : " + ", ".join(facts.permissions))
         lines.append(
             f"   التوقيع      : مخططات={','.join(sorted(facts.signer_schemes)) or 'غير محددة'} "
             f"v1-files={len(facts.v1_signature_files)}"
@@ -732,16 +753,23 @@ def main(argv: list[str] | None = None) -> int:
     p_inspect = sub.add_parser("inspect", help="فحص حزمة أو أكثر دون مقارنة")
     p_inspect.add_argument("apks", nargs="+", type=Path)
     p_inspect.add_argument("--report", type=Path)
+    p_inspect.add_argument(
+        "--forbid-permission", action="append", default=[], metavar="NAME"
+    )
     p_inspect.add_argument("--strict", action="store_true", help="اعتبار التحذيرات عطلاً")
 
     p_gate = sub.add_parser("gate", help="فحص الحزم الجديدة ومقارنتها بالمنشورة")
     p_gate.add_argument("--current", nargs="+", required=True, type=Path)
     p_gate.add_argument("--previous", type=Path)
     p_gate.add_argument("--report", type=Path)
+    p_gate.add_argument(
+        "--forbid-permission", action="append", default=[], metavar="NAME"
+    )
     p_gate.add_argument("--allow-minsdk-bump", action="store_true")
     p_gate.add_argument("--strict", action="store_true")
 
     args = parser.parse_args(argv)
+    FORBIDDEN_PERMISSIONS.extend(args.forbid_permission)
 
     if args.command == "inspect":
         facts, extra = _collect(args.apks)
@@ -757,10 +785,10 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 prev_facts = inspect_apk(args.previous)
                 facts.append((f"المنشور سابقاً: {prev_facts.path.name}", prev_facts))
-                for name, cur in list(facts):
-                    if cur is prev_facts:
-                        continue
-                    extra.extend(compare(prev_facts, cur, args.allow_minsdk_bump))
+                # المقارنة تجري على الحزمة الشاملة وحدها: حزم الـ ABI مقسّمة
+                # أصلاً، ومقارنة بنياتها بالشاملة تُنتج تحذيراً كاذباً.
+                if facts:
+                    extra.extend(compare(prev_facts, facts[0][1], args.allow_minsdk_bump))
                 header.append(f"المقارنة مع: {args.previous}")
 
     report = render_report(facts, extra, header)

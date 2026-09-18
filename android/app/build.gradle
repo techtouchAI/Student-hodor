@@ -10,6 +10,20 @@ if (keystorePropertiesFile.exists()) {
     keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
 }
 
+/**
+ * مفتاح توقيع الإصدار: الأسرار (CI) أولاً، ثم الملف المرفق بالمستودع محلياً.
+ *
+ * لماذا هذا الترتيب؟ المفتاح الخاص «سلطة إصدار تحديثات مقبولة من أندرويد»: أي
+ * تحديث بمفتاح مختلف يُرفض تثبيته فوق النسخة المثبتة (ويخسر المستخدم بياناته
+ * إن حذفها). لذا: لا نولّد مفتاحاً جديداً صامتاً أبداً، ولا نرجع إلى مفتاح
+ * التصحيح — نُفشل البناء برسالة واضحة. راجع docs/RELEASE-SIGNING-ar.md.
+ */
+def keystoreFile = rootProject.file("../tools/keystore/student_hodor.jks")
+
+def signingSecret = { String envKey, String propKey, String fallback ->
+    System.getenv(envKey) ?: keystoreProperties.getProperty(propKey, fallback)
+}
+
 android {
     namespace = "iq.techtouch.student_hodor"
     compileSdk = 36
@@ -30,6 +44,8 @@ android {
     defaultConfig {
         applicationId = "iq.techtouch.student_hodor"
         // 24 إلزامي: flutter_local_notifications v21+ يتطلب أندرويد 7.0+.
+        // رفع الحد الأدنى قرارُ إصدار: أي جهاز بأندرويد أقل يفشل تثبيت التحديث،
+        // لذا بوابة النشر (tools/verify_apk.py) ترفض أي ارتفاع جديد لـ minSdk.
         minSdk = 24
         targetSdk = 36
         versionCode = flutter.versionCode
@@ -39,19 +55,31 @@ android {
 
     signingConfigs {
         release {
-            def ksFile = rootProject.file("../tools/keystore/student_hodor.jks")
-            if (ksFile.exists()) {
-                storeFile = ksFile
-                storePassword = keystoreProperties.getProperty("storePassword", "studenthodor")
-                keyAlias = keystoreProperties.getProperty("keyAlias", "student_hodor")
-                keyPassword = keystoreProperties.getProperty("keyPassword", "studenthodor")
+            if (keystoreFile.exists()) {
+                storeFile = keystoreFile
+                storePassword = signingSecret("KEYSTORE_STORE_PASSWORD", "storePassword", "studenthodor")
+                keyAlias = signingSecret("KEYSTORE_KEY_ALIAS", "keyAlias", "student_hodor")
+                keyPassword = signingSecret("KEYSTORE_KEY_PASSWORD", "keyPassword", "studenthodor")
+                // مخططات التوقيع مُعلنة صراحةً لا بالافتراض:
+                //  - v1 (JAR): بعض مثبّتات الأجهزة وأنظمة إدارة الأجهزة (MDM)
+                //    في المدارس لا تقبل غيره.
+                //  - v2: إلزامي على أندرويد 7.0+.
+                //  - v3: يمكّن دوران المفتاح مستقبلاً بلا كسر التحديثات.
+                enableV1Signing = true
+                enableV2Signing = true
+                enableV3Signing = true
             }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = rootProject.file("../tools/keystore/student_hodor.jks").exists() ? signingConfigs.release : signingConfigs.debug
+            // لا رجوع إلى مفتاح التصحيح: إن غاب مفتاح الإصدار يُترك
+            // signingConfig فارغاً فيفشل التحقق صراحةً بدل نشر حزمة بتوقيع
+            // مختلف تبدو «إصداراً» وهي لا تُثبَّت فوق النسخة الميدانية.
+            if (keystoreFile.exists()) {
+                signingConfig = signingConfigs.release
+            }
             minifyEnabled = false
             shrinkResources = false
         }
@@ -59,14 +87,61 @@ android {
 
     packagingOptions {
         jniLibs {
+            // تخزين المكتبات الأصلية غير مضغوطة وبمحاذاة صفحة: هذا شرط
+            // التوافق مع أجهزة الصفحة 16KB (أندرويد 15+) — بدونه يفشل التثبيت
+            // برسالة «الحزمة تبدو غير صالحة» على تلك الأجهزة.
             useLegacyPackaging = false
         }
+    }
+}
+
+/**
+ * تقارب الاعتماديات من أجل محاذاة 16KB.
+ *
+ * mobile_scanner 5.2.3 يثبّت CameraX 1.3.3 و ML Kit 17.2.0 — وكلتاهما تشحن
+ * مكتبات أصلية 64-بت بمحاذاة 4KB (libimage_processing_util_jni.so و
+ * libbarhopper_v3.so). على الأجهزة ذات الصفحة 16KB يفشل تحميلها. الإصدارات
+ * المثبّتة أدناه موثّقة بمحاذاة 16KB، وهي إصدارات صغرى متوافقة واجهةً مع
+ * 1.3.3/17.2.0 فلا تمسّ كود المسح.
+ *
+ * الحل الدائم: ترقية mobile_scanner (سطر 6 فما فوق يرفع هذه الإصدارات أصلاً)
+ * بعد التحقق على جهاز حقيقي، ثم حذف هذه الكتلة.
+ */
+configurations.configureEach {
+    resolutionStrategy {
+        force "androidx.camera:camera-core:1.4.2"
+        force "androidx.camera:camera-camera2:1.4.2"
+        force "androidx.camera:camera-lifecycle:1.4.2"
+        force "com.google.mlkit:barcode-scanning:17.3.0"
     }
 }
 
 dependencies {
     // مكتبة desugaring المرفقة بأندرويد (تُستخدم من compileOptions أعلاه).
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
+}
+
+/**
+ * بوابة صريحة: إن طُلب بناء إصدار بلا مفتاح توقيع يفشل البناء برسالة مقروءة
+ * بدل أن ينجح بمفتاح تصحيح ويُنشر «تحديث لا يُثبَّت».
+ */
+tasks.register("checkReleaseSigningKey") {
+    doLast {
+        if (!keystoreFile.exists() && !project.hasProperty("allowDebugSigning")) {
+            throw new GradleException(
+                    "لا يوجد مفتاح توقيع إصدار: tools/keystore/student_hodor.jks غائب.\n" +
+                    "أضف سرّ المستودع KEYSTORE_BASE64 (و KEYSTORE_STORE_PASSWORD / " +
+                    "KEYSTORE_KEY_ALIAS / KEYSTORE_KEY_PASSWORD) أو ضع ملف المفتاح محلياً.\n" +
+                    "السبب: أي حزمة إصدار بمفتاح مختلف لا تُثبَّت فوق النسخة الميدانية.\n" +
+                    "راجع docs/RELEASE-SIGNING-ar.md — وللتجربة المحلية فقط: " +
+                    "-PallowDebugSigning (لا يُستخدم في CI).")
+        }
+    }
+}
+
+afterEvaluate {
+    tasks.findByName("validateSigningRelease")?.dependsOn("checkReleaseSigningKey")
+    tasks.findByName("packageRelease")?.dependsOn("checkReleaseSigningKey")
 }
 
 flutter {

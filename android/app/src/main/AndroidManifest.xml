@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- الصلاحيات: الكاميرا للمسح والاهتزاز للتغذية. صلاحية الإشعارات
          (POST_NOTIFICATIONS على أندرويد 13+) يدمجها Plugin
@@ -6,6 +7,17 @@
          لا صلاحية INTERNET إطلاقاً: الأوفلاين ضمان تعاقدي. -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- إزالة صلاحيات الشبكة التي تضيفها مكتبة ML Kit (عبر mobile_scanner)
+         إلى البيان المدمج: التطبيق أوفلاين بالكامل، ونموذج الباركود مُضمّن
+         داخل الحزمة فلا يحتاج تنزيلاً. إبقاء الصلاحية يعني أن كل تحديث يطلب
+         من وليّ الأمر/المدرسة صلاحية شبكة لا يستخدمها التطبيق. -->
+    <uses-permission
+        android:name="android.permission.INTERNET"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.ACCESS_NETWORK_STATE"
+        tools:node="remove" />
 
     <!-- الكاميرا غير إلزامية: ينصب التطبيق على أجهزة الإدارة/التقارير بلا كاميرا. -->
     <uses-feature
@@ -30,7 +42,7 @@
             android:launchMode="singleTop"
             android:taskAffinity=""
             android:theme="@style/LaunchTheme"
-            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|uiMode|screenLayout|density|uiMode"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
             <meta-data

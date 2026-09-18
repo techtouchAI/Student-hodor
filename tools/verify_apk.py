@@ -481,31 +481,15 @@ def inspect_apk(path: Path) -> ApkFacts:
     apksigner = _build_tool("apksigner")
     if apksigner is not None and zip_ok:
         min_sdk = badging.get("minSdk", "24")
-        code, out = _run(
-            [
-                str(apksigner),
-                "verify",
-                "-v",
-                "--print-certs",
-                "--min-sdk-version",
-                min_sdk,
-                "--max-sdk-version",
-                "36",
-                str(path),
-            ]
-        )
+        code, out, schemes, cert_sha256, cert_dn = _apksigner_verify(apksigner, path, min_sdk)
         if code == 0:
-            for line in out.splitlines():
-                line = line.strip()
-                # «Verified using v1 scheme (JAR signing): true»
-                match = re.match(r"Verified using (v[0-9.]*) scheme \(.*\):\s*(true|false)", line)
-                if match:
-                    schemes[match.group(1)] = match.group(2) == "true"
-                    continue
-                if "certificate SHA-256 digest:" in line:
-                    cert_sha256 = cert_sha256 or line.split("digest:", 1)[1].strip()
-                if "certificate DN:" in line:
-                    cert_dn = line.split("certificate DN:", 1)[1].strip()
+            # توقيع v1 (JAR) يُقاس على نطاق واسع: apksigner قد يبلّغ عنه false
+            # حين يضيق نطاق SDK، وبعض مثبّتات الأجهزة (وأنظمة MDM المدرسية)
+            # لا تقبل غيره — فنستقصيه من أدنى نسخة أندرويد ممكنة.
+            if not schemes.get("v1", False):
+                _code2, _out2, schemes21, _c2, _d2 = _apksigner_verify(apksigner, path, "21")
+                if schemes21.get("v1"):
+                    schemes["v1"] = True
             if not cert_sha256:
                 problems.append(
                     Problem(SEVERITY_FATAL, "SIGNER_UNREADABLE", "تعذّر قراءة هوية الموقِّع من apksigner.")
@@ -518,10 +502,10 @@ def inspect_apk(path: Path) -> ApkFacts:
                         "الحزمة غير موقّعة بمخطط v2 — أندرويد 7.0+ يرفض تثبيتها.",
                     )
                 )
-            if not schemes.get("v1", False):
+            if not schemes.get("v1", False) and not v1_files:
                 tool_notes.append(
-                    "بلا توقيع v1: مقبول على أندرويد 7.0+، لكن بعض مثبّتات الأجهزة "
-                    "وأنظمة إدارة الأجهزة (MDM) لا تقبل غيره."
+                    "لا توقيع v1 (JAR) في الحزمة: مقبول على أندرويد 7.0+، لكن بعض "
+                    "مثبّتات الأجهزة وأنظمة إدارة الأجهزة (MDM) لا تقبل غيره."
                 )
         else:
             problems.append(
@@ -564,6 +548,41 @@ def inspect_apk(path: Path) -> ApkFacts:
         tool_notes=tool_notes,
         problems=list(problems),
     )
+
+
+
+def _apksigner_verify(
+    apksigner: Path, path: Path, min_sdk: str
+) -> tuple[int, str, dict[str, bool], str | None, str | None]:
+    """يشغّل apksigner على نطاق نسخة محدد ويعيد (الرمز، المخرجات، المخططات، البصمة، الهوية)."""
+    code, out = _run(
+        [
+            str(apksigner),
+            "verify",
+            "-v",
+            "--print-certs",
+            "--min-sdk-version",
+            min_sdk,
+            "--max-sdk-version",
+            "36",
+            str(path),
+        ]
+    )
+    schemes: dict[str, bool] = {}
+    cert_sha256: str | None = None
+    cert_dn: str | None = None
+    for line in out.splitlines():
+        line = line.strip()
+        # «Verified using v1 scheme (JAR signing): true»
+        match = re.match(r"Verified using (v[0-9.]*) scheme \(.*\):\s*(true|false)", line)
+        if match:
+            schemes[match.group(1)] = match.group(2) == "true"
+            continue
+        if "certificate SHA-256 digest:" in line:
+            cert_sha256 = cert_sha256 or line.split("digest:", 1)[1].strip()
+        if "certificate DN:" in line:
+            cert_dn = line.split("certificate DN:", 1)[1].strip()
+    return code, out, schemes, cert_sha256, cert_dn
 
 
 # ---------------------------------------------------------------- المقارنة

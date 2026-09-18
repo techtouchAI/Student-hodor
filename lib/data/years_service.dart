@@ -168,14 +168,19 @@ class YearsService {
   /// إجبارية أولاً تماماً كالتصفير الشامل ([resetAll]) لكن بنطاق السنة
   /// المحددة؛ بقية السنوات وبياناتها لا تُمس.
   ///
-  /// [backup] حقن مولّد النسخة للاختبارات؛ في الميدان يُنشأ ملف نسخة كامل
-  /// عبر [BackupService.exportFile] قبل أي حذف.
+  /// [backup] حقن مولّد النسخة للاختبارات؛ في الميدان تُنشأ نسخة إجبارية
+  /// باسم مميز في مجلد التنزيلات عبر
+  /// [BackupService.exportBeforeDestructive] قبل أي حذف.
   Future<String> deleteYear(
     int yearId, {
     Future<String> Function()? backup,
   }) async {
-    final Future<String> Function() makeBackup =
-        backup ?? BackupService(db).exportFile;
+    final AcademicYear? target = await db.yearById(yearId);
+    final String yearName = target?.name ?? 'رقم $yearId';
+    // نسخة إجبارية باسم مميز (التاريخ + سبب الحذف) في مجلد التنزيلات.
+    final Future<String> Function() makeBackup = backup ??
+        (() => BackupService(db)
+            .exportBeforeDestructive(reason: 'حذف السنة $yearName'));
     final String backupPath = await makeBackup();
     await db.transaction<void>(() async {
       // أحداث المسح تشير للجلسات بلا قيد حذف — تُنظف صراحة أولاً.
@@ -227,7 +232,8 @@ class YearsService {
 
   /// تصفير شامل: نسخة احتياطية إجبارية أولاً ثم مسح كل الجداول.
   Future<String> resetAll() async {
-    final String backupPath = await BackupService(db).exportFile();
+    final String backupPath = await BackupService(db)
+        .exportBeforeDestructive(reason: 'تصفير شامل');
     await db.transaction<void>(() async {
       await db.delete(db.scanEvents).go();
       await db.delete(db.attendanceRows).go();

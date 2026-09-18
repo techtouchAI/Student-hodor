@@ -6,7 +6,7 @@
 
 ── app-release.apk: app-release.apk
    الحجم        : 92,861,901 بايت
-   SHA-256      : 1abf4b3c25f316ee95287b046079bd109fb2fb4969439f953c0db31241e9f134
+   SHA-256      : a9318061e64a5d06b05dbbe80d2ba7af44db04dd5ea3f7512c26abdde1347e88
    سلامة ZIP    : سليم
    عدد المداخل  : 545
    البنية       : manifest=True resources.arsc=True classes.dex=4
@@ -41,7 +41,7 @@
 
 ── app-arm64-v8a-release.apk: app-arm64-v8a-release.apk
    الحجم        : 35,761,303 بايت
-   SHA-256      : 2b0d09c9e4e50dda7920d6157eaad2689e4c4324c072f0e41bf84fdcb95705b9
+   SHA-256      : 34353e1e92c081c930021521af0fd21f1f87c346f83b3e43191c8f01538726be
    سلامة ZIP    : سليم
    عدد المداخل  : 531
    البنية       : manifest=True resources.arsc=True classes.dex=4
@@ -96,4 +96,4 @@
        - lib/x86_64/libsurface_util_jni.so (x86_64) محاذاة ELF=16384 16KB✓
 
 ── بوابة التحديث (مقارنة بالإصدار المنشور)
-   [FATAL] VERSION_CODE_NOT_INCREASED: versionCode الجديد (8) ليس أكبر من المنشور (8): أندرويد يرفض التحديث التنازلي/المساوي.
+   [INFO] لا خروقات: التحديث متوافق مع النسخة المنشورة.

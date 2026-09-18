@@ -1,0 +1,59 @@
+name: release-diagnostics
+
+# أداة صيانة: تفحص الحزم «المنشورة فعلاً» في وسم الإصدار وتثبت التقرير في
+# ci-diagnostics/. الغرض: تشخيص أعطال التثبيت الميدانية (مثل «لم يتم تثبيت
+# التطبيق لأن الحزمة تبدو غير صالحة») على الملف الذي نزّله المستخدم، لا على
+# نسخة نظرية من الكود. لا تبني شيئاً: تشغيلها أقل من دقيقتين.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: وسم الإصدار المراد فحصه
+        required: true
+        default: latest-apk
+      assets:
+        description: أسماء الملفات المراد فحصها (يفصل بينها فراغ)
+        required: true
+        default: app-release.apk
+
+permissions:
+  contents: write
+
+jobs:
+  inspect-published:
+    name: Inspect published APKs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download published assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p published
+          for asset in ${{ inputs.assets }}; do
+            echo "downloading $asset"
+            gh release download "${{ inputs.tag }}" \
+              -R "${{ github.repository }}" -p "$asset" -D published
+          done
+          ls -la published
+
+      - name: Verify published APKs
+        id: verify
+        run: |
+          set -o pipefail
+          python3 tools/verify_apk.py inspect published/*.apk \
+            --report ci-diagnostics/published-apk-report.txt 2>&1 | tee ci_publish_inspect.log
+          echo "report written"
+
+      - name: Commit diagnostics
+        run: |
+          git config user.name "ci-bot"
+          git config user.email "ci@users.noreply.github.com"
+          mkdir -p ci-diagnostics
+          cp ci_publish_inspect.log ci-diagnostics/ci_publish_inspect.log 2>/dev/null || true
+          git add ci-diagnostics
+          git commit -m "ci: تشخيص الحزم المنشورة (${{ inputs.tag }}) [skip ci]" || echo "nothing to commit"
+          git pull --rebase origin "${{ github.ref_name }}" || true
+          git push origin "HEAD:${{ github.ref_name }}" || true

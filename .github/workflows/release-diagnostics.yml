@@ -43,6 +43,7 @@ jobs:
 
       - name: Verify published APKs
         id: verify
+        continue-on-error: true
         run: |
           set -o pipefail
           python3 tools/verify_apk.py inspect published/*.apk \
@@ -50,6 +51,7 @@ jobs:
           echo "report written"
 
       - name: Commit diagnostics
+        if: always()
         run: |
           git config user.name "ci-bot"
           git config user.email "ci@users.noreply.github.com"

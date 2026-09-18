@@ -39,6 +39,14 @@ Duration latenessDuration({required String? arrivalTime, String? dayStart}) {
   return diff <= 0 ? Duration.zero : Duration(minutes: diff);
 }
 
+/// وصف عدد الدقائق بالعربية: مفرد/مثنى/جمع بحسب العدد
+/// (3–10 جمع «دقائق»، وما عداها مفرد «دقيقة»).
+String _minutesLabel(int m) => switch (m) {
+      1 => 'دقيقة',
+      2 => 'دقيقتان',
+      _ => m >= 3 && m <= 10 ? '$m دقائق' : '$m دقيقة',
+    };
+
 /// وصف عربي لمدة التأخر: «25 دقيقة» / «ساعة» / «ساعتان و5 دقائق».
 /// نص فارغ عندما لا مدة (وصول قبل الدوام أو بلا وقت).
 String lateDurationLabel(Duration d) {
@@ -49,24 +57,28 @@ String lateDurationLabel(Duration d) {
   final int h = total ~/ 60;
   final int m = total % 60;
   if (h == 0) {
-    return '$m دقيقة';
+    return _minutesLabel(total);
   }
   final String hours = switch (h) {
     1 => 'ساعة',
     2 => 'ساعتان',
     _ => '$h ساعات',
   };
-  return m == 0 ? hours : '$hours و$m دقيقة';
+  return m == 0 ? hours : '$hours و${_minutesLabel(m)}';
 }
 
 /// سطر عرض سجل التأخر الكامل:
 /// «متأخر — الساعة 08:23 (تأخير 23 دقيقة)».
-/// بلا بداية دوام معروفة: «متأخر — الساعة 08:23».
+/// بلا بداية دوام صالحة: «متأخر — الساعة 08:23» — لا مدة تُخمَّن،
+/// فمدة محسوبة على افتراض خاطئ أخطر من مدة ناقصة.
 /// بلا وقت محفوظ (سجل يدوي قديم): «متأخر» وحدها.
 String lateInfoLabel({required String? arrivalTime, String? dayStart}) {
   final String? t = arrivalTime;
   if (parseArrivalMinutes(t) == null) {
     return 'متأخر';
+  }
+  if (parseArrivalMinutes(dayStart) == null) {
+    return 'متأخر — الساعة $t';
   }
   final String dur = lateDurationLabel(
     latenessDuration(arrivalTime: t, dayStart: dayStart),

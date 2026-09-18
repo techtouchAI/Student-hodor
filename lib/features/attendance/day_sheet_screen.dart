@@ -235,6 +235,9 @@ class _DaySheetState extends ConsumerState<DaySheetScreen> {
     // تأخر يدوي ⇒ اسأل عن وقت الوصول الفعلي؛ إلغاء المنتقي يحفظه بلا وقت.
     String? arrival;
     if (picked == AttendanceStatus.late) {
+      if (!mounted) {
+        return;
+      }
       arrival = await pickManualArrivalTime(context);
       if (!mounted) {
         return;

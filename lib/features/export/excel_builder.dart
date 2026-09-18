@@ -265,12 +265,13 @@ class ExcelBuilder {
                 ),
               );
               // خلية التأخر تحمل وقته الفعلي (ساعة ودقيقة) مع التسمية.
+              // متغير محلي: الحقل على كائن قابل للفراغ لا يُرقّى عبر `status`.
+              final String? arrivalAt = rowAt?.arrivalTime;
               cell.value = TextCellValue(
                 status == null
                     ? (schoolDay ? '' : 'عطلة')
-                    : (status == AttendanceStatus.late &&
-                            rowAt.arrivalTime != null
-                        ? 'متأخر ${rowAt.arrivalTime}'
+                    : (status == AttendanceStatus.late && arrivalAt != null
+                        ? 'متأخر $arrivalAt'
                         : _statusAr[status]),
               );
               cell.cellStyle = CellStyle(

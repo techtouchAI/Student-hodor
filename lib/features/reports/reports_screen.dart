@@ -174,7 +174,7 @@ class _ClassDayListState extends State<_ClassDayList> {
             return const Center(child: CircularProgressIndicator());
           }
           final (List<(Student, AttendanceRow?)> matrix, String dayStart) =
-              snap.data ?? (<(Student, AttendanceRow?)[], '08:00');
+              snap.data ?? (const <(Student, AttendanceRow?)[], '08:00');
           if (matrix.isEmpty) {
             return const Center(child: Text('لا طلاب في هذا الصف'));
           }

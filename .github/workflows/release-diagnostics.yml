@@ -1,0 +1,101 @@
+name: release-diagnostics
+
+# أداة صيانة: تفحص الحزم «المنشورة فعلاً» في وسم الإصدار وتثبت التقرير في
+# ci-diagnostics/. الغرض: تشخيص أعطال التثبيت الميدانية (مثل «لم يتم تثبيت
+# التطبيق لأن الحزمة تبدو غير صالحة») على الملف الذي نزّله المستخدم، لا على
+# نسخة نظرية من الكود. لا تبني شيئاً: تشغيلها أقل من دقيقتين.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: وسم الإصدار المراد فحصه
+        required: true
+        default: latest-apk
+      assets:
+        description: أسماء الملفات المراد فحصها (يفصل بينها فراغ)
+        required: true
+        default: app-release.apk
+
+permissions:
+  contents: write
+
+jobs:
+  inspect-published:
+    name: Inspect published APKs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download published assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p published
+          for asset in ${{ inputs.assets || 'app-release.apk' }}; do
+            echo "downloading $asset"
+            gh release download "${{ inputs.tag || 'latest-apk' }}" \
+              -R "${{ github.repository }}" -p "$asset" -D published
+          done
+          ls -la published
+
+      - name: Verify published APKs
+        id: verify
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          python3 tools/verify_apk.py inspect published/*.apk \
+            --report ci-diagnostics/published-apk-report.txt 2>&1 | tee ci_publish_inspect.log
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve plugin manifests
+        run: flutter pub get
+
+      - name: Trace merged manifest permissions to their plugin
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          PUB_CACHE="${PUB_CACHE:-$HOME/.pub-cache}"
+          echo "pub-cache: $PUB_CACHE"
+          grep -rls -E "android\.permission\.(INTERNET|ACCESS_NETWORK_STATE)" \
+            "$PUB_CACHE"/hosted/*/*/android/src/main/AndroidManifest.xml 2>/dev/null \
+            | sed -E 's#.*/hosted/[^/]+/([^/]+)/android/.*#plugin: \1#' | sort -u \
+            > ci-diagnostics/plugin-permission-sources.txt || true
+          cat ci-diagnostics/plugin-permission-sources.txt
+
+      - name: Dump manifest, badging and signature details
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+          mkdir -p ci-diagnostics
+          for apk in published/*.apk; do
+            echo "===== $apk ====="
+            echo "--- aapt2 dump badging ---"
+            "$BT/aapt2" dump badging "$apk" || true
+            echo "--- aapt2 dump xmltree AndroidManifest.xml ---"
+            "$BT/aapt2" dump xmltree --file AndroidManifest.xml "$apk" || true
+            echo "--- apksigner verify -v ---"
+            "$BT/apksigner" verify -v --print-certs --min-sdk-version 24 --max-sdk-version 36 "$apk" || true
+            echo "--- zipalign -c -P 16 -v 4 ---"
+            "$BT/zipalign" -c -P 16 -v 4 "$apk" > /tmp/z16.log 2>&1 && echo "zipalign 16KB: OK" || { echo "zipalign 16KB: FAILED"; tail -n 15 /tmp/z16.log; }
+            echo "--- zipalign -c 4 ---"
+            "$BT/zipalign" -c 4 "$apk" > /tmp/z4.log 2>&1 && echo "zipalign 4: OK" || { echo "zipalign 4: FAILED"; tail -n 5 /tmp/z4.log; }
+          done > ci-diagnostics/apk-details.txt 2>&1
+          tail -n 40 ci-diagnostics/apk-details.txt
+
+      - name: Commit diagnostics
+        if: always()
+        run: |
+          git config user.name "ci-bot"
+          git config user.email "ci@users.noreply.github.com"
+          mkdir -p ci-diagnostics
+          cp ci_publish_inspect.log ci-diagnostics/ci_publish_inspect.log 2>/dev/null || true
+          git add ci-diagnostics
+          git commit -m "ci: تشخيص الحزم المنشورة (${{ inputs.tag }}) [skip ci]" || echo "nothing to commit"
+          git pull --rebase origin "${{ github.ref_name }}" || true
+          git push origin "HEAD:${{ github.ref_name }}" || true

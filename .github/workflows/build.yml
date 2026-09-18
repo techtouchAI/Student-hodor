@@ -77,17 +77,24 @@ jobs:
       - name: Codegen (drift)
         run: dart run build_runner build --delete-conflicting-outputs
 
-      - name: Bootstrap release keystore if absent (K1)
+      - name: Provision release signing key
+        # لا توليد لمفتاح جديد إطلاقاً: أي حزمة بمفتاح مختلف لا تُثبَّت فوق
+        # النسخة الميدانية. الأسرار أولاً، ثم ملف المستودع (تطوير محلي)، ثم
+        # إخفاق صريح — راجع docs/RELEASE-SIGNING-ar.md.
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
-          if [ ! -f tools/keystore/student_hodor.jks ]; then
+          set -euo pipefail
+          if [ -n "${KEYSTORE_BASE64:-}" ]; then
             mkdir -p tools/keystore
-            keytool -genkeypair -v \
-              -keystore tools/keystore/student_hodor.jks \
-              -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 \
-              -alias student_hodor \
-              -storepass studenthodor -keypass studenthodor \
-              -dname "CN=Student Hodor, OU=Schools, O=TechTouch, C=IQ"
-            echo "KEYSTORE_BOOTSTRAPPED=true" >> "$GITHUB_ENV"
+            printf '%s' "$KEYSTORE_BASE64" | base64 -d > tools/keystore/student_hodor.jks
+            echo "مصدر مفتاح التوقيع: سرّ المستودع KEYSTORE_BASE64"
+          elif [ -f tools/keystore/student_hodor.jks ]; then
+            echo "::warning title=توقيع الإصدار بمفتاح مرفق بالمستودع::"\
+                 "انقل المفتاح إلى أسرار المستودع (KEYSTORE_BASE64) واحذفه من Git."
+          else
+            echo "::error title=لا مفتاح توقيع إصدار::أضف سر KEYSTORE_BASE64 إلى المستودع."
+            exit 1
           fi
 
       - name: Generate gradle wrapper if absent
@@ -113,36 +120,69 @@ jobs:
       - name: Build per-ABI splits
         run: set -o pipefail; flutter build apk --release --split-per-abi 2>&1 | tee ci_build_splits.log
 
-      - name: Checksums
+      - name: Fetch previously published APK for the update gate
+        # تُحمَّل الحزمة المنشورة حالياً لتُقارَن بالجديدة: استمرار مفتاح
+        # التوقيع، تزايد versionCode، وعدم ارتفاع minSdk — أي خرق يعني
+        # «تحديث لا يُثبَّت» في الميدان.
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          cd build/app/outputs/flutter-apk
-          sha256sum *.apk > SHA256SUMS.txt
-          cat SHA256SUMS.txt
+          set -uo pipefail
+          mkdir -p previous
+          gh release download latest-apk -R "${{ github.repository }}" \
+            -p '*universal.apk' -D previous || true
+          if [ -z "$(ls -A previous 2>/dev/null)" ]; then
+            gh release download latest-apk -R "${{ github.repository }}" \
+              -p 'app-release.apk' -D previous || true
+          fi
+          ls -la previous || true
 
-      - name: Verify release signature
+      - name: Release gate (verify + update compatibility)
+        # البوابة تمنع النشر، لا تكتفي بالتحذير: الحزمة المرفوضة لا تصل المستخدم.
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -o pipefail
+          cd build/app/outputs/flutter-apk
+          PREV=""; [ -f "$GITHUB_WORKSPACE/previous/app-release.apk" ] && PREV="--previous $GITHUB_WORKSPACE/previous/app-release.apk"
+          for f in "$GITHUB_WORKSPACE"/previous/*universal.apk; do
+            [ -f "$f" ] && PREV="--previous $f"
+          done
+          python3 "$GITHUB_WORKSPACE/tools/verify_apk.py" gate \
+            --current app-release.apk app-arm64-v8a-release.apk \
+            $PREV \
+            --forbid-permission android.permission.INTERNET \
+            --forbid-permission android.permission.ACCESS_NETWORK_STATE \
+            --report "$GITHUB_WORKSPACE/ci-diagnostics/release-gate.txt" 2>&1 \
+            | tee "$GITHUB_WORKSPACE/ci_gate.log"
+          # مخرجات apksigner الخام تُحفظ مرجعاً للتشخيص الميداني (أي مخطط مرفوض يظهر هنا).
           BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
-          {
-            "$BT/apksigner" verify --print-certs build/app/outputs/flutter-apk/app-release.apk
-            "$BT/apksigner" verify --print-certs build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
-          } 2>&1 | tee ci_sign.log
-          grep -q "CN=Student Hodor" ci_sign.log || { echo "APK is NOT signed with the release key!"; exit 1; }
+          "$BT/apksigner" verify -v --print-certs --min-sdk-version 21 --max-sdk-version 36 \
+            app-release.apk > "$GITHUB_WORKSPACE/ci-diagnostics/apksigner-verify.txt" 2>&1 || true
 
       - name: List APK outputs
         if: always()
         run: ls -la build/app/outputs/flutter-apk/ || true
 
-      - name: Persist release keystore to repo (one-time)
+      - name: Name artifacts by version and ABI
+        # الاسم يحمل الإصدار والبنية: المستخدم (والدعم الفني) يعرف أي ملف
+        # نزّل وأي نسخة ثبّت — بدل أربعة ملفات باسم app-release.apk.
+        id: name
         run: |
-          git config user.name "ci-bot"
-          git config user.email "ci@users.noreply.github.com"
-          git add -f tools/keystore/student_hodor.jks
-          if ! git diff --cached --quiet; then
-            git commit -m "ci: persist release keystore [skip ci]"
-            git pull --rebase origin "${{ github.ref_name }}" || true
-            git push origin "HEAD:${{ github.ref_name }}"
-          fi
+          set -euo pipefail
+          VERSION="$(sed -n 's/^version:[[:space:]]*//p' pubspec.yaml | head -1 | tr -d '\r')"
+          SLUG="$(printf '%s' "$VERSION" | tr '+' '-')"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
+          cd build/app/outputs/flutter-apk
+          mv app-release.apk          "student-hodor-$SLUG-universal.apk"
+          mv app-armeabi-v7a-release.apk "student-hodor-$SLUG-armeabi-v7a.apk"
+          mv app-arm64-v8a-release.apk   "student-hodor-$SLUG-arm64-v8a.apk"
+          mv app-x86_64-release.apk      "student-hodor-$SLUG-x86_64.apk"
+          sha256sum student-hodor-*.apk > SHA256SUMS.txt
+          ls -la
+          cat SHA256SUMS.txt
 
       - name: Publish APKs to GitHub Release
         # النشر للمحادثة push فقط: تشغيل PR المكرر كان يتسابق مع تشغيل الدفع
@@ -150,21 +190,44 @@ jobs:
         if: github.event_name != 'pull_request'
         timeout-minutes: 15
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -o pipefail
           {
             set -e
             cd build/app/outputs/flutter-apk
             TAG=latest-apk
-            # رفع ~220MB قد يتعثر عابراً: 3 محاولات مع تنظيف بينها، والسجل
-            # يُحفظ في ci_publish.log لتشخيص أي فشل لاحق.
+            VERSION="${{ steps.name.outputs.version }}"
+            SLUG="${{ steps.name.outputs.slug }}"
+            {
+              echo "إصدار $VERSION — بُني تلقائياً من ${{ github.sha }} في $(date -u +%F' '%H:%M'UTC')"
+              echo
+              echo "**ما تحتاجه:** أندرويد 7.0 (API 24) فأحدث. أجهزة أقدم لا تقبل التحديث بعد رفع الحد الأدنى في 1.3.0."
+              echo
+              echo "**أي ملف تُنزّل؟**"
+              echo "\`student-hodor-$SLUG-universal.apk\`: يعمل على كل الأجهزة (أكبر حجماً)."
+              echo "إن عرفت بنية جهازك فملف \`arm64-v8a\` أصغر ويعمل على معظم الهواتف الحديثة."
+              echo
+              echo "**تحقق بعد التنزيل:** طابق بصمة SHA-256 مع \`SHA256SUMS.txt\` المرفق قبل التثبيت."
+              echo
+              echo "**إن ظهرت رسالة «لم يتم تثبيت التطبيق لأن الحزمة تبدو غير صالحة»:**"
+              echo " راجع [دليل التثبيت وتشخيص الأعطال](https://github.com/${{ github.repository }}/blob/main/docs/INSTALL-ar.md) — السبب في الغالب تنزيل مبتور أو ملف بنية خاطئة."
+              echo
+              echo "---"
+              echo
+              echo "تقرير فحص الحزمة قبل النشر (توقيع، محاذاة 16KB، توافق التحديث):"
+              echo
+              echo '```'
+              sed -n '1,60p' "$GITHUB_WORKSPACE/ci-diagnostics/release-gate.txt"
+              echo '```'
+            } > "$GITHUB_WORKSPACE/release-notes.md"
+            # رفع ~220MB قد يتعثر عابراً: 3 محاولات مع تنظيف بينها.
             for i in 1 2 3; do
               gh release delete "$TAG" -y --cleanup-tag || true
               if gh release create "$TAG" \
-                *.apk SHA256SUMS.txt \
-                --title "Student Hodor — أحدث APK" \
-                --notes "بُني تلقائياً من ${{ github.sha }} في $(date -u +%F' '%H:%M'UTC')" \
+                student-hodor-*.apk SHA256SUMS.txt \
+                --title "حضور الطالب — الإصدار $VERSION" \
+                --notes-file "$GITHUB_WORKSPACE/release-notes.md" \
                 --target "${{ github.sha }}"; then
                 break
               fi
@@ -174,8 +237,8 @@ jobs:
             done
           } 2>&1 | tee "$GITHUB_WORKSPACE/ci_publish.log"
 
-      - name: Commit diagnostics on failure
-        if: failure()
+      - name: Commit diagnostics
+        if: failure() || cancelled()
         run: |
           git config user.name "ci-bot"
           git config user.email "ci@users.noreply.github.com"
@@ -185,3 +248,18 @@ jobs:
           git add ci-diagnostics
           git commit -m "ci: apk diagnostics [skip ci]" || true
           git push origin "HEAD:${{ github.ref_name }}" || true
+
+      - name: Commit release gate report
+        # سجلّ مراجعة: تقرير البوابة يُحفظ مع كل بناء ناجح أيضاً (لا عند الفشل
+        # فقط) ليكون مرجعاً زمنياً لحالة الحزمة عند كل إصدار.
+        if: success() && github.event_name != 'pull_request'
+        run: |
+          git config user.name "ci-bot"
+          git config user.email "ci@users.noreply.github.com"
+          mkdir -p ci-diagnostics
+          git add ci-diagnostics/release-gate.txt ci-diagnostics/apksigner-verify.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "ci: تقرير بوابة النشر [skip ci]" || true
+            git pull --rebase origin "${{ github.ref_name }}" || true
+            git push origin "HEAD:${{ github.ref_name }}" || true
+          fi

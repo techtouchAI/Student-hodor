@@ -1,0 +1,99 @@
+==============================================================================
+تقرير فحص حزمة APK — بوابة ما قبل النشر
+الوضع: بوابة نشر
+المقارنة مع: /home/runner/work/Student-hodor/Student-hodor/previous/student-hodor-1.3.1-7-universal.apk
+==============================================================================
+
+── app-release.apk: app-release.apk
+   الحجم        : 92,861,901 بايت
+   SHA-256      : 482ac23ac5b7091c3ee18ff308e995ef4d974b51e8ea521ac2e7465441c84295
+   سلامة ZIP    : سليم
+   عدد المداخل  : 545
+   البنية       : manifest=True resources.arsc=True classes.dex=4
+   الوسم        : name=iq.techtouch.student_hodor, versionCode=8, versionName=1.3.1, minSdk=24, targetSdk=36, native-code='arm64-v8a' 'armeabi-v7a' 'x86_64'
+   الصلاحيات   : android.permission.CAMERA, android.permission.POST_NOTIFICATIONS, android.permission.VIBRATE, iq.techtouch.student_hodor.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+   التوقيع      : v1=نعم, v2=نعم, v3=نعم, v3.1=لا, v3.2=لا, v4=لا | ملفات v1=1
+   هوية الموقّع : CN=Student Hodor, OU=Schools, O=TechTouch, C=IQ
+   بصمة الشهادة : c65c2cabfd87c1d9592ab45df621f609c2a478cfee6d5e6ce474df197c671ecc
+   zipalign     : zipalign 16KB: OK | zipalign 4B: OK
+   مكتبات أصلية : 21
+       - lib/arm64-v8a/libapp.so (arm64-v8a) محاذاة ELF=65536 16KB✓
+       - lib/arm64-v8a/libbarhopper_v3.so (arm64-v8a) محاذاة ELF=16384 16KB✓
+       - lib/arm64-v8a/libdartjni.so (arm64-v8a) محاذاة ELF=16384 16KB✓
+       - lib/arm64-v8a/libflutter.so (arm64-v8a) محاذاة ELF=65536 16KB✓
+       - lib/arm64-v8a/libimage_processing_util_jni.so (arm64-v8a) محاذاة ELF=16384 16KB✓
+       - lib/arm64-v8a/libsqlite3.so (arm64-v8a) محاذاة ELF=16384 16KB✓
+       - lib/arm64-v8a/libsurface_util_jni.so (arm64-v8a) محاذاة ELF=16384 16KB✓
+       - lib/armeabi-v7a/libapp.so (armeabi-v7a) محاذاة ELF=16384 32bit
+       - lib/armeabi-v7a/libbarhopper_v3.so (armeabi-v7a) محاذاة ELF=4096 32bit
+       - lib/armeabi-v7a/libdartjni.so (armeabi-v7a) محاذاة ELF=16384 32bit
+       - lib/armeabi-v7a/libflutter.so (armeabi-v7a) محاذاة ELF=65536 32bit
+       - lib/armeabi-v7a/libimage_processing_util_jni.so (armeabi-v7a) محاذاة ELF=16384 32bit
+       - lib/armeabi-v7a/libsqlite3.so (armeabi-v7a) محاذاة ELF=16384 32bit
+       - lib/armeabi-v7a/libsurface_util_jni.so (armeabi-v7a) محاذاة ELF=16384 32bit
+       - lib/x86_64/libapp.so (x86_64) محاذاة ELF=65536 16KB✓
+       - lib/x86_64/libbarhopper_v3.so (x86_64) محاذاة ELF=16384 16KB✓
+       - lib/x86_64/libdartjni.so (x86_64) محاذاة ELF=16384 16KB✓
+       - lib/x86_64/libflutter.so (x86_64) محاذاة ELF=65536 16KB✓
+       - lib/x86_64/libimage_processing_util_jni.so (x86_64) محاذاة ELF=16384 16KB✓
+       - lib/x86_64/libsqlite3.so (x86_64) محاذاة ELF=16384 16KB✓
+       - lib/x86_64/libsurface_util_jni.so (x86_64) محاذاة ELF=16384 16KB✓
+
+── app-arm64-v8a-release.apk: app-arm64-v8a-release.apk
+   الحجم        : 35,761,303 بايت
+   SHA-256      : 597821bd0e81053880cc4c39d6430256fb5a438f3a99c3bc3dfadb17a53658a9
+   سلامة ZIP    : سليم
+   عدد المداخل  : 531
+   البنية       : manifest=True resources.arsc=True classes.dex=4
+   الوسم        : name=iq.techtouch.student_hodor, versionCode=2008, versionName=1.3.1, minSdk=24, targetSdk=36, native-code='arm64-v8a'
+   الصلاحيات   : android.permission.CAMERA, android.permission.POST_NOTIFICATIONS, android.permission.VIBRATE, iq.techtouch.student_hodor.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+   التوقيع      : v1=نعم, v2=نعم, v3=نعم, v3.1=لا, v3.2=لا, v4=لا | ملفات v1=1
+   هوية الموقّع : CN=Student Hodor, OU=Schools, O=TechTouch, C=IQ
+   بصمة الشهادة : c65c2cabfd87c1d9592ab45df621f609c2a478cfee6d5e6ce474df197c671ecc
+   zipalign     : zipalign 16KB: OK | zipalign 4B: OK
+   مكتبات أصلية : 7
+       - lib/arm64-v8a/libapp.so (arm64-v8a) محاذاة ELF=65536 16KB✓
+       - lib/arm64-v8a/libbarhopper_v3.so (arm64-v8a) محاذاة ELF=16384 16KB✓
+       - lib/arm64-v8a/libdartjni.so (arm64-v8a) محاذاة ELF=16384 16KB✓
+       - lib/arm64-v8a/libflutter.so (arm64-v8a) محاذاة ELF=65536 16KB✓
+       - lib/arm64-v8a/libimage_processing_util_jni.so (arm64-v8a) محاذاة ELF=16384 16KB✓
+       - lib/arm64-v8a/libsqlite3.so (arm64-v8a) محاذاة ELF=16384 16KB✓
+       - lib/arm64-v8a/libsurface_util_jni.so (arm64-v8a) محاذاة ELF=16384 16KB✓
+
+── المنشور سابقاً: student-hodor-1.3.1-7-universal.apk: student-hodor-1.3.1-7-universal.apk
+   الحجم        : 92,861,896 بايت
+   SHA-256      : 84ccca12e66bb51f6175785985db0f63f76d6974c8574158a4e927b254ef465d
+   سلامة ZIP    : سليم
+   عدد المداخل  : 545
+   البنية       : manifest=True resources.arsc=True classes.dex=4
+   الوسم        : name=iq.techtouch.student_hodor, versionCode=7, versionName=1.3.1, minSdk=24, targetSdk=36, native-code='arm64-v8a' 'armeabi-v7a' 'x86_64'
+   الصلاحيات   : android.permission.CAMERA, android.permission.POST_NOTIFICATIONS, android.permission.VIBRATE, iq.techtouch.student_hodor.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+   التوقيع      : v1=نعم, v2=نعم, v3=نعم, v3.1=لا, v3.2=لا, v4=لا | ملفات v1=1
+   هوية الموقّع : CN=Student Hodor, OU=Schools, O=TechTouch, C=IQ
+   بصمة الشهادة : c65c2cabfd87c1d9592ab45df621f609c2a478cfee6d5e6ce474df197c671ecc
+   zipalign     : zipalign 16KB: OK | zipalign 4B: OK
+   مكتبات أصلية : 21
+       - lib/arm64-v8a/libapp.so (arm64-v8a) محاذاة ELF=65536 16KB✓
+       - lib/arm64-v8a/libbarhopper_v3.so (arm64-v8a) محاذاة ELF=16384 16KB✓
+       - lib/arm64-v8a/libdartjni.so (arm64-v8a) محاذاة ELF=16384 16KB✓
+       - lib/arm64-v8a/libflutter.so (arm64-v8a) محاذاة ELF=65536 16KB✓
+       - lib/arm64-v8a/libimage_processing_util_jni.so (arm64-v8a) محاذاة ELF=16384 16KB✓
+       - lib/arm64-v8a/libsqlite3.so (arm64-v8a) محاذاة ELF=16384 16KB✓
+       - lib/arm64-v8a/libsurface_util_jni.so (arm64-v8a) محاذاة ELF=16384 16KB✓
+       - lib/armeabi-v7a/libapp.so (armeabi-v7a) محاذاة ELF=16384 32bit
+       - lib/armeabi-v7a/libbarhopper_v3.so (armeabi-v7a) محاذاة ELF=4096 32bit
+       - lib/armeabi-v7a/libdartjni.so (armeabi-v7a) محاذاة ELF=16384 32bit
+       - lib/armeabi-v7a/libflutter.so (armeabi-v7a) محاذاة ELF=65536 32bit
+       - lib/armeabi-v7a/libimage_processing_util_jni.so (armeabi-v7a) محاذاة ELF=16384 32bit
+       - lib/armeabi-v7a/libsqlite3.so (armeabi-v7a) محاذاة ELF=16384 32bit
+       - lib/armeabi-v7a/libsurface_util_jni.so (armeabi-v7a) محاذاة ELF=16384 32bit
+       - lib/x86_64/libapp.so (x86_64) محاذاة ELF=65536 16KB✓
+       - lib/x86_64/libbarhopper_v3.so (x86_64) محاذاة ELF=16384 16KB✓
+       - lib/x86_64/libdartjni.so (x86_64) محاذاة ELF=16384 16KB✓
+       - lib/x86_64/libflutter.so (x86_64) محاذاة ELF=65536 16KB✓
+       - lib/x86_64/libimage_processing_util_jni.so (x86_64) محاذاة ELF=16384 16KB✓
+       - lib/x86_64/libsqlite3.so (x86_64) محاذاة ELF=16384 16KB✓
+       - lib/x86_64/libsurface_util_jni.so (x86_64) محاذاة ELF=16384 16KB✓
+
+── بوابة التحديث (مقارنة بالإصدار المنشور)
+   [INFO] لا خروقات: التحديث متوافق مع النسخة المنشورة.

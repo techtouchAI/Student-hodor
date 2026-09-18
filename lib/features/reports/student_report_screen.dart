@@ -29,11 +29,13 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../core/attendance_labels.dart';
 import '../../core/error_guard.dart';
+import '../../core/late_time.dart';
 import '../../core/school_time.dart';
 import '../../data/db.dart';
 import '../../data/error_log.dart';
 import '../../data/reports_service.dart';
 import '../../state/providers.dart';
+import '../attendance/late_time_picker.dart';
 import '../export/excel_builder.dart';
 import '../export/student_record_pdf.dart';
 
@@ -312,7 +314,11 @@ class _ReportBodyState extends State<_ReportBody> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text('الحالة الحالية: ${statusName(cell.status)}'),
+            // سجل التأخر يعرض وقته الفعلي المثبت في القاعدة لا اسمه وحده.
+            Text(
+              'الحالة الحالية: '
+              '${cell.status == AttendanceStatus.late ? lateInfoLabel(arrivalTime: cell.arrivalTime) : statusName(cell.status)}',
+            ),
             if (!cell.isSchoolDay)
               const Text(
                 'يوم عطلة — أي تسجيل هنا يدوي صريح.',
@@ -371,6 +377,15 @@ class _ReportBodyState extends State<_ReportBody> {
     if (picked == cell.status) {
       return;
     }
+    // تأخر يدوي ⇒ اسأل عن وقت الوصول (ساعة ودقيقة) ليُثبّت مع السجل؛
+    // إلغاء المنتقي يحفظ التأخر بلا وقت بدل تعطيل التصحيح.
+    String? arrival;
+    if (picked == AttendanceStatus.late) {
+      arrival = await pickManualArrivalTime(context);
+      if (!mounted) {
+        return;
+      }
+    }
     final Session? session =
         await db.sessionOf(student.classId, cell.dateKey);
     if (!mounted) {
@@ -384,12 +399,16 @@ class _ReportBodyState extends State<_ReportBody> {
       status: picked,
       source: AttendanceSource.manual,
       sessionId: session?.id,
+      arrivalTime: arrival,
     );
     if (!mounted) {
       return;
     }
+    final String saved = picked == AttendanceStatus.late
+        ? lateInfoLabel(arrivalTime: arrival)
+        : statusName(picked);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('حُفظت الحالة: ${statusName(picked)}')),
+      SnackBar(content: Text('حُفظت الحالة: $saved')),
     );
     _reload();
   }
@@ -587,7 +606,9 @@ class _MonthGrid extends StatelessWidget {
             children: <Widget>[
               for (final DayCell c in cells)
                 Tooltip(
-                  message: '${c.dateKey}: ${statusName(c.status)}',
+                  // تلميح اليوم المتأخر يشمل وقته الفعلي المثبت في السجل.
+                  message: '${c.dateKey}: '
+                      '${c.status == AttendanceStatus.late ? lateInfoLabel(arrivalTime: c.arrivalTime) : statusName(c.status)}',
                   child: InkWell(
                     borderRadius: BorderRadius.circular(6),
                     onTap: () => onDayTap(c),

@@ -37,6 +37,29 @@ void main() {
       );
     });
 
+    test('إكسل: الغيابات وحدها قسم كافٍ', () {
+      expect(
+        exportHasContent(
+          format: ExportFormat.excel,
+          daily: false,
+          summary: false,
+          leaves: false,
+          absences: true,
+        ),
+        isTrue,
+      );
+      expect(
+        exportHasContent(
+          format: ExportFormat.excel,
+          daily: false,
+          summary: false,
+          leaves: false,
+        ),
+        isFalse,
+        reason: 'بلا غيابات أيضاً يبقى انعدام الكل مرفوضاً',
+      );
+    });
+
     test('PDF: الإجازات ليست قسماً (خاصة بإكسل)', () {
       expect(
         exportHasContent(
@@ -55,6 +78,7 @@ void main() {
           leaves: true,
         ),
         isFalse,
+        reason: 'ورقة الإجازات خاصة بإكسل',
       );
       expect(
         exportHasContent(
@@ -64,6 +88,17 @@ void main() {
           leaves: false,
         ),
         isFalse,
+      );
+      expect(
+        exportHasContent(
+          format: ExportFormat.pdf,
+          daily: false,
+          summary: false,
+          leaves: false,
+          absences: true,
+        ),
+        isTrue,
+        reason: 'الغيابات فقط قسم صالح في الصيغتين إكسل وPDF',
       );
     });
   });

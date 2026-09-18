@@ -1,18 +1,28 @@
-/// منطق قراءة الباجات: تحقق متعدد الطبقات + سجل أحداث + منع التكرار + نافذة تأخر.
+/// منطق قراءة الباجات: تحقق متعدد الطبقات + سجل أحداث + منع التكرار + نافذة تأخر
+/// + تثبيت وقت الوصول الفعلي (ساعة ودقيقة) في سجل الحضور.
 library;
 
 import 'package:drift/drift.dart';
 
 import '../core/badge_code.dart';
+import '../core/late_time.dart';
 import '../core/school_time.dart';
 import 'db.dart';
 
 class ScanOutcome {
-  const ScanOutcome({required this.result, this.studentName, this.message = ''});
+  const ScanOutcome({
+    required this.result,
+    this.studentName,
+    this.message = '',
+    this.arrivalTime,
+  });
 
   final int result;
   final String? studentName;
   final String message;
+
+  /// وقت القراءة الفعلي `HH:mm` للنجاح (حضور أو تأخر) — `null` فيما سواها.
+  final String? arrivalTime;
 
   bool get isSuccess =>
       result == ScanResult.ok || result == ScanResult.late;
@@ -35,9 +45,13 @@ class ScanService {
     );
   }
 
+  /// يقرأ باجاً ويسجّل الحضور/التأخر. [now] حقن وقت القراءة للاختبارات؛
+  /// في الميدان يُؤخذ الوقت الفعلي لحظة المسح ويُثبَّت `HH:mm` في السجل —
+  /// إن تجاوز المسح نهاية نافذة السماح فالحالة «متأخر» ومعه وقت وصوله.
   Future<ScanOutcome> handleScan({
     required Session session,
     required String raw,
+    DateTime? now,
   }) async {
     final ParsedBadgeCode? parsed = BadgeCode.parse(raw);
     if (parsed == null) {
@@ -112,10 +126,11 @@ class ScanService {
       );
     }
     final Map<String, String> settings = await db.effectiveSettings();
-    final bool isLate =
-        DateTime.now().isAfter(lateCutoff(settings, session.date));
+    final DateTime at = now ?? DateTime.now();
+    final bool isLate = at.isAfter(lateCutoff(settings, session.date));
     final int status =
         isLate ? AttendanceStatus.late : AttendanceStatus.present;
+    final String arrival = arrivalTimeString(at);
     await db.upsertAttendance(
       yearId: session.yearId,
       classId: session.classId,
@@ -124,6 +139,7 @@ class ScanService {
       status: status,
       source: AttendanceSource.scan,
       sessionId: session.id,
+      arrivalTime: arrival,
     );
     await _log(
       session,
@@ -131,12 +147,23 @@ class ScanService {
       student.id,
       isLate ? ScanResult.late : ScanResult.ok,
     );
+    if (!isLate) {
+      return ScanOutcome(
+        result: ScanResult.ok,
+        studentName: student.fullName,
+        message: 'تم تسجيل حضور ${student.fullName}',
+        arrivalTime: arrival,
+      );
+    }
+    final String dur = lateDurationLabel(
+      latenessDuration(arrivalTime: arrival, dayStart: settings['day_start']),
+    );
     return ScanOutcome(
-      result: isLate ? ScanResult.late : ScanResult.ok,
+      result: ScanResult.late,
       studentName: student.fullName,
-      message: isLate
-          ? 'سُجّل متأخراً: ${student.fullName}'
-          : 'تم تسجيل حضور ${student.fullName}',
+      message: 'سُجّل متأخراً: ${student.fullName} — الساعة $arrival'
+          '${dur.isEmpty ? '' : ' (تأخير $dur)'}',
+      arrivalTime: arrival,
     );
   }
 

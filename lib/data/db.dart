@@ -140,6 +140,9 @@ class AttendanceRows extends Table {
   IntColumn get source => integer()();
   IntColumn get sessionId => integer().nullable()();
   TextColumn get note => text().nullable()();
+  /// وقت الوصول الفعلي `HH:mm` لمن سُجّل حضوره/تأخره (مسحاً أو يدوياً) —
+  /// `null` عندما لا يُعرف الوقت (غياب الإقفال التلقائي، سجلات قديمة).
+  TextColumn get arrivalTime => text().nullable()();
   @override
   List<Set<Column<Object>>> get uniqueKeys => <Set<Column<Object>>>[
         <Column<Object>>{studentId, date},
@@ -203,9 +206,9 @@ class AppDb extends _$AppDb {
 
   AppDb.forTesting(super.e);
 
-  /// الإصدار 3: عمود `phone` الاختياري في الطلاب (يُملأ لاحقاً، لا فقد بيانات).
+  /// الإصدار 4: عمود `arrival_time` في الحضور (وقت الوصول الفعلي للتأخر).
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -220,6 +223,10 @@ class AppDb extends _$AppDb {
           }
           if (from < 3) {
             await m.addColumn(students, students.phone);
+          }
+          if (from < 4) {
+            // عمود اختياري: السجلات القديمة تبقى بلا وقت ولا يُفقد شيء.
+            await m.addColumn(attendanceRows, attendanceRows.arrivalTime);
           }
         },
       );
@@ -517,6 +524,9 @@ class AppDb extends _$AppDb {
   ///
   /// ملاحظة: `insertOnConflictUpdate` يستهدف القيد الفريد الأساسي (id) فقط،
   /// لذا يُنفَّذ الإدراج أو التحديث صراحةً وفق القيد الفريد (studentId, date).
+  ///
+  /// [arrivalTime] وقت الوصول الفعلي `HH:mm` (للتأخر خصوصاً)؛ تمرير `null`
+  /// **يمسح** الوقت المحفوظ — مقصود عند تغيير الحالة يدوياً بلا وقت معروف.
   Future<void> upsertAttendance({
     required int yearId,
     required int classId,
@@ -526,6 +536,7 @@ class AppDb extends _$AppDb {
     required int source,
     int? sessionId,
     String? note,
+    String? arrivalTime,
   }) async {
     final AttendanceRow? existing = await attendanceOf(studentId, date);
     if (existing == null) {
@@ -539,6 +550,7 @@ class AppDb extends _$AppDb {
           source: Value(source),
           sessionId: Value(sessionId),
           note: Value(note),
+          arrivalTime: Value(arrivalTime),
         ),
       );
       return;
@@ -551,6 +563,7 @@ class AppDb extends _$AppDb {
         source: Value(source),
         sessionId: Value(sessionId),
         note: Value(note),
+        arrivalTime: Value(arrivalTime),
       ),
     );
   }

@@ -8,6 +8,6 @@ class AppInfo {
   const AppInfo._();
 
   /// يجب أن يطابق `version` في pubspec.yaml.
-  static const String version = '1.2.0+4';
+  static const String version = '1.3.0+5';
   static const String name = 'حضور الطالب';
 }

@@ -25,6 +25,8 @@ import 'package:drift/drift.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import '../core/school_time.dart';
+import 'backup_download_store.dart';
 import 'db.dart';
 import 'photo_store.dart';
 
@@ -105,6 +107,44 @@ class BackupService {
       throw StateError('zip encode returned null');
     }
     return Uint8List.fromList(zipBytes);
+  }
+
+  /// اسم نسخة مميز: «نسخة احتياطية - <السبب> - <التاريخ> - <الوقت>.zip»
+  /// حتى تُعرف كل نسخة في مجلد التنزيلات بمحتواها وزمنها ولا تختلط.
+  /// محارف أسماء الملفات الممنوعة تُستبدل شرطةً (كأسماء ملفات التصدير).
+  static String backupFileName({required String reason, DateTime? stamp}) {
+    final DateTime t = stamp ?? DateTime.now();
+    final String date = SchoolTime.dateKey(t);
+    final String time = '${t.hour.toString().padLeft(2, '0')}'
+        '-${t.minute.toString().padLeft(2, '0')}'
+        '-${t.second.toString().padLeft(2, '0')}';
+    final String safeReason = reason
+        .replaceAll(RegExp(r'[\\/:*?"<>|\r\n\t]'), '-')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    return 'نسخة احتياطية - $safeReason - $date - $time.zip';
+  }
+
+  /// النسخة الإجبارية قبل العمليات المدمرة (حذف سنة/تصفير شامل): تُحفظ
+  /// في مجلد التنزيلات العام «نسخة احتياطية للغيابات» باسم مميز متى أمكن
+  /// ([BackupDownloadStore]) وإلا في مجلد التطبيق الخاص بالاسم المميز
+  /// نفسه. يعيد المسار/الاسم الذي يُعرض للمستخدم.
+  Future<String> exportBeforeDestructive({required String reason}) async {
+    final Uint8List bytes = await exportBytes();
+    final String name = backupFileName(reason: reason);
+    final String? sharedPath = await BackupDownloadStore.save(
+      fileName: name,
+      bytes: bytes,
+    );
+    if (sharedPath != null) {
+      await db.logAudit('backup_downloads', '$reason => $sharedPath');
+      return sharedPath;
+    }
+    final Directory dir = await getApplicationDocumentsDirectory();
+    final File f = File(p.join(dir.path, name));
+    await f.writeAsBytes(bytes, flush: true);
+    await db.logAudit('backup_export', '$reason => ${f.path}');
+    return f.path;
   }
 
   /// يكتب نسخة احتياطية كاملة ويعيد مسار الملف.

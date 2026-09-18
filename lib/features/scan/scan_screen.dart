@@ -29,6 +29,7 @@ import 'package:vibration/vibration.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../core/error_guard.dart';
+import '../../core/late_time.dart';
 import '../../core/nav.dart';
 import '../../core/school_time.dart';
 import '../../data/db.dart';
@@ -535,6 +536,8 @@ class _ScanState extends ConsumerState<ScanScreen>
         status: AttendanceStatus.present,
         source: AttendanceSource.manual,
         sessionId: session.id,
+        // التسجيل اليدوي يحدث «الآن» — يثبّت وقته الفعلي كوقت وصول.
+        arrivalTime: arrivalTimeString(DateTime.now()),
       );
       await db.logAudit('manual_present', pick.fullName);
       _snack('سُجّل ${pick.fullName} حاضراً');
@@ -772,11 +775,17 @@ class _ScanState extends ConsumerState<ScanScreen>
       itemCount: _feed.length,
       itemBuilder: (BuildContext context, int i) {
         final ScanOutcome o = _feed[i];
+        // التأخر نجاحٌ لكنه يتميز بلون وأيقونة خاصة — رسالته تحمل الوقت.
+        final bool late = o.result == ScanResult.late;
         return ListTile(
           dense: true,
           leading: Icon(
-            o.isSuccess ? Icons.check_circle : Icons.error,
-            color: o.isSuccess ? Colors.green : Colors.red,
+            late
+                ? Icons.hourglass_bottom
+                : (o.isSuccess ? Icons.check_circle : Icons.error),
+            color: late
+                ? Colors.orange
+                : (o.isSuccess ? Colors.green : Colors.red),
           ),
           title: Text(o.message),
         );

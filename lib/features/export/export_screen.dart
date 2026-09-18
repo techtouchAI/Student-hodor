@@ -21,15 +21,17 @@ import 'pdf_report.dart';
 enum ExportFormat { excel, pdf }
 
 /// هل اختار المستخدم قسماً واحداً على الأقل من محتوى الملف؟
-/// (ورقة الإجازات خاصة بإكسل). تصدير PDF بلا أي قسم كان يبني مستنداً
-/// بلا صفحات فيفشل لحظة الطباعة بخطأ غامض بدل رسالة واضحة.
+/// (ورقة الإجازات خاصة بإكسل؛ الغيابات في الصيغتين). تصدير بلا أي قسم كان
+/// يبني ملفاً بلا صفحات فيفشل لحظة الطباعة بخطأ غامض بدل رسالة واضحة.
+/// [absences] اختيارية بقيمة افتراضية حتى لا ينكسر مستدعٍ قديم.
 bool exportHasContent({
   required ExportFormat format,
   required bool daily,
   required bool summary,
   required bool leaves,
+  bool absences = false,
 }) =>
-    daily || summary || (format == ExportFormat.excel && leaves);
+    daily || summary || absences || (format == ExportFormat.excel && leaves);
 
 class ExportScreen extends ConsumerStatefulWidget {
   const ExportScreen({super.key});
@@ -46,6 +48,7 @@ class _ExportState extends ConsumerState<ExportScreen> {
   bool _includeDaily = true;
   bool _includeSummary = true;
   bool _includeLeaves = true;
+  bool _includeAbsences = true;
   bool _busy = false;
 
   List<MonthKey> _monthsOf(AcademicYear year) =>
@@ -115,6 +118,7 @@ class _ExportState extends ConsumerState<ExportScreen> {
         daily: _includeDaily,
         summary: _includeSummary,
         leaves: _includeLeaves,
+        absences: _includeAbsences,
       )) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -139,16 +143,28 @@ class _ExportState extends ConsumerState<ExportScreen> {
           includeDaily: _includeDaily,
           includeSummary: _includeSummary,
           includeLeaves: _includeLeaves,
+          includeAbsences: _includeAbsences,
         );
         final List<int> bytes = await builder.build();
         final Directory tmp = Directory.systemTemp;
         // اسم الملف عربي واضح («كشف الحضور والغياب - المدرسة - السنة - الشهر»)
         // بدل `hodor-<طابع زمني>.xlsx` اللاتيني الذي يصل للمستلم بلا معنى.
-        final String fileName = ExcelBuilder.exportFileName(
-          schoolName: settings['school_name'] ?? '',
-          yearName: year.name,
-          months: months,
-        );
+        // وإن كان المحتوى غيابات فقط فاسم الملف يسميها صراحة.
+        final bool absencesOnly = _includeAbsences &&
+            !_includeDaily &&
+            !_includeSummary &&
+            !_includeLeaves;
+        final String fileName = absencesOnly
+            ? ExcelBuilder.absencesFileName(
+                schoolName: settings['school_name'] ?? '',
+                yearName: year.name,
+                months: months,
+              )
+            : ExcelBuilder.exportFileName(
+                schoolName: settings['school_name'] ?? '',
+                yearName: year.name,
+                months: months,
+              );
         final File f = File('${tmp.path}/$fileName');
         await f.writeAsBytes(bytes);
         await SharePlus.instance.share(
@@ -173,6 +189,7 @@ class _ExportState extends ConsumerState<ExportScreen> {
           fontBold: bold,
           includeDaily: _includeDaily,
           includeSummary: _includeSummary,
+          includeAbsences: _includeAbsences,
         );
         await report.layout();
       }
@@ -289,6 +306,14 @@ class _ExportState extends ConsumerState<ExportScreen> {
                   title: const Text('ورقة الإجازات'),
                   onChanged: (bool v) => setState(() => _includeLeaves = v),
                 ),
+              SwitchListTile(
+                value: _includeAbsences,
+                title: const Text('الغيابات فقط'),
+                subtitle: const Text(
+                  'غيابات كل طالب وحدها — بلا أشهر محددة تشمل السنة كلها',
+                ),
+                onChanged: (bool v) => setState(() => _includeAbsences = v),
+              ),
               const SizedBox(height: 20),
               FilledButton.icon(
                 onPressed: _busy || (!includeAnything) ? null : _generate,
@@ -305,5 +330,6 @@ class _ExportState extends ConsumerState<ExportScreen> {
   bool get includeAnything =>
       _includeDaily ||
       _includeSummary ||
+      _includeAbsences ||
       (_format == ExportFormat.excel && _includeLeaves);
 }

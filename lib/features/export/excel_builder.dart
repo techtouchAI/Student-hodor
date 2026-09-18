@@ -54,6 +54,7 @@ class ExcelBuilder {
     this.includeDaily = true,
     this.includeSummary = true,
     this.includeLeaves = true,
+    this.includeAbsences = false,
   });
 
   final AppDb db;
@@ -69,6 +70,9 @@ class ExcelBuilder {
   final bool includeSummary;
   final bool includeLeaves;
 
+  /// ورقة «الغيابات فقط»: غيابات كل طالب وحدها بلا حضور ولا إجازات.
+  final bool includeAbsences;
+
   /// سجل طالب واحد (من ملف الطالب): الأشهر والصفوف لا معنى لها هنا —
   /// يُبنى عبر [buildStudentRecord] لا [build].
   ExcelBuilder.studentRecord({
@@ -83,7 +87,8 @@ class ExcelBuilder {
         classes = const <ExportScopeClass>[],
         includeDaily = false,
         includeSummary = false,
-        includeLeaves = false;
+        includeLeaves = false,
+        includeAbsences = false;
 
   static const List<String> _statusAr = <String>[
     'حاضر',
@@ -210,13 +215,13 @@ class ExcelBuilder {
           _writeHeader(sheet, sc, m);
           int row = _firstDataRow;
           for (final Student s in sc.students) {
-            final Map<String, int> byDate = <String, int>{
+            final Map<String, AttendanceRow> byDate = <String, AttendanceRow>{
               for (final AttendanceRow r in await (db.select(db.attendanceRows)
                     ..where(
                       (a) => a.studentId.equals(s.id) & a.yearId.equals(year.id),
                     ))
                   .get())
-                r.date: r.status,
+                r.date: r,
             };
             final Data seq = sheet.cell(
               CellIndex.indexByColumnRow(columnIndex: _indexColumn, rowIndex: row),
@@ -246,7 +251,8 @@ class ExcelBuilder {
                 continue;
               }
               final String key = SchoolTime.dateKey(DateTime(m.year, m.month, day));
-              final int? status = byDate[key];
+              final AttendanceRow? rowAt = byDate[key];
+              final int? status = rowAt?.status;
               final bool schoolDay = SchoolTime.isSchoolDay(
                 DateTime(m.year, m.month, day),
                 workWeekdays: workWeekdays,
@@ -258,8 +264,15 @@ class ExcelBuilder {
                   rowIndex: row,
                 ),
               );
+              // خلية التأخر تحمل وقته الفعلي (ساعة ودقيقة) مع التسمية.
+              // متغير محلي: الحقل على كائن قابل للفراغ لا يُرقّى عبر `status`.
+              final String? arrivalAt = rowAt?.arrivalTime;
               cell.value = TextCellValue(
-                status == null ? (schoolDay ? '' : 'عطلة') : _statusAr[status],
+                status == null
+                    ? (schoolDay ? '' : 'عطلة')
+                    : (status == AttendanceStatus.late && arrivalAt != null
+                        ? 'متأخر $arrivalAt'
+                        : _statusAr[status]),
               );
               cell.cellStyle = CellStyle(
                 backgroundColorHex:
@@ -312,6 +325,9 @@ class ExcelBuilder {
     if (includeLeaves) {
       await _leavesSheet(excel);
     }
+    if (includeAbsences) {
+      await _absencesSheet(excel);
+    }
     _dropTemplateSheet(excel);
     final List<int>? bytes = excel.save();
     if (bytes == null) {
@@ -341,9 +357,16 @@ class ExcelBuilder {
       sheet,
       '$schoolName — سجل الطالب ${student.fullName} — $classTitle — '
       'السنة ${year.name} — حتى ${record.to} — المدير: $directorName',
-      3,
+      4,
     );
-    const List<String> head = <String>['م', 'التاريخ', 'اليوم', 'الحالة'];
+    // عمود «وقت الوصول» يثبت وقت التأخر الفعلي (ساعة ودقيقة) مع السجل.
+    const List<String> head = <String>[
+      'م',
+      'التاريخ',
+      'اليوم',
+      'الحالة',
+      'وقت الوصول',
+    ];
     _writeColumnHeaders(sheet, head);
     int row = _firstDataRow;
     int index = 1;
@@ -372,6 +395,7 @@ class ExcelBuilder {
         fontSize: 11,
         horizontalAlign: HorizontalAlign.Right,
       );
+      _text(sheet, column: 4, row: row, value: d.arrivalTime ?? '');
       row++;
     }
     row++;
@@ -393,6 +417,7 @@ class ExcelBuilder {
     sheet.setColumnWidth(1, 16.0);
     sheet.setColumnWidth(2, 14.0);
     sheet.setColumnWidth(3, 14.0);
+    sheet.setColumnWidth(4, 14.0);
     _dropTemplateSheet(excel);
     final List<int>? bytes = excel.save();
     if (bytes == null) {
@@ -525,6 +550,101 @@ class ExcelBuilder {
     sheet.setColumnWidth(3, 12.0);
     sheet.setColumnWidth(4, 30.0);
   }
+
+  /// ورقة الغيابات فقط: كل يوم غياب لكل طالب ضمن النطاق — بلا حضور ولا
+  /// إجازات ولا تأخر. الأشهر المحددة في الشاشة ترشّح الأيام؛ وبلا تحديد
+  /// تُعرض غيابات السنة الدراسية كلها. الصفوف مرتبة بالصف ثم الاسم ثم
+  /// التاريخ، وفي النهاية إجمالي عام.
+  Future<void> _absencesSheet(Excel excel) async {
+    final Sheet sheet = excel[_sheetName('سجل الغيابات')];
+    sheet.isRTL = true;
+    const List<String> head = <String>[
+      'م',
+      'الصف',
+      'اسم الطالب',
+      'تاريخ الغياب',
+      'اليوم',
+      'طريقة التسجيل',
+    ];
+    _writeTitle(
+      sheet,
+      '$schoolName — سجل غياب الطلاب للسنة ${year.name} '
+      '— المدير: $directorName',
+      head.length - 1,
+    );
+    _writeColumnHeaders(sheet, head);
+    final Set<String> monthKeys = <String>{
+      for (final MonthKey m in months) m.key,
+    };
+    int row = _firstDataRow;
+    int index = 1;
+    int total = 0;
+    for (final ExportScopeClass sc in classes) {
+      for (final Student s in sc.students) {
+        final List<AttendanceRow> absences = await (db.select(db.attendanceRows)
+              ..where(
+                (a) =>
+                    a.studentId.equals(s.id) &
+                    a.yearId.equals(year.id) &
+                    a.status.equals(AttendanceStatus.absent),
+              )
+              ..orderBy(<OrderClauseGenerator<AttendanceRows>>[
+                (AttendanceRows a) => OrderingTerm.asc(a.date),
+              ]))
+            .get();
+        for (final AttendanceRow r in absences) {
+          // yyyy-MM-dd ⇒ مفتاح الشهر أول سبعة محارف.
+          if (monthKeys.isNotEmpty &&
+              !monthKeys.contains(r.date.substring(0, 7))) {
+            continue;
+          }
+          final DateTime dt = SchoolTime.parseKey(r.date);
+          _num(sheet, column: 0, row: row, value: IntCellValue(index++));
+          _text(
+            sheet,
+            column: 1,
+            row: row,
+            value: '${sc.cls.grade} ـ ${sc.cls.section}',
+          );
+          _text(sheet, column: 2, row: row, value: s.fullName);
+          final Data dateCell = _cellAt(sheet, 3, row);
+          dateCell.value = TextCellValue(r.date);
+          dateCell.cellStyle = CellStyle(
+            backgroundColorHex:
+                ExcelColor.fromHexString(ExcelColors.absent),
+            fontFamily: _fontFamily,
+            fontSize: 11,
+            horizontalAlign: HorizontalAlign.Center,
+          );
+          _text(
+            sheet,
+            column: 4,
+            row: row,
+            value: SchoolTime.weekdayNames[dt.weekday - 1],
+          );
+          _text(sheet, column: 5, row: row, value: sourceLabel(r.source));
+          row++;
+          total++;
+        }
+      }
+    }
+    _text(sheet, column: 2, row: row, value: 'إجمالي أيام الغياب');
+    _num(sheet, column: 3, row: row, value: IntCellValue(total));
+    sheet.setColumnWidth(0, 6.0);
+    sheet.setColumnWidth(1, 16.0);
+    sheet.setColumnWidth(2, 34.0);
+    sheet.setColumnWidth(3, 16.0);
+    sheet.setColumnWidth(4, 14.0);
+    sheet.setColumnWidth(5, 16.0);
+  }
+
+  /// تسمية مصدر التسجيل في التصدير (إكسل وPDF) — مصدر حقيقة واحد للصيغتين.
+  static String sourceLabel(int source) => switch (source) {
+        AttendanceSource.scan => 'مسح',
+        AttendanceSource.manual => 'يدوي',
+        AttendanceSource.autoClose => 'إقفال تلقائي',
+        _ => 'غير معروف',
+      };
 
   /// عنوان مدمج في الصف الأول لكل ورقة.
   ///
@@ -795,6 +915,34 @@ class ExcelBuilder {
         '-${stamp.minute.toString().padLeft(2, '0')}';
     final String base = <String>[
       'كشف الحضور والغياب',
+      if (schoolName.trim().isNotEmpty) schoolName.trim(),
+      if (yearName.trim().isNotEmpty) yearName.trim(),
+      scope,
+      when,
+    ].join(' - ');
+    return '${sanitizeFileName(base)}.xlsx';
+  }
+
+  /// اسم ملف الغيابات: «سجل الغيابات - المدرسة - السنة - النطاق».
+  ///
+  /// بلا أشهر محددة النطاق «السنة كاملة» — ورقة الغيابات لا تشترط شهراً.
+  static String absencesFileName({
+    required String schoolName,
+    required String yearName,
+    required List<MonthKey> months,
+    DateTime? now,
+  }) {
+    final DateTime stamp = now ?? DateTime.now();
+    final String scope = switch (months.length) {
+      0 => 'السنة كاملة',
+      1 => months.first.label,
+      _ => '${months.first.label} إلى ${months.last.label}',
+    };
+    final String when = '${SchoolTime.dateKey(stamp)} '
+        '${stamp.hour.toString().padLeft(2, '0')}'
+        '-${stamp.minute.toString().padLeft(2, '0')}';
+    final String base = <String>[
+      'سجل الغيابات',
       if (schoolName.trim().isNotEmpty) schoolName.trim(),
       if (yearName.trim().isNotEmpty) yearName.trim(),
       scope,

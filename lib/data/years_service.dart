@@ -7,6 +7,7 @@ import '../core/badge_code.dart';
 import '../core/school_time.dart';
 import 'backup_service.dart';
 import 'db.dart';
+import 'photo_store.dart';
 
 class YearsService {
   YearsService(this.db);
@@ -162,9 +163,77 @@ class YearsService {
     return n;
   }
 
+  /// حذف سنة دراسية **واحدة** وكل ما يخصها وحدها: صفوفها، طلابها وصورهم،
+  /// حضورها، إجازاتها، جلساتها وأحداث مسحها، بادجاتها — بنسخة احتياطية
+  /// إجبارية أولاً تماماً كالتصفير الشامل ([resetAll]) لكن بنطاق السنة
+  /// المحددة؛ بقية السنوات وبياناتها لا تُمس.
+  ///
+  /// [backup] حقن مولّد النسخة للاختبارات؛ في الميدان تُنشأ نسخة إجبارية
+  /// باسم مميز في مجلد التنزيلات عبر
+  /// [BackupService.exportBeforeDestructive] قبل أي حذف.
+  Future<String> deleteYear(
+    int yearId, {
+    Future<String> Function()? backup,
+  }) async {
+    final AcademicYear? target = await db.yearById(yearId);
+    final String yearName = target?.name ?? 'رقم $yearId';
+    // نسخة إجبارية باسم مميز (التاريخ + سبب الحذف) في مجلد التنزيلات.
+    final Future<String> Function() makeBackup = backup ??
+        (() => BackupService(db)
+            .exportBeforeDestructive(reason: 'حذف السنة $yearName'));
+    final String backupPath = await makeBackup();
+    await db.transaction<void>(() async {
+      // أحداث المسح تشير للجلسات بلا قيد حذف — تُنظف صراحة أولاً.
+      final List<Session> sessions = await (db.select(db.sessions)
+            ..where((s) => s.yearId.equals(yearId)))
+          .get();
+      for (final Session s in sessions) {
+        await (db.delete(db.scanEvents)
+              ..where((e) => e.sessionId.equals(s.id)))
+            .go();
+      }
+      await (db.delete(db.attendanceRows)
+            ..where((a) => a.yearId.equals(yearId)))
+          .go();
+      await (db.delete(db.leaves)..where((l) => l.yearId.equals(yearId))).go();
+      final List<Student> kids = await (db.select(db.students)
+            ..where((s) => s.yearId.equals(yearId)))
+          .get();
+      if (kids.isNotEmpty) {
+        await (db.delete(db.badges)
+              ..where(
+                (b) => b.studentId
+                    .isIn(<int>[for (final Student s in kids) s.id]),
+              ))
+            .go();
+      }
+      // صور الطلاب ملفات على القرص — حذفها مع صفوف أصحابها (بلا استثناءات:
+      // ملف مفقود لا يجوز أن يعطّل الحذف).
+      for (final Student s in kids) {
+        try {
+          await PhotoStore.deleteIfExists(s.photoPath);
+        } catch (_) {
+          // صورة تالفة/مقفلة: يُكمل الحذف.
+        }
+      }
+      await (db.delete(db.students)..where((s) => s.yearId.equals(yearId)))
+          .go();
+      await (db.delete(db.sessions)..where((s) => s.yearId.equals(yearId)))
+          .go();
+      await (db.delete(db.schoolClasses)
+            ..where((c) => c.yearId.equals(yearId)))
+          .go();
+      await (db.delete(db.academicYears)..where((y) => y.id.equals(yearId)))
+          .go();
+      await db.logAudit('year_delete', 'year=$yearId backup=$backupPath');
+    });
+    return backupPath;
+  }
+
   /// تصفير شامل: نسخة احتياطية إجبارية أولاً ثم مسح كل الجداول.
   Future<String> resetAll() async {
-    final String backupPath = await BackupService(db).exportFile();
+    final String backupPath = await BackupService(db)
+        .exportBeforeDestructive(reason: 'تصفير شامل');
     await db.transaction<void>(() async {
       await db.delete(db.scanEvents).go();
       await db.delete(db.attendanceRows).go();

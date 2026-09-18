@@ -1,6 +1,5 @@
 Analyzing Student-hodor...                                      
 
-  error • Invalid constant value • lib/features/about/about_screen.dart:83:19 • invalid_constant
-  error • The getter 'youtube' isn't defined for the type 'Icons'. Try importing the library that defines 'youtube', correcting the name to the name of an existing getter, or defining a getter or field named 'youtube' • lib/features/about/about_screen.dart:83:25 • undefined_getter
+   info • The import of 'dart:typed_data' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/services.dart'. Try removing the import directive • lib/data/backup_download_store.dart:10:8 • unnecessary_import
 
-2 issues found. (ran in 17.2s)
+1 issue found. (ran in 17.3s)

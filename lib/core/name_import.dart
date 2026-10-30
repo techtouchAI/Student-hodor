@@ -630,27 +630,36 @@ List<List<String>> _tableRows(String tableXml) {
 
 /// يحذف الجداول المتداخلة (جدول داخل خلية) حتى لا تُقرأ صفوفه صفوفاً للخارج.
 String _stripNestedTables(String tableXml) {
+  final int start = _indexOfTag(tableXml, 'w:tbl', 0);
+  if (start < 0) {
+    return tableXml;
+  }
+  final int gt = tableXml.indexOf('>', start);
+  final int end = _endOfTag(tableXml, 'w:tbl', start);
+  if (gt < 0 || end < 0) {
+    return tableXml;
+  }
+  final int closing = '</w:tbl>'.length;
+  final String inner = tableXml.substring(gt + 1, end - closing);
+  return _removeInnerTables(inner);
+}
+
+/// يحذف أي جدول يبدأ داخل النص المعطى (بمحتواه) ويُبقي ما بينه وبين غيره.
+String _removeInnerTables(String xml) {
   final StringBuffer out = StringBuffer();
   int i = 0;
-  bool seenOuter = false;
   while (true) {
-    final int at = _indexOfTag(tableXml, 'w:tbl', i);
+    final int at = _indexOfTag(xml, 'w:tbl', i);
     if (at < 0) {
-      out.write(tableXml.substring(i));
+      out.write(xml.substring(i));
       return out.toString();
     }
-    if (!seenOuter) {
-      seenOuter = true;
-      out.write(tableXml.substring(i, at));
-      i = at;
-      continue;
-    }
-    final int end = _endOfTag(tableXml, 'w:tbl', at);
+    final int end = _endOfTag(xml, 'w:tbl', at);
     if (end < 0) {
-      out.write(tableXml.substring(i));
+      out.write(xml.substring(i));
       return out.toString();
     }
-    out.write(tableXml.substring(i, at));
+    out.write(xml.substring(i, at));
     i = end;
   }
 }

@@ -1,14 +1,33 @@
 Analyzing Student-hodor...                                      
 
-  error • The argument type 'List<Column<Object>>' can't be assigned to the parameter type 'List<GeneratedColumn<Object>>'.  • lib/data/db.dart:347:21 • argument_type_not_assignable
-  error • The argument type 'Map<Column<Object>, Expression<Object?>>' can't be assigned to the parameter type 'Map<GeneratedColumn<Object>, Expression<Object>>'.  • lib/data/db.dart:348:28 • argument_type_not_assignable
-  error • The argument type 'List<Column<Object>>' can't be assigned to the parameter type 'List<GeneratedColumn<Object>>'.  • lib/data/db.dart:356:21 • argument_type_not_assignable
-  error • The argument type 'Map<Column<Object>, Expression<Object?>>' can't be assigned to the parameter type 'Map<GeneratedColumn<Object>, Expression<Object>>'.  • lib/data/db.dart:357:28 • argument_type_not_assignable
-warning • Unused import: '../core/lesson.dart'. Try removing the import directive • lib/data/scan_service.dart:13:8 • unused_import
-  error • The getter 'displayName' isn't defined for the type 'Lesson'. Try importing the library that defines 'displayName', correcting the name to the name of an existing getter, or defining a getter or field named 'displayName' • lib/data/scan_service.dart:145:64 • undefined_getter
-  error • The getter 'displayName' isn't defined for the type 'Lesson'. Try importing the library that defines 'displayName', correcting the name to the name of an existing getter, or defining a getter or field named 'displayName' • lib/data/scan_service.dart:177:64 • undefined_getter
-   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/attendance/day_sheet_screen.dart:392:18 • use_build_context_synchronously
-warning • Unused import: '../../core/lesson.dart'. Try removing the import directive • lib/features/export/student_record_pdf.dart:11:8 • unused_import
-   info • Missing a required trailing comma. Try adding a trailing comma • test/lessons_test.dart:101:17 • require_trailing_commas
+  error • A value of type 'List<dynamic>' can't be assigned to a variable of type 'List<Leave>'. Try changing the type of the variable, or casting the right-hand type to 'List<Leave>' • lib/data/db.dart:680:32 • invalid_assignment
+  error • Local variable 'leaves' can't be referenced before it is declared. Try moving the declaration to before the first use, or renaming the local variable so that it doesn't hide a name from an enclosing scope • lib/data/db.dart:680:45 • referenced_before_declaration
+  error • The argument type 'List<Leave>' can't be assigned to the parameter type 'ResultSetImplementation<HasResultSet, dynamic>'.  • lib/data/db.dart:680:45 • argument_type_not_assignable
+  error • The argument type 'List<Leave>' can't be assigned to the parameter type 'TableInfo<Table, dynamic>'.  • lib/data/db.dart:724:21 • argument_type_not_assignable
+  error • The getter 'id' isn't defined for the type 'Table'. Try importing the library that defines 'id', correcting the name to the name of an existing getter, or defining a getter or field named 'id' • lib/data/db.dart:724:45 • undefined_getter
+   info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • lib/data/reports_service.dart:547:9 • prefer_const_constructors
+   info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • lib/data/reports_service.dart:548:9 • prefer_const_constructors
+   info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • lib/data/reports_service.dart:549:9 • prefer_const_constructors
+   info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • lib/data/reports_service.dart:550:9 • prefer_const_constructors
+   info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • lib/data/reports_service.dart:551:9 • prefer_const_constructors
+  error • The argument type 'Set<Table>' can't be assigned to the parameter type 'Set<ResultSetImplementation<dynamic, dynamic>>'.  • lib/data/reports_service.dart:554:18 • argument_type_not_assignable
+  error • Local variable 'day' can't be referenced before it is declared. Try moving the declaration to before the first use, or renaming the local variable so that it doesn't hide a name from an enclosing scope • lib/features/export/excel_builder.dart:287:33 • referenced_before_declaration
+  error • The argument type 'DayPresence' can't be assigned to the parameter type 'int'.  • lib/features/export/excel_builder.dart:287:33 • argument_type_not_assignable
+  error • The final variable 'day' can't be read because it's potentially unassigned at this point. Ensure that it is assigned on necessary execution paths • lib/features/export/excel_builder.dart:287:33 • read_potentially_unassigned_final
+  error • Local variable 'day' can't be referenced before it is declared. Try moving the declaration to before the first use, or renaming the local variable so that it doesn't hide a name from an enclosing scope • lib/features/export/excel_builder.dart:290:79 • referenced_before_declaration
+  error • The argument type 'DayPresence' can't be assigned to the parameter type 'int'.  • lib/features/export/excel_builder.dart:290:79 • argument_type_not_assignable
+  error • The final variable 'day' can't be read because it's potentially unassigned at this point. Ensure that it is assigned on necessary execution paths • lib/features/export/excel_builder.dart:290:79 • read_potentially_unassigned_final
+  error • Local variable 'day' can't be referenced before it is declared. Try moving the declaration to before the first use, or renaming the local variable so that it doesn't hide a name from an enclosing scope • lib/features/export/excel_builder.dart:311:43 • referenced_before_declaration
+  error • The argument type 'DayPresence' can't be assigned to the parameter type 'int'.  • lib/features/export/excel_builder.dart:311:43 • argument_type_not_assignable
+  error • The final variable 'day' can't be read because it's potentially unassigned at this point. Ensure that it is assigned on necessary execution paths • lib/features/export/excel_builder.dart:311:43 • read_potentially_unassigned_final
+  error • Local variable 'day' can't be referenced before it is declared. Try moving the declaration to before the first use, or renaming the local variable so that it doesn't hide a name from an enclosing scope • lib/features/export/excel_builder.dart:317:43 • referenced_before_declaration
+  error • The argument type 'DayPresence' can't be assigned to the parameter type 'int'.  • lib/features/export/excel_builder.dart:317:43 • argument_type_not_assignable
+  error • The final variable 'day' can't be read because it's potentially unassigned at this point. Ensure that it is assigned on necessary execution paths • lib/features/export/excel_builder.dart:317:43 • read_potentially_unassigned_final
+  error • The name 'LessonWindow' isn't a type, so it can't be used as a type argument. Try correcting the name to an existing type, or defining a type named 'LessonWindow' • lib/features/export/pdf_report.dart:110:15 • non_type_as_type_argument
+  error • The name 'LessonWindow' isn't a type, so it can't be used as a type argument. Try correcting the name to an existing type, or defining a type named 'LessonWindow' • lib/features/export/pdf_report.dart:111:8 • non_type_as_type_argument
+   info • The import of 'dart:typed_data' is unnecessary because all of the used elements are also provided by the import of 'package:drift/drift.dart'. Try removing the import directive • test/backup_legacy_test.dart:9:8 • unnecessary_import
+  error • The type 'List<LessonWindow>' used in the 'for' loop must implement 'Iterable' with a type argument that can be assigned to 'Lesson' • test/backup_legacy_test.dart:217:38 • for_in_of_invalid_element_type
+   info • Missing a required trailing comma. Try adding a trailing comma • test/backup_legacy_test.dart:217:52 • require_trailing_commas
+   info • Missing a required trailing comma. Try adding a trailing comma • test/backup_legacy_test.dart:219:69 • require_trailing_commas
 
-10 issues found. (ran in 14.1s)
+29 issues found. (ran in 17.6s)

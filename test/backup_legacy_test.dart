@@ -85,7 +85,7 @@ void main() {
       yearId: 1,
       classId: classId,
       studentId: kids[0].id,
-      date: '2026-09-10',
+      date: '2026-09-12',
       lessonId: lessons[2].id,
       status: AttendanceStatus.absent,
       source: AttendanceSource.manual,
@@ -139,7 +139,11 @@ void main() {
 
     final List<AttendanceRow> rows = await dst.select(dst.attendanceRows).get();
     expect(rows, hasLength(2), reason: 'كل سطر قديم محفوظ');
-    expect(rows.every((AttendanceRow r) => r.lessonId == firstId), isTrue);
+    expect(
+      rows.every((AttendanceRow r) => r.lessonId == firstId),
+      isTrue,
+      reason: 'كل سطر قديم على الحصة الأولى',
+    );
     expect(
       rows.firstWhere((AttendanceRow r) => r.status == AttendanceStatus.present)
           .arrivalTime,
@@ -253,7 +257,7 @@ void main() {
       yearId: 1,
       classId: classId,
       studentId: kids[0].id,
-      date: '2026-09-10',
+      date: '2026-09-12',
       lessonId: lessons[2].id,
       status: AttendanceStatus.absent,
       source: AttendanceSource.manual,
@@ -338,11 +342,22 @@ void main() {
     final Map<String, int> counts = await BackupService(dst).mergeImport(
       _zipOf(manifest),
     );
-    expect(counts['attendance'], 1, reason: 'السطر الصالح وحده يُدرج');
-    expect(counts['skipped'], 1, reason: 'سطر الطالب المفقود يُتخطّى ويُعدّ');
-
     final List<AttendanceRow> rows = await dst.select(dst.attendanceRows).get();
-    expect(rows, hasLength(1));
+    final String seen = <String>[
+      for (final AttendanceRow r in rows)
+        'student=${r.studentId} lesson=${r.lessonId} date=${r.date}',
+    ].join(' | ');
+    expect(
+      counts['attendance'],
+      1,
+      reason: 'السطر الصالح وحده يُدرج — counts=$counts rows=[$seen]',
+    );
+    expect(
+      counts['skipped'],
+      1,
+      reason: 'سطر الطالب المفقود يُتخطّى ويُعدّ — counts=$counts',
+    );
+    expect(rows, hasLength(1), reason: 'الصفوف بعد الدمج: [$seen]');
     expect(
       rows.single.lessonId,
       (await dst.firstLesson()).id,

@@ -129,7 +129,8 @@ class DayPresence {
   /// النص المعروض للحالة اليومية — لا يقول «غائب» إلا إذا كان الغياب كاملاً.
   String get label {
     if (!hasData) {
-      return status == null ? 'لم يُسجَّل' : statusName(status);
+      // النص التاريخي نفسه الذي يظهر في ملفات التصدير حين لا سجل لليوم.
+      return status == null ? 'لم يسجل' : statusName(status);
     }
     switch (absence) {
       case DayAbsence.full:

@@ -76,7 +76,8 @@ void main() {
         lessonStatuses: const <int, int>{},
         totalLessons: 6,
       ).label,
-      'لم يُسجَّل',
+      'لم يسجل',
+      reason: 'نص التصدير التاريخي لليوم بلا سجل (لا يُخلق «غائب»)',
     );
   });
 

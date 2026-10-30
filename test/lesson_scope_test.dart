@@ -43,7 +43,18 @@ Future<Map<int, int>> _saveOrder(AppDb db, List<int> ids) async {
   final Map<int, LessonWindow> byId = <int, LessonWindow>{
     for (final LessonWindow w in windows) w.id: w,
   };
-  await db.saveLessons(<LessonWindow>[for (final int id in ids) byId[id]!]);
+  // `saveLessons` يكتب الرقم من النافذة نفسها لا من موضعها في القائمة،
+  // فإعادة الترتيب تعني إعادة ترقيم صريحة (كما تفعل شاشة الحصص).
+  await db.saveLessons(<LessonWindow>[
+    for (int i = 0; i < ids.length; i++)
+      LessonWindow(
+        id: ids[i],
+        slot: i + 1,
+        name: byId[ids[i]]!.name,
+        start: byId[ids[i]]!.start,
+        end: byId[ids[i]]!.end,
+      ),
+  ]);
   return <int, int>{
     for (final LessonWindow w in await db.lessonWindows()) w.id: w.slot,
   };

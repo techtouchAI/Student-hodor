@@ -1,2 +1,14 @@
 Analyzing Student-hodor...                                      
-No issues found! (ran in 12.5s)
+
+  error • The argument type 'List<Column<Object>>' can't be assigned to the parameter type 'List<GeneratedColumn<Object>>'.  • lib/data/db.dart:347:21 • argument_type_not_assignable
+  error • The argument type 'Map<Column<Object>, Expression<Object?>>' can't be assigned to the parameter type 'Map<GeneratedColumn<Object>, Expression<Object>>'.  • lib/data/db.dart:348:28 • argument_type_not_assignable
+  error • The argument type 'List<Column<Object>>' can't be assigned to the parameter type 'List<GeneratedColumn<Object>>'.  • lib/data/db.dart:356:21 • argument_type_not_assignable
+  error • The argument type 'Map<Column<Object>, Expression<Object?>>' can't be assigned to the parameter type 'Map<GeneratedColumn<Object>, Expression<Object>>'.  • lib/data/db.dart:357:28 • argument_type_not_assignable
+warning • Unused import: '../core/lesson.dart'. Try removing the import directive • lib/data/scan_service.dart:13:8 • unused_import
+  error • The getter 'displayName' isn't defined for the type 'Lesson'. Try importing the library that defines 'displayName', correcting the name to the name of an existing getter, or defining a getter or field named 'displayName' • lib/data/scan_service.dart:145:64 • undefined_getter
+  error • The getter 'displayName' isn't defined for the type 'Lesson'. Try importing the library that defines 'displayName', correcting the name to the name of an existing getter, or defining a getter or field named 'displayName' • lib/data/scan_service.dart:177:64 • undefined_getter
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/features/attendance/day_sheet_screen.dart:392:18 • use_build_context_synchronously
+warning • Unused import: '../../core/lesson.dart'. Try removing the import directive • lib/features/export/student_record_pdf.dart:11:8 • unused_import
+   info • Missing a required trailing comma. Try adding a trailing comma • test/lessons_test.dart:101:17 • require_trailing_commas
+
+10 issues found. (ran in 16.9s)

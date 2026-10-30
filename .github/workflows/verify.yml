@@ -70,11 +70,19 @@ jobs:
             fi
             if [ -s ci_test.log ]; then
               echo
-              echo '### flutter test (ذيل السجل)'
+              # كتلة كل اختبار فاشل كاملة: الرسالة وExpected/Actual والسبب
+              # والمسار — لأن ذيل السجل وحده يقصّ الكتل الأولى.
+              echo '### flutter test (كتل الفشل)'
               echo '```'
-              tail -n 120 ci_test.log
+              grep -n -B2 -A14 '\[E\]' ci_test.log | head -n 500
+              echo '```'
+              echo
+              echo '### flutter test (الملخّص)'
+              echo '```'
+              grep -E '^(Failing tests:|  /home/|.*Some tests failed)' ci_test.log \
+                | head -n 60
+              tail -n 3 ci_test.log
               echo '```'
             fi
           } > report.md
-          gh pr comment "${{ github.event.pull_request.number }}" --body-file report.md --edit-last \
-            || gh pr comment "${{ github.event.pull_request.number }}" --body-file report.md
+          gh pr comment "${{ github.event.pull_request.number }}" --body-file report.md

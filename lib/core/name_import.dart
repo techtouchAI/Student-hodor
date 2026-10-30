@@ -555,7 +555,6 @@ int _indexOfTag(String xml, String tag, int from) {
 
 /// نهاية الوسم مع احتساب التداخل؛ `-1` إن لم يكن مغلقاً.
 int _endOfTag(String xml, String tag, int start) {
-  final String open = '<$tag';
   final String close = '</$tag>';
   int depth = 0;
   int i = start;

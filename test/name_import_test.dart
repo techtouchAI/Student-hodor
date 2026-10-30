@@ -3,7 +3,6 @@
 library;
 
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:drift/drift.dart' hide isNull;
@@ -77,14 +76,20 @@ void main() {
         parseNameFile(fileName: 'names.txt', bytes: bytes);
 
     expect(p.ok, isTrue);
-    expect(p.values, <String>[
-      'أحمد علي حسن',
-      'بشار كريم',
-      'تيم محمد',
-      'سارة عبد الله',
-    ], reason: 'الترتيب كما في الملف بعد نزع الترقيم');
-    expect(p.skipped.map((NameImportSkip s) => s.reason),
-        containsAll(<String>['عنوان/ترويسة مستند', 'سطر فارغ']));
+    expect(
+      p.values,
+      <String>[
+        'أحمد علي حسن',
+        'بشار كريم',
+        'تيم محمد',
+        'سارة عبد الله',
+      ],
+      reason: 'الترتيب كما في الملف بعد نزع الترقيم',
+    );
+    expect(
+      p.skipped.map((NameImportSkip s) => s.reason),
+      containsAll(<String>['عنوان/ترويسة مستند', 'سطر فارغ']),
+    );
   });
 
   test('Windows-1256 (Notepad العربي القديم) يُفكّ إلى عربية صحيحة', () {

@@ -420,6 +420,10 @@ class BackupService {
           .into(db.alertNotifications)
           .insert(AlertNotification.fromJson(r).toCompanion(false));
     }
+    // معرّفات التدقيق تأتي من الملف صراحةً، وقد تكون خطوة زرع الحصص الافتراضي
+    // سجّلت سطراً بمفتاح تلقائي يتعارض معها (نسخة بلا `lessons`) — تُمسح أسطر
+    // هذه العملية وحدها قبل كتابة تاريخ الملف، ثم يُسجَّل الاسترجاع بعده.
+    await db.delete(db.auditLogs).go();
     for (final Map<String, Object?> r in _list(data['auditLogs'])) {
       await db.into(db.auditLogs).insert(AuditLog.fromJson(r).toCompanion(false));
     }
@@ -450,11 +454,38 @@ class BackupService {
   /// `arrival_time`، `phone`، نطاق الإجازة…)، و`fromJson` يتوقع كل الأعمدة.
   /// القيم الافتراضية هي **دلالة** العمود وقت إضافته لا رقم اعتباطي:
   /// السطر القديم = الحصة الأولى، وبلا وقت وصول، وإجازة كل اليوم.
+  ///
+  /// ويُكتب المفتاح بصيغتيه (`lesson_id` و`lessonId`): صيغة مفاتيح JSON في
+  /// هذا الإصدار لا تُفترض، والقيمة لا تُضاف إن وُجد أحد المفتاحين.
   static Map<String, Object?> _withDefaults(
     Map<String, Object?> row,
     Map<String, Object?> defaults,
-  ) =>
-      <String, Object?>{...defaults, ...row};
+  ) {
+    final Map<String, Object?> out = <String, Object?>{...row};
+    for (final MapEntry<String, Object?> e in defaults.entries) {
+      final String camel = _camelKey(e.key);
+      if (out.containsKey(e.key) || out.containsKey(camel)) {
+        continue;
+      }
+      out[e.key] = e.value;
+      out[camel] = e.value;
+    }
+    return out;
+  }
+
+  /// `lesson_id` ⇒ `lessonId` (وأي مفتاح مركّب مثله).
+  static String _camelKey(String snake) {
+    final List<String> parts = snake.split('_');
+    if (parts.length == 1) {
+      return snake;
+    }
+    return parts.first +
+        parts
+            .skip(1)
+            .map((String p) =>
+                p.isEmpty ? p : p[0].toUpperCase() + p.substring(1))
+            .join();
+  }
 
   List<Map<String, Object?>> _list(Object? v) => v is List
       ? v.cast<Map<String, Object?>>()

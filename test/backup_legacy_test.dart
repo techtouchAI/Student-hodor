@@ -64,6 +64,38 @@ Uint8List _zipOf(Map<String, Object?> manifest) {
 List<Map<String, Object?>> _rows(Object? v) =>
     (v as List<Object?>? ?? <Object?>[]).cast<Map<String, Object?>>();
 
+/// مفتاح السطر بالصيغة المعطاة أياً كانت كتابته (`lesson_id` أو `lessonId`):
+/// صيغة مفاتيح JSON تتبع الكود المولَّد، والاختبار لا يفترضها.
+String? _keyLike(Map<String, Object?> row, String wanted) {
+  final String norm = wanted.replaceAll('_', '').toLowerCase();
+  for (final String k in row.keys) {
+    if (k.replaceAll('_', '').toLowerCase() == norm) {
+      return k;
+    }
+  }
+  return null;
+}
+
+/// نسخة من السطر بقيم مستبدلة، مع مطابقة المفتاح بأي صيغة.
+Map<String, Object?> _with(
+  Map<String, Object?> row,
+  Map<String, Object?> overrides,
+) {
+  final Map<String, Object?> out = Map<String, Object?>.of(row);
+  overrides.forEach((String k, Object? v) {
+    out[_keyLike(out, k) ?? k] = v;
+  });
+  return out;
+}
+
+/// حذف عمود من سطر بيان قديم (بأي صيغة كتابة).
+void _drop(Map<String, Object?> row, String key) {
+  final String? k = _keyLike(row, key);
+  if (k != null) {
+    row.remove(k);
+  }
+}
+
 void main() {
   test('نسخة v2 بلا حصص: زرع افتراضي وإسناد كل سطر إلى الحصة الأولى', () async {
     final (db: AppDb src, classId: int classId, kids: List<Student> kids) =
@@ -114,15 +146,15 @@ void main() {
     manifest['version'] = 2;
     manifest.remove('lessons');
     for (final Map<String, Object?> r in _rows(manifest['sessions'])) {
-      r.remove('lesson_id');
+      _drop(r, 'lesson_id');
     }
     for (final Map<String, Object?> r in _rows(manifest['attendance'])) {
-      r.remove('lesson_id');
-      r.remove('arrival_time');
+      _drop(r, 'lesson_id');
+      _drop(r, 'arrival_time');
     }
     for (final Map<String, Object?> r in _rows(manifest['leaves'])) {
-      r.remove('from_slot');
-      r.remove('to_slot');
+      _drop(r, 'from_slot');
+      _drop(r, 'to_slot');
     }
 
     final AppDb dst = AppDb.forTesting(NativeDatabase.memory());
@@ -316,19 +348,18 @@ void main() {
         (await src.select(src.attendanceRows).get()).first.toJson();
 
     // سطران يدويان: أحدهما لحصة غير موجودة (٩٩٩) والآخر لطالب غير موجود.
-    final Map<String, Object?> orphanLesson = <String, Object?>{
-      ...shape,
+    final Map<String, Object?> orphanLesson = _with(shape, <String, Object?>{
       'id': 9001,
       'lesson_id': 999,
       'date': '2026-09-14',
-    };
-    final Map<String, Object?> orphanStudent = <String, Object?>{
-      ...orphanLesson,
+    });
+    final Map<String, Object?> orphanStudent =
+        _with(orphanLesson, <String, Object?>{
       'id': 9002,
       'lesson_id': lessons[1].id,
       'student_id': 999,
       'date': '2026-09-15',
-    };
+    });
     manifest['attendance'] = <Map<String, Object?>>[
       orphanLesson,
       orphanStudent,

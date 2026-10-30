@@ -44,15 +44,17 @@ Future<Map<int, int>> _saveOrder(AppDb db, List<int> ids) async {
     for (final LessonWindow w in windows) w.id: w,
   };
   // `saveLessons` يكتب الرقم من النافذة نفسها لا من موضعها في القائمة،
-  // فإعادة الترتيب تعني إعادة ترقيم صريحة (كما تفعل شاشة الحصص).
+  // فإعادة الترتيب تعني إعادة ترقيم صريحة (كما تفعل شاشة الحصص). والأوقات
+  // تُؤخذ بترتيب المواضع لتبقى تصاعدية (وإلا رفض التحقق تداخل الحصص).
+  final List<LessonWindow> bySlot = await db.lessonWindows();
   await db.saveLessons(<LessonWindow>[
     for (int i = 0; i < ids.length; i++)
       LessonWindow(
         id: ids[i],
         slot: i + 1,
         name: byId[ids[i]]!.name,
-        start: byId[ids[i]]!.start,
-        end: byId[ids[i]]!.end,
+        start: bySlot[i].start,
+        end: bySlot[i].end,
       ),
   ]);
   return <int, int>{
@@ -246,28 +248,29 @@ void main() {
       );
     }
 
-    // إقفال حصة داخل النطاق يحترم الإجازة (لا يحوّلها إلى غياب).
+    // إقفال حصة داخل النطاق يحترم الإجازة (لا يحوّلها إلى غياب) — في يوم
+    // الإجازة نفسه، فالنطاق لا يمتد إلى يوم آخر.
     final Session session = await db.openLessonSession(
       yearId: 1,
       classId: classId,
-      date: '2026-09-21',
+      date: '2026-09-20',
       lessonId: windows[1].id, // صار رقم 2 داخل النطاق 2..4
     );
     await db.closeSession(session.id);
     final AttendanceRow? closed =
-        await db.attendanceOf(studentId, '2026-09-21', windows[1].id);
+        await db.attendanceOf(studentId, '2026-09-20', windows[1].id);
     expect(closed?.status, AttendanceStatus.leave);
 
     // وحصة خارج النطاق تُقفل غياباً.
     final Session outside = await db.openLessonSession(
       yearId: 1,
       classId: classId,
-      date: '2026-09-21',
+      date: '2026-09-20',
       lessonId: windows.last.id,
     );
     await db.closeSession(outside.id);
     final AttendanceRow? absentRow =
-        await db.attendanceOf(studentId, '2026-09-21', windows.last.id);
+        await db.attendanceOf(studentId, '2026-09-20', windows.last.id);
     expect(absentRow?.status, AttendanceStatus.absent);
   });
 

@@ -429,10 +429,13 @@ class _DaySheetState extends ConsumerState<DaySheetScreen> {
         );
         _snack('أُقفلت كل الحصص وولّدت $n سجلاً');
       } else {
-        for (final Session s in sessions) {
-          await db.reopenSession(s.id);
-        }
-        _snack('أُعيد فتح كل الحصص');
+        // معاملة واحدة: فشل إحدى الحصص يردّ كل شيء (لا يوم نصف مفتوح).
+        final int reopened = await db.reopenDaySessions(
+          yearId: (await db.activeYear())?.id ?? 0,
+          classId: c.id,
+          date: _date,
+        );
+        _snack('أُعيد فتح $reopened حصة');
       }
     } catch (e, st) {
       AppErrorLog.instance.record(e, st, where: 'daySheet:closeAll');

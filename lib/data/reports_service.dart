@@ -510,9 +510,13 @@ class ReportsService {
   ) async {
     final List<Student> students =
         await (db.select(db.students)..where((s) => s.yearId.equals(yearId))).get();
+    // استعلام تجميعي واحد لكل السنة بدل استعلام لكل طالب: هذا المسار يعمل بعد
+    // **كل** تسجيل حضور (watcher التنبيهات)، وعدد السجلات يساوي الطلاب ×
+    // الحصص × الأيام. التشغيل السابق كان O(طلاب × سجلات).
+    final Map<int, StatusTotals> totals = await _totalsByStudent(yearId);
     final List<(Student, StatusTotals)> out = <(Student, StatusTotals)>[];
     for (final Student s in students) {
-      final StatusTotals t = await totalsForStudent(s.id, yearId);
+      final StatusTotals t = totals[s.id] ?? const StatusTotals();
       if (t.recorded > 0 && t.absentDays >= thresholdDays) {
         out.add((s, t));
       }
@@ -525,6 +529,41 @@ class ReportsService {
           b.$2.absentDays.compareTo(a.$2.absentDays),
     );
     return out;
+  }
+
+  /// مجاميع كل طلاب سنة في استعلام واحد (نفس دلالة [totalsOfRows] تماماً:
+  /// `absent` حصص، `absentDays` تواريخ متمايزة).
+  Future<Map<int, StatusTotals>> _totalsByStudent(int yearId) async {
+    final List<QueryRow> rows = await db.customSelect(
+      'SELECT student_id, '
+      'SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS present_rows, '
+      'SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS absent_rows, '
+      'SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS leave_rows, '
+      'SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS late_rows, '
+      'COUNT(DISTINCT date) AS recorded_days, '
+      'COUNT(DISTINCT CASE WHEN status = ? THEN date END) AS absent_days '
+      'FROM attendance_rows WHERE year_id = ? GROUP BY student_id',
+      variables: <Variable<int>>[
+        Variable<int>(AttendanceStatus.present),
+        Variable<int>(AttendanceStatus.absent),
+        Variable<int>(AttendanceStatus.leave),
+        Variable<int>(AttendanceStatus.late),
+        Variable<int>(AttendanceStatus.absent),
+        Variable<int>(yearId),
+      ],
+      readsFrom: <Table>{db.attendanceRows},
+    ).get();
+    return <int, StatusTotals>{
+      for (final QueryRow r in rows)
+        r.read<int>('student_id'): StatusTotals(
+          present: r.read<int>('present_rows'),
+          absent: r.read<int>('absent_rows'),
+          leave: r.read<int>('leave_rows'),
+          late: r.read<int>('late_rows'),
+          recordedDays: r.read<int>('recorded_days'),
+          absentDays: r.read<int>('absent_days'),
+        ),
+    };
   }
 
   /// سجل طالب عبر السنوات (personKey) — مسيرة الطالب.

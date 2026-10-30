@@ -8,6 +8,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 import '../../core/arabic_shaping.dart';
+import '../../core/attendance_labels.dart';
 import '../../core/school_time.dart';
 import '../../data/db.dart';
 import '../../data/reports_service.dart';
@@ -69,9 +70,12 @@ class PdfReport {
       .where((String p) => p.isNotEmpty)
       .join(' — ');
 
-  PdfColor _colorFor(int? status, bool schoolDay) {
+  PdfColor _colorFor(int? status, bool schoolDay, {bool partial = false}) {
     if (!schoolDay) {
-      return const PdfColor.fromInt(0xFFD9D9D9);
+      return PdfColor.fromInt(StatusHex.asInt(StatusHex.offDay));
+    }
+    if (partial) {
+      return PdfColor.fromInt(StatusHex.asInt(StatusHex.absentPartial));
     }
     switch (status) {
       case AttendanceStatus.present:
@@ -98,30 +102,13 @@ class PdfReport {
     if (statuses.isEmpty) {
       return '';
     }
-    final String marks = lessons
-        .map((Lesson l) {
-          final int? st = statuses[l.id];
-          return st == null ? '—' : _statusLetter(st);
-        })
-        .join('·');
-    return _t(marks);
+    // المصدر نفسه الذي تستخدمه الشاشة وملف Excel — لا نسخة ثالثة للحروف.
+    return _t(lessonCompactMarks(_windows(lessons), statuses));
   }
 
-  /// حرف حالة واحد بلا تنسيق PDF (لبناء سلسلة الحصص).
-  static String _statusLetter(int status) {
-    switch (status) {
-      case AttendanceStatus.present:
-        return 'ح';
-      case AttendanceStatus.absent:
-        return 'غ';
-      case AttendanceStatus.leave:
-        return 'إ';
-      case AttendanceStatus.late:
-        return 'م';
-      default:
-        return '—';
-    }
-  }
+  /// تحويل صفوف الحصص إلى نوافذ عرض (المصدر الموحّد للتسمية والحروف).
+  static List<LessonWindow> _windows(List<Lesson> lessons) =>
+      <LessonWindow>[for (final Lesson l in lessons) AppDb.windowOf(l)];
 
   PdfColor _letterColor(int? status, bool schoolDay) {
     if (!schoolDay) {
@@ -336,10 +323,15 @@ class PdfReport {
               final int? status = info.$1;
               final bool schoolDay = info.$2;
               final Map<int, int> statuses = info.$3;
+              final bool partialAbsence = describeDay(
+                status: status,
+                lessonStatuses: statuses,
+                totalLessons: lessons.length,
+              ).isPartial;
               cells.add(
                 pw.Container(
                   height: 13,
-                  color: _colorFor(status, schoolDay),
+                  color: _colorFor(status, schoolDay, partial: partialAbsence),
                   alignment: pw.Alignment.center,
                   child: pw.Text(
                     _dayMarks(lessons, statuses, schoolDay),
@@ -416,6 +408,11 @@ class PdfReport {
                           _legendItem('متأخر', const PdfColor.fromInt(0xFFFCD5B4)),
                           pw.SizedBox(width: 8),
                           _legendItem('إجازة', const PdfColor.fromInt(0xFFFFEB9C)),
+                          pw.SizedBox(width: 8),
+                          _legendItem(
+                            'غياب جزئي',
+                            PdfColor.fromInt(StatusHex.asInt(StatusHex.absentPartial)),
+                          ),
                           pw.SizedBox(width: 8),
                           _legendItem('غائب', const PdfColor.fromInt(0xFFFFC7CE)),
                           pw.SizedBox(width: 8),
@@ -547,11 +544,7 @@ class PdfReport {
                   lesson == null ? '' : '${lesson.start}–${lesson.end}',
                 ),
                 _absCell(
-                  lesson == null
-                      ? '—'
-                      : (lesson.name.trim().isEmpty
-                          ? 'ح${lesson.slot}'
-                          : lesson.name),
+                  lesson == null ? '—' : AppDb.windowOf(lesson).displayName,
                 ),
                 _absCell(SchoolTime.weekdayNames[dt.weekday - 1]),
                 // تاريخ الغياب بخلية حمراء مطابقة لنظام ألوان الحالات.

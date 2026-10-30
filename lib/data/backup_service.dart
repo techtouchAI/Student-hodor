@@ -49,6 +49,26 @@ class _DecodedBackup {
   final Map<String, List<int>> photos;
 }
 
+/// معرّفات الهدف الموجودة محلياً + عدّاد ما تُخطّي لأنه يشير إلى غير موجود.
+class _MergeTargets {
+  _MergeTargets({
+    required this.years,
+    required this.classes,
+    required this.students,
+  });
+
+  final Set<int> years;
+  final Set<int> classes;
+  final Set<int> students;
+  int skipped = 0;
+
+  bool hasYear(int id) => years.contains(id);
+  bool hasClass(int id) => classes.contains(id);
+  bool hasStudent(int id) => students.contains(id);
+
+  void skip() => skipped++;
+}
+
 class BackupService {
   BackupService(this.db, {PhotoInstaller? photoInstaller})
       : _installPhoto = photoInstaller ?? PhotoStore.install;
@@ -204,9 +224,12 @@ class BackupService {
     _assertFormat(data);
     final Map<String, int> counts = <String, int>{};
     await db.transaction<void>(() async {
-      counts['sessions'] = await _mergeSessions(data['sessions']);
-      counts['attendance'] = await _mergeAttendance(data['attendance']);
+      final _MergeTargets targets = await _mergeTargets();
+      counts['sessions'] = await _mergeSessions(data['sessions'], targets);
+      counts['attendance'] =
+          await _mergeAttendance(data['attendance'], targets);
       counts['scanEvents'] = await _mergeScanEvents(data['scanEvents']);
+      counts['skipped'] = targets.skipped;
       await db.logAudit('backup_merge', counts.toString());
     });
     return counts;
@@ -437,7 +460,22 @@ class BackupService {
       ? v.cast<Map<String, Object?>>()
       : const <Map<String, Object?>>[];
 
-  Future<int> _mergeSessions(Object? v) async {
+  /// المعرّفات الموجودة محلياً: الدمج لا ينشئ صفوفاً يتيمة (المفاتيح الأجنبية
+  /// مفعّلة الآن)، فكل سطر يشير إلى سنة/صف/طالب غير موجود يُتخطّى ويُعدّ.
+  Future<_MergeTargets> _mergeTargets() async {
+    final Set<int> years = <int>{
+      for (final AcademicYear y in await db.select(db.academicYears).get()) y.id,
+    };
+    final Set<int> classes = <int>{
+      for (final SchoolClass c in await db.select(db.schoolClasses).get()) c.id,
+    };
+    final Set<int> students = <int>{
+      for (final Student s in await db.select(db.students).get()) s.id,
+    };
+    return _MergeTargets(years: years, classes: classes, students: students);
+  }
+
+  Future<int> _mergeSessions(Object? v, _MergeTargets targets) async {
     int n = 0;
     final int fallback = (await db.firstLesson()).id;
     // الدمج لا يمسّ جدول الحصص: أي رقم حصة غير موجود عندنا يُسند إلى الحصة
@@ -450,6 +488,11 @@ class BackupService {
         _withDefaults(r, <String, Object?>{'lesson_id': fallback}),
       ).toCompanion(false);
       final int lessonId = _lessonOf(c.lessonId, known, fallback);
+      if (!targets.hasClass(c.classId.value) ||
+          !targets.hasYear(c.yearId.value)) {
+        targets.skip();
+        continue;
+      }
       final Session? existing = await (db.select(db.sessions)
             ..where(
               (s) =>
@@ -468,7 +511,7 @@ class BackupService {
     return n;
   }
 
-  Future<int> _mergeAttendance(Object? v) async {
+  Future<int> _mergeAttendance(Object? v, _MergeTargets targets) async {
     int n = 0;
     // الدمج لا يمسّ جدول الحصص: نسخة قديمة أو حصة غير موجودة تُسند إلى
     // الحصة الأولى القائمة.
@@ -484,6 +527,12 @@ class BackupService {
         ),
       ).toCompanion(false);
       final int lessonId = _lessonOf(c.lessonId, known, fallback);
+      if (!targets.hasStudent(c.studentId.value) ||
+          !targets.hasClass(c.classId.value) ||
+          !targets.hasYear(c.yearId.value)) {
+        targets.skip();
+        continue;
+      }
       final AttendanceRow? existing = await db.attendanceOf(
         c.studentId.value,
         c.date.value,
@@ -499,12 +548,25 @@ class BackupService {
     return n;
   }
 
+  /// أحداث المسح تراكمية بلا مفتاح منطقي في المخطط، فتُمنع المضاعفة عند دمج
+  /// الحاوية نفسها مرتين بمقارنة بصمة السطر (الجلسة + الرمز + الوقت).
   Future<int> _mergeScanEvents(Object? v) async {
+    final Set<String> seen = <String>{
+      for (final ScanEvent e in await db.select(db.scanEvents).get())
+        _scanKey(e.sessionId, e.code, e.at),
+    };
     int n = 0;
     for (final Map<String, Object?> r in _list(v)) {
-      await db.into(db.scanEvents).insert(ScanEvent.fromJson(r).toCompanion(false));
+      final ScanEvent e = ScanEvent.fromJson(r);
+      if (!seen.add(_scanKey(e.sessionId, e.code, e.at))) {
+        continue;
+      }
+      await db.into(db.scanEvents).insert(e.toCompanion(false));
       n++;
     }
     return n;
   }
+
+  static String _scanKey(int? sessionId, String code, String at) =>
+      '${sessionId ?? -1}|$code|$at';
 }

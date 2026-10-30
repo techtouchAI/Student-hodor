@@ -8,6 +8,8 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 import '../../core/arabic_shaping.dart';
+import '../../core/attendance_labels.dart';
+import '../../core/lesson.dart';
 import '../../core/school_time.dart';
 import '../../data/db.dart';
 import '../../data/reports_service.dart';
@@ -39,13 +41,6 @@ class StudentRecordPdf {
   final pw.Font fontBold;
   final DateTime? today;
 
-  static const List<String> _statusAr = <String>[
-    'حاضر',
-    'غائب',
-    'إجازة',
-    'متأخر',
-  ];
-
   /// صفوف كل جدول: الجدول الواحد لا يُقسَّم تلقائياً بموثوقية داخل
   /// MultiPage، فنقطّع الأيام لمقاطع يسع المقطعُ الصفحةَ حتماً.
   static const int _chunkRows = 44;
@@ -55,15 +50,18 @@ class StudentRecordPdf {
 
   static String _t(String s) => arabicForPdf(s);
 
-  PdfColor _colorFor(int? status, bool schoolDay) {
+  PdfColor _colorFor(int? status, bool schoolDay, {bool partial = false}) {
     if (!schoolDay) {
-      return const PdfColor.fromInt(0xFFD9D9D9);
+      return PdfColor.fromInt(StatusHex.asInt(StatusHex.offDay));
+    }
+    if (partial) {
+      return PdfColor.fromInt(StatusHex.asInt(StatusHex.absentPartial));
     }
     switch (status) {
       case AttendanceStatus.present:
-        return const PdfColor.fromInt(0xFFC6EFCE);
+        return PdfColor.fromInt(StatusHex.asInt(StatusHex.present));
       case AttendanceStatus.absent:
-        return const PdfColor.fromInt(0xFFFFC7CE);
+        return PdfColor.fromInt(StatusHex.asInt(StatusHex.absent));
       case AttendanceStatus.leave:
         return const PdfColor.fromInt(0xFFFFEB9C);
       case AttendanceStatus.late:
@@ -73,38 +71,29 @@ class StudentRecordPdf {
     }
   }
 
-  /// حرف الحالة داخل خلية «الحصص» — حروف موحّدة مع الإكسل وشبكة الشاشة
-  /// (`statusLetter` في `attendance_labels.dart`): ح/غ/إ/م، و`—` لغير المسجَّل.
-  static String _statusLetter(int? status) {
-    switch (status) {
-      case AttendanceStatus.present:
-        return 'ح';
-      case AttendanceStatus.absent:
-        return 'غ';
-      case AttendanceStatus.leave:
-        return 'إ';
-      case AttendanceStatus.late:
-        return 'م';
-      default:
-        return '—';
-    }
-  }
+  /// حروف حصص يوم: تُبنى بترتيب الجدول من المصدر الموحّد ثم تُقلب بصرياً في
+  /// PDF (`arabicForPdf`).
+  static String _dayMarks(List<Lesson> lessons, Map<int, int> statuses) =>
+      lessonCompactMarks(
+        <LessonWindow>[for (final Lesson l in lessons) AppDb.windowOf(l)],
+        statuses,
+      );
 
-  /// حروف حصص يوم: تُبنى بترتيب الجدول ثم تُقلب بصرياً في PDF.
-  static String _dayMarks(List<Lesson> lessons, Map<int, int> statuses) {
-    if (statuses.isEmpty) {
-      return '';
+  /// نص حالة اليوم: «غياب كامل» أو «غياب جزئي — حصتان» لا «غائب» دائماً.
+  String _statusText(
+    int? status,
+    bool schoolDay,
+    Map<int, int> lessonStatuses,
+    int totalLessons,
+  ) {
+    if (!schoolDay) {
+      return 'عطلة';
     }
-    return lessons
-        .map((Lesson l) => _statusLetter(statuses[l.id]))
-        .join('·');
-  }
-
-  String _statusText(int? status, bool schoolDay) {
-    if (status != null) {
-      return _statusAr[status];
-    }
-    return schoolDay ? 'لم يسجل' : 'عطلة';
+    return describeDay(
+      status: status,
+      lessonStatuses: lessonStatuses,
+      totalLessons: totalLessons,
+    ).label;
   }
 
   pw.Widget _th(String text) => pw.Container(
@@ -179,8 +168,21 @@ class StudentRecordPdf {
             _td(d.dateKey),
             _td(SchoolTime.weekdayNames[dt.weekday - 1]),
             _td(
-              _statusText(d.status, d.schoolDay),
-              color: _colorFor(d.status, d.schoolDay),
+              _statusText(
+                d.status,
+                d.schoolDay,
+                d.lessonStatuses,
+                lessons.length,
+              ),
+              color: _colorFor(
+                d.status,
+                d.schoolDay,
+                partial: describeDay(
+                  status: d.status,
+                  lessonStatuses: d.lessonStatuses,
+                  totalLessons: lessons.length,
+                ).isPartial,
+              ),
             ),
             _td(_t(_dayMarks(lessons, d.lessonStatuses))),
             _td(d.arrivalTime ?? ''),

@@ -4,6 +4,8 @@
 /// - ترتيب الصفوف هو ترتيب الحصص (1..N).
 /// - كل حصة تنتهي بعد بدايتها، ولا تتداخل حصتان (التحقق في [LessonSchedule]).
 /// - حذف حصة لها سجلات مرفوض من قاعدة البيانات ([LessonInUseException])
+/// - ترتيب جديد يفرّق حصص إجازة قائمة عن بعضها مرفوض
+///   ([LeaveScopeConflictException]) بدل تغيير معناها بصمت.
 ///   ويُعرض سببه هنا بلغة مفهومة — لا حذف صامت لتاريخ الطلاب.
 library;
 
@@ -187,6 +189,9 @@ class _LessonsScreenState extends ConsumerState<LessonsScreen> {
     } on FormatException catch (e) {
       _snack(e.message);
     } on LessonInUseException catch (e) {
+      _snack(e.toString());
+    } on LeaveScopeConflictException catch (e) {
+      // الحفاظ على معنى الإجازات أهم من حفظ ترتيب جديد يكسرها.
       _snack(e.toString());
     } catch (e, st) {
       AppErrorLog.instance.record(e, st, where: 'lessons:save');

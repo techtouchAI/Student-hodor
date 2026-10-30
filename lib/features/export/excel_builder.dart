@@ -19,6 +19,7 @@ import 'package:archive/archive.dart';
 import 'package:drift/drift.dart' hide Column;
 import 'package:excel/excel.dart';
 
+import '../../core/attendance_labels.dart';
 import '../../core/lesson.dart';
 import '../../core/school_time.dart';
 import '../../data/db.dart';
@@ -26,12 +27,15 @@ import '../../data/reports_service.dart';
 
 class ExcelColors {
   const ExcelColors._();
-  static const String present = '#C6EFCE';
-  static const String absent = '#FFC7CE';
-  static const String leave = '#FFEB9C';
-  static const String late = '#FCD5B4';
-  static const String offDay = '#D9D9D9';
-  static const String header = '#0D6E5F';
+  static const String present = StatusHex.present;
+  static const String absent = StatusHex.absent;
+
+  /// غياب بعض الحصص: درجة باهتة تميّزه عن الغياب الكامل.
+  static const String absentPartial = StatusHex.absentPartial;
+  static const String leave = StatusHex.leave;
+  static const String late = StatusHex.late;
+  static const String offDay = StatusHex.offDay;
+  static const String header = StatusHex.header;
 }
 
 class ExportScopeClass {
@@ -168,9 +172,12 @@ class ExcelBuilder {
   /// الخلية بسلسلة كسور مزعجة بدل 66.7.
   static double _round1(double v) => (v * 10).roundToDouble() / 10;
 
-  String _colorFor(int? status, bool schoolDay) {
+  String _colorFor(int? status, bool schoolDay, {bool partial = false}) {
     if (!schoolDay) {
       return ExcelColors.offDay;
+    }
+    if (partial) {
+      return ExcelColors.absentPartial;
     }
     switch (status) {
       case AttendanceStatus.present:
@@ -212,15 +219,14 @@ class ExcelBuilder {
   }
 
   /// حروف حالات الحصص المضغوطة داخل خلية اليوم: «ح·غ·إ·ح·ح·—».
-  static String _marksFor(List<Lesson> lessons, Map<int, int> byLessonId) {
-    if (lessons.isEmpty) {
-      return '';
-    }
-    return lessons.map((Lesson l) {
-      final int? st = byLessonId[l.id];
-      return st == null ? '—' : _statusAr[st].substring(0, 1);
-    }).join('·');
-  }
+  ///
+  /// المصدر `lessonCompactMarks` في `core/attendance_labels.dart` نفسه الذي
+  /// تستخدمه الشاشة وPDF — لا نسخة ثالثة للحروف في التصدير.
+  static String _marksFor(List<Lesson> lessons, Map<int, int> byLessonId) =>
+      lessonCompactMarks(
+        <LessonWindow>[for (final Lesson l in lessons) AppDb.windowOf(l)],
+        byLessonId,
+      );
 
   Future<Uint8List> build() async {
     final Excel excel = Excel.createExcel();
@@ -322,9 +328,15 @@ class ExcelBuilder {
                         ? '$marks ($arrivalAt)'
                         : marks),
               );
+              final DayPresence day = describeDay(
+                status: status,
+                lessonStatuses: statuses,
+                totalLessons: lessons.length,
+              );
               cell.cellStyle = CellStyle(
-                backgroundColorHex:
-                    ExcelColor.fromHexString(_colorFor(status, schoolDay)),
+                backgroundColorHex: ExcelColor.fromHexString(
+                  _colorFor(status, schoolDay, partial: day.isPartial),
+                ),
                 fontFamily: _fontFamily,
                 fontSize: 10,
                 horizontalAlign: HorizontalAlign.Center,
@@ -443,14 +455,18 @@ class ExcelBuilder {
         value: SchoolTime.weekdayNames[dt.weekday - 1],
       );
       final Data cell = _cellAt(sheet, 3, row);
+      final DayPresence day = describeDay(
+        status: status,
+        lessonStatuses: d.lessonStatuses,
+        totalLessons: lessons.length,
+      );
       cell.value = TextCellValue(
-        status == null
-            ? (d.schoolDay ? 'لم يسجل' : 'عطلة')
-            : _statusAr[status],
+        d.schoolDay ? day.label : 'عطلة',
       );
       cell.cellStyle = CellStyle(
-        backgroundColorHex:
-            ExcelColor.fromHexString(_colorFor(status, d.schoolDay)),
+        backgroundColorHex: ExcelColor.fromHexString(
+          _colorFor(status, d.schoolDay, partial: day.isPartial),
+        ),
         fontFamily: _fontFamily,
         fontSize: 11,
         horizontalAlign: HorizontalAlign.Right,
@@ -489,7 +505,7 @@ class ExcelBuilder {
         sheet,
         column: 1,
         row: row,
-        value: 'غياب ${l.name.trim().isEmpty ? 'ح${l.slot}' : l.name}',
+        value: 'غياب ${AppDb.windowOf(l).displayName}',
       );
       _num(
         sheet,
@@ -761,11 +777,7 @@ class ExcelBuilder {
             sheet,
             column: 5,
             row: row,
-            value: lesson == null
-                ? '—'
-                : lesson.name.trim().isEmpty
-                    ? 'ح${lesson.slot}'
-                    : lesson.name,
+            value: lesson == null ? '—' : AppDb.windowOf(lesson).displayName,
           );
           _text(
             sheet,
@@ -783,7 +795,7 @@ class ExcelBuilder {
     }
     _text(sheet, column: 2, row: row, value: 'إجمالي حصص الغياب');
     _num(sheet, column: 3, row: row, value: IntCellValue(totalLessons));
-    _text(sheet, column: 4, row: row, value: 'أيام الغياب');
+    _text(sheet, column: 4, row: row, value: 'أيام فيها غياب (مشتركة)');
     _num(sheet, column: 5, row: row, value: IntCellValue(absentDays.length));
     sheet.setColumnWidth(0, 6.0);
     sheet.setColumnWidth(1, 16.0);

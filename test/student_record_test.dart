@@ -145,9 +145,15 @@ void main() {
       sheet.cell(CellIndex.indexByString('D4')).value?.toString(),
       'لم يسجل',
     );
+    // R2: يوم فيه غياب في **حصة واحدة** لا يُكتب «غائب» (غياب يوم كامل).
     expect(
       sheet.cell(CellIndex.indexByString('D5')).value?.toString(),
-      'غائب',
+      'غياب جزئي — غاب عن حصة واحدة',
+    );
+    expect(
+      sheet.cell(CellIndex.indexByString('D5')).value?.toString(),
+      isNot('غائب'),
+      reason: 'غياب حصة واحدة لا يوصف بغياب اليوم',
     );
     expect(
       sheet.cell(CellIndex.indexByString('D6')).value?.toString(),

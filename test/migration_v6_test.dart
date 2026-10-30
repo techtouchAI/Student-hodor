@@ -47,6 +47,16 @@ void main() {
       '(2, ${base.yearId}, ${base.classId}, ${base.secondStudentId}, '
       "'2026-09-01', 1, 2, 1, NULL, NULL)",
     );
+    // حدث مسح مرتبط بالجلسة القديمة: يجب أن يبقى مربوطاً بعد إعادة البناء.
+    await v5.into(v5.scanEvents).insert(
+          ScanEventsCompanion(
+            sessionId: const Value(1),
+            code: const Value('SH-XXX-0001-26-K7'),
+            studentId: Value(base.firstStudentId),
+            result: const Value(ScanResult.ok),
+            at: const Value('2026-09-01T08:04:00'),
+          ),
+        );
     await v5.close();
 
     // ---------- (2) الفتح بتطبيق الإصدار 6 ----------
@@ -160,7 +170,23 @@ void main() {
       },
     );
 
-    // ---------- (6) الإصدار النهائي ----------
+    // ---------- (6) التكامل المرجعي بعد إعادة البناء ----------
+    final List<QueryRow> fkViolations =
+        await db.customSelect('PRAGMA foreign_key_check').get();
+    expect(
+      fkViolations,
+      isEmpty,
+      reason: 'إعادة بناء الجدولين لا تترك مفتاحاً أجنبياً معلّقاً',
+    );
+    final List<ScanEvent> events = await db.select(db.scanEvents).get();
+    expect(events, hasLength(1));
+    expect(
+      events.single.sessionId,
+      1,
+      reason: 'حدث المسح يبقى على جلسته القديمة',
+    );
+
+    // ---------- (7) الإصدار النهائي ----------
     final QueryRow version =
         await db.customSelect('PRAGMA user_version').getSingle();
     expect(version.read<int>('user_version'), 6);

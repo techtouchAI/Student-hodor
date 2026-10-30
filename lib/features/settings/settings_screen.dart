@@ -251,7 +251,8 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'دمج: جلسات ${counts['sessions']}، حضور ${counts['attendance']}',
+                'دمج: جلسات ${counts['sessions']}، حضور ${counts['attendance']}'
+                '${(counts['skipped'] ?? 0) > 0 ? '، تُخطّي ${counts['skipped']} سطراً لطالب/صف غير موجود' : ''}',
               ),
             ),
           );

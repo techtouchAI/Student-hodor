@@ -57,6 +57,32 @@ class LessonInUseException implements Exception {
       'أبقِها أو غيّر اسمها/وقتها بدل حذفها.';
 }
 
+/// تغيير ترتيب الحصص يفرض على إجازة قائمة أن تنقسم إلى نطاقين غير متصلين
+/// (مثال: إجازة تغطي الحصص 3 و4 ثم صارتا 2 و5) — تُرفض العملية بدل تغيير
+/// معنى الإجازة أو حذفها.
+class LeaveScopeConflictException implements Exception {
+  const LeaveScopeConflictException({
+    required this.leaveId,
+    required this.fromSlot,
+    required this.toSlot,
+    required this.slots,
+  });
+
+  final int leaveId;
+  final int? fromSlot;
+  final int? toSlot;
+
+  /// أرقام الحصص التي كانت الإجازة تغطيها قبل التعديل.
+  final List<int> slots;
+
+  @override
+  String toString() =>
+      'إجازة رقم $leaveId (${fromSlot ?? 1}–${toSlot ?? 'آخر اليوم'}) كانت '
+      'تغطي الحصص ${slots.join('، ')}، وبعد الترتيب الجديد تصبح حصصاً '
+      'متباعدة لا يمكن التعبير عنها كنطاق واحد. أعِد ترتيب الحصص كما كانت '
+      'أو عدّل الإجازة يدوياً أولاً.';
+}
+
 /// نتائج قراءة الباركود.
 class ScanResult {
   const ScanResult._();
@@ -326,6 +352,14 @@ class AppDb extends _$AppDb {
             await _migrateToLessons(m);
           }
         },
+        // بعد الهجرات وقبل أي استعلام: المفاتيح الأجنبية مفعّلة فعلياً (كانت
+        // مجرد تعليقات في المخطط لا تُنفَّذ)، والفهارس مضمونة على قواعد سبقت
+        // إضافتها. التفعيل هنا لا يمسّ الصفوف القائمة ولا يعطّل هجرة.
+        beforeOpen: (details) async {
+          await customStatement('PRAGMA foreign_keys = ON');
+          await _ensureIndexes();
+          await _ensureLessonIndexes();
+        },
       );
 
   /// هجرة الإصدار 6: يوم كامل ⇒ حصص.
@@ -406,6 +440,16 @@ class AppDb extends _$AppDb {
     await customStatement(
       'CREATE INDEX IF NOT EXISTS idx_sessions_lesson '
       'ON sessions (class_id, date, lesson_id)',
+    );
+    // فهرس على العمود وحده: يخدم حارس حذف الحصة (`_lessonUsage`) الذي يسأل
+    // «هل توجد سجلات لهذه الحصة؟» بلا بُعد صف/تاريخ في شرطه.
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_attendance_lesson_only '
+      'ON attendance_rows (lesson_id)',
+    );
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_sessions_lesson_only '
+      'ON sessions (lesson_id)',
     );
   }
 
@@ -559,6 +603,11 @@ class AppDb extends _$AppDb {
     }
     await transaction<void>(() async {
       final List<Lesson> existing = await allLessons();
+      // خريطة ما قبل التعديل: معرّف الحصة ⇒ رقمها. نطاقات الإجازات مخزّنة
+      // بالأرقام لا بالمعرّفات، فهذه الخريطة هي مرجع «المعنى التاريخي».
+      final Map<int, int> oldSlots = <int, int>{
+        for (final Lesson l in existing) l.id: l.slot,
+      };
       // 1) تحييد الأرقام الحالية (سالبة = فريدة دائماً في هذا الجدول).
       for (final Lesson l in existing) {
         await (update(lessons)..where((x) => x.id.equals(l.id)))
@@ -590,7 +639,15 @@ class AppDb extends _$AppDb {
           kept.add(id);
         }
       }
-      // 3) حذف ما أزاله المستخدم — بعد التأكد أنه بلا سجلات.
+      // 3) نطاقات الإجازات: تُترجم إلى الأرقام الجديدة للحصص نفسها، وقبل
+      //    حذف أي حصة، حتى لا يتغيّر معناها التاريخي بلا علم المستخدم.
+      final Map<int, int> newSlots = <int, int>{
+        for (final LessonWindow d in ordered)
+          if (d.id > 0) d.id: d.slot,
+      };
+      await _translateLeaveScopes(oldSlots: oldSlots, newSlots: newSlots);
+
+      // 4) حذف ما أزاله المستخدم — بعد التأكد أنه بلا سجلات.
       for (final Lesson l in existing) {
         if (kept.contains(l.id)) {
           continue;
@@ -603,6 +660,78 @@ class AppDb extends _$AppDb {
       }
     });
     await logAudit('lessons_save', 'count=${ordered.length}');
+  }
+
+  /// يترجم نطاقات الإجازات من أرقام الحصص القديمة إلى الجديدة.
+  ///
+  /// القاعدة: **المجموعة المغطّاة من الحصص تبقى هي نفسها**. لكل إجازة:
+  /// 1. تُحسب معرّفات الحصص التي كان نطاقها يغطيها بالخريطة القديمة.
+  /// 2. تُترجم هذه المعرّفات إلى أرقامها الجديدة.
+  /// 3. إن كانت الأرقام الجديدة متصلة ⇒ يُحدَّث `from_slot/to_slot` عليها.
+  ///    وإن تفرّقت ⇒ يُرمى [LeaveScopeConflictException] وتُرتدّ المعاملة.
+  ///
+  /// ولا تُحذف إجازة ولا يُنقَّص نطاق: الإجازة التي لم يبقَ من حصصها شيء
+  /// (حُذفت كلها) تبقى كما هي بلا أثر، ويُسجَّل ذلك في التدقيق.
+  Future<void> _translateLeaveScopes({
+    required Map<int, int> oldSlots,
+    required Map<int, int> newSlots,
+  }) async {
+    bool changedAny = false;
+    final List<Leave> leaves = await select(leaves).get();
+    for (final Leave l in leaves) {
+      final int from = l.fromSlot ?? 1;
+      final int to = l.toSlot ?? (1 << 30);
+      // لا شيء يتغيّر: إجازة «كل الحصص» تبقى كل الحصص.
+      if (l.fromSlot == null && l.toSlot == null) {
+        continue;
+      }
+      final List<int> coveredIds = <int>[
+        for (final MapEntry<int, int> e in oldSlots.entries)
+          if (e.value >= from && e.value <= to) e.key,
+      ];
+      final List<int> slots = <int>[
+        for (final int id in coveredIds)
+          if (newSlots[id] != null) newSlots[id]!,
+      ]..sort();
+      if (slots.isEmpty) {
+        continue; // كل حصصها حُذفت: تبقى الإجازة سجلًّا بلا أثر على الحصص.
+      }
+      final int minSlot = slots.first;
+      final int maxSlot = slots.last;
+      final bool contiguous = maxSlot - minSlot + 1 == slots.length;
+      if (!contiguous) {
+        throw LeaveScopeConflictException(
+          leaveId: l.id,
+          fromSlot: l.fromSlot,
+          toSlot: l.toSlot,
+          slots: <int>[
+            for (final int id in coveredIds) oldSlots[id]!,
+          ],
+        );
+      }
+      // لا كتابة بلا داعٍ: النطاق نفسه بالدلالة نفسها (بما فيها «حتى آخر
+      // اليوم» حين يبقى آخرَ حصة) يُترك كما هو.
+      final int maxNewSlot = newSlots.values.isEmpty
+          ? maxSlot
+          : newSlots.values.reduce((int a, int b) => a > b ? a : b);
+      final bool sameStart = l.fromSlot == minSlot;
+      final bool sameEnd = l.toSlot == null
+          ? maxSlot == maxNewSlot
+          : l.toSlot == maxSlot;
+      if (sameStart && sameEnd) {
+        continue;
+      }
+      await (update(leaves)..where((x) => x.id.equals(l.id))).write(
+        LeavesCompanion(
+          fromSlot: Value(minSlot),
+          toSlot: Value(maxSlot),
+        ),
+      );
+      changedAny = true;
+    }
+    if (changedAny) {
+      await logAudit('leaves_reslot', 're-mapped to new lesson numbering');
+    }
   }
 
   /// عدد السجلات التاريخية المرتبطة بحصة (جلسات + حضور) — حارس الحذف.
@@ -618,6 +747,28 @@ class AppDb extends _$AppDb {
     return (sessionsRow.read(countAll()) ?? 0) +
         (rowsRow.read(countAll()) ?? 0);
   }
+
+  /// إعادة فتح **كل حصص اليوم** لصف واحد — معاملة واحدة: إمّا تُفتح كلها أو
+  /// لا شيء (عكس [closeDaySessions] تماماً). تعيد عدد الحصص التي أُعيد فتحها.
+  Future<int> reopenDaySessions({
+    required int yearId,
+    required int classId,
+    required String date,
+  }) async => transaction<int>(() async {
+        final List<Session> closed = await (select(sessions)
+              ..where(
+                (s) =>
+                    s.yearId.equals(yearId) &
+                    s.classId.equals(classId) &
+                    s.date.equals(date) &
+                    s.closedAt.isNotNull(),
+              ))
+            .get();
+        for (final Session s in closed) {
+          await reopenSession(s.id);
+        }
+        return closed.length;
+      });
 
   // ---------- سنوات ----------
 
@@ -770,7 +921,14 @@ class AppDb extends _$AppDb {
   }
 
   /// حذف صف فارغ فقط (تفرضه الشاشة) مع جلساته.
+  ///
+  /// الحارس هنا أيضاً لأن المفاتيح الأجنبية مفعّلة الآن: حذف صف فيه طلاب كان
+  /// سيحذفهم تلقائياً (cascade) — وهو فقد بيانات صامت لا يجوز.
   Future<void> deleteClass(int classId) async => transaction<void>(() async {
+        final int kids = await countStudentsInClass(classId);
+        if (kids > 0) {
+          throw StateError('لا يمكن حذف صف فيه $kids طالباً — انقلهم أو احذفهم أولاً');
+        }
         await (delete(sessions)..where((s) => s.classId.equals(classId))).go();
         await (delete(schoolClasses)..where((c) => c.id.equals(classId))).go();
         await logAudit('class_delete', 'id=$classId');

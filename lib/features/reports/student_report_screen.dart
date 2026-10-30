@@ -684,7 +684,7 @@ class _MonthGrid extends StatelessWidget {
                 Tooltip(
                   // تلميح اليوم: التاريخ + حالة كل حصة باسمها ووقت التأخر.
                   message: '${c.dateKey}: '
-                      '${c.status == AttendanceStatus.late ? lateInfoLabel(arrivalTime: c.arrivalTime) : statusName(c.status)}'
+                      '${c.status == AttendanceStatus.late ? lateInfoLabel(arrivalTime: c.arrivalTime) : describeDay(status: c.status, lessonStatuses: c.lessonStatuses, totalLessons: lessons.length).label}'
                       '${c.hasLessons ? '\n${lessonBreakdownText(lessons, c.lessonStatuses)}' : ''}',
                   child: InkWell(
                     borderRadius: BorderRadius.circular(6),
@@ -695,7 +695,11 @@ class _MonthGrid extends StatelessWidget {
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: c.isSchoolDay
-                            ? statusColor(c.status)
+                            ? dayStatusColor(
+                                status: c.status,
+                                lessonStatuses: c.lessonStatuses,
+                                totalLessons: lessons.length,
+                              )
                             : Colors.grey.shade300,
                         borderRadius: BorderRadius.circular(6),
                       ),
@@ -749,7 +753,8 @@ class _Legend extends StatelessWidget {
         alignment: WrapAlignment.center,
         children: <Widget>[
           const _LegendItem(Colors.green, 'حاضر'),
-          const _LegendItem(Colors.red, 'غائب'),
+          const _LegendItem(partialAbsentColor, 'غياب جزئي'),
+          const _LegendItem(Colors.red, 'غياب كامل'),
           const _LegendItem(Colors.amber, 'إجازة'),
           const _LegendItem(Colors.orange, 'متأخر'),
           _LegendItem(Colors.grey.shade300, 'عطلة/ليس دوام'),

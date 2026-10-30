@@ -1,5 +1,8 @@
 Analyzing Student-hodor...                                      
 
-   info • Missing a required trailing comma. Try adding a trailing comma • lib/data/backup_service.dart:486:68 • require_trailing_commas
+warning • The value of the local variable 'open' isn't used. Try removing the variable or using it • lib/core/name_import.dart:558:16 • unused_local_variable
+   info • The import of 'dart:typed_data' is unnecessary because all of the used elements are also provided by the import of 'package:drift/drift.dart'. Try removing the import directive • test/name_import_test.dart:6:8 • unnecessary_import
+   info • Missing a required trailing comma. Try adding a trailing comma • test/name_import_test.dart:85:54 • require_trailing_commas
+   info • Missing a required trailing comma. Try adding a trailing comma • test/name_import_test.dart:87:64 • require_trailing_commas
 
-1 issue found. (ran in 18.2s)
+4 issues found. (ran in 14.3s)

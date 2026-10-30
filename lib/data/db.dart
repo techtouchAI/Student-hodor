@@ -20,6 +20,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../core/badge_code.dart';
 import '../core/lesson.dart';
+import '../core/name_import.dart';
 import '../core/nav.dart';
 
 part 'db.g.dart';
@@ -866,39 +867,115 @@ class AppDb extends _$AppDb {
     String? photoPath,
     String? phone,
   }) async =>
-      transaction<int>(() async {
-        final int seq = await nextSeqForYear(yearId);
-        final int id = await into(students).insert(
-          StudentsCompanion(
-            yearId: Value(yearId),
-            classId: Value(classId),
-            fullName: Value(fullName),
-            personKey: Value(makePersonKey()),
-            seq: Value(seq),
-            photoPath: Value(photoPath),
-            phone: Value(phone),
-            createdAt: Value(DateTime.now().toIso8601String()),
+      transaction<int>(
+        () => _insertStudent(
+          yearId: yearId,
+          classId: classId,
+          fullName: fullName,
+          photoPath: photoPath,
+          phone: phone,
+        ),
+      );
+
+  /// الإدراج نفسه بلا معاملة خاصة: يستخدمه الاستيراد داخل معاملته الواحدة.
+  Future<int> _insertStudent({
+    required int yearId,
+    required int classId,
+    required String fullName,
+    String? photoPath,
+    String? phone,
+  }) async {
+    final int seq = await nextSeqForYear(yearId);
+    final int id = await into(students).insert(
+      StudentsCompanion(
+        yearId: Value(yearId),
+        classId: Value(classId),
+        fullName: Value(fullName),
+        personKey: Value(makePersonKey()),
+        seq: Value(seq),
+        photoPath: Value(photoPath),
+        phone: Value(phone),
+        createdAt: Value(DateTime.now().toIso8601String()),
+      ),
+    );
+    final String school = await setting('school_name') ?? '';
+    final AcademicYear? y = await yearById(yearId);
+    final int yearShort =
+        y == null ? 0 : (int.tryParse(y.start.substring(2, 4)) ?? 0);
+    await into(badges).insert(
+      BadgesCompanion(
+        studentId: Value(id),
+        code: Value(
+          BadgeCode.make(
+            schoolName: school,
+            sequence: seq,
+            yearShort: yearShort,
           ),
+        ),
+        issuedAt: Value(DateTime.now().toIso8601String()),
+      ),
+    );
+    await logAudit('student_add', fullName);
+    return id;
+  }
+
+  /// استيراد أسماء إلى صف واحد بمعاملة واحدة، بالترتيب الوارد من الملف.
+  ///
+  /// * `seq` يبدأ بعد آخر تسلسل في السنة (`nextSeqForYear`)، فالترتيب محفوظ.
+  /// * المكرر داخل القائمة يُسقَط، والمطابق لاسم موجود في الصف يُتخطّى افتراضياً
+  ///   (`skipExisting`) ولا يُحذف أو يُعدَّل شيء قائم.
+  /// * أي فشل في المنتصف يُرتدّ كاملاً: لا أسماء نصف مستوردة.
+  Future<StudentImportOutcome> importStudentNames({
+    required int yearId,
+    required int classId,
+    required List<String> names,
+    bool skipExisting = true,
+  }) async =>
+      transaction<StudentImportOutcome>(() async {
+        final List<Student> current = await (select(students)
+              ..where((s) => s.classId.equals(classId)))
+            .get();
+        final Set<String> existing = <String>{
+          for (final Student s in current) studentNameKey(s.fullName),
+        };
+        final Set<String> seen = <String>{};
+        int added = 0;
+        int dup = 0;
+        int skipped = 0;
+        int invalid = 0;
+        for (final String raw in names) {
+          final String name = cleanStudentName(raw);
+          if (name.isEmpty || !isImportableName(name)) {
+            invalid++;
+            continue;
+          }
+          final String key = studentNameKey(name);
+          if (!seen.add(key)) {
+            dup++;
+            continue;
+          }
+          if (existing.contains(key) && skipExisting) {
+            skipped++;
+            continue;
+          }
+          await _insertStudent(
+            yearId: yearId,
+            classId: classId,
+            fullName: name,
+          );
+          existing.add(key);
+          added++;
+        }
+        await logAudit(
+          'students_import',
+          'class=$classId added=$added skipped=$skipped dup=$dup invalid=$invalid',
         );
-        final String school = await setting('school_name') ?? '';
-        final AcademicYear? y = await yearById(yearId);
-        final int yearShort =
-            y == null ? 0 : (int.tryParse(y.start.substring(2, 4)) ?? 0);
-        await into(badges).insert(
-          BadgesCompanion(
-            studentId: Value(id),
-            code: Value(
-              BadgeCode.make(
-                schoolName: school,
-                sequence: seq,
-                yearShort: yearShort,
-              ),
-            ),
-            issuedAt: Value(DateTime.now().toIso8601String()),
-          ),
+        return StudentImportOutcome(
+          added: added,
+          skippedExisting: skipped,
+          skippedDuplicate: dup,
+          skippedInvalid: invalid,
         );
-        await logAudit('student_add', fullName);
-        return id;
       });
 
   /// حذف طالب وكل ما يرتبط به (باجات/حضور/إجازات/أحداث مسح) بمعاملة واحدة.

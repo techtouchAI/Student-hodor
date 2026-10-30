@@ -24,6 +24,7 @@
 | **T1** النسخ الاحتياطي والدمج | ✅ مُغلق | v2 بلا حصص، v3 كاملة، الدمج الحصصي، `_lessonOf`، الدمج مرتين | `test/backup_legacy_test.dart` (5) |
 | **T2** إقفال اليوم | ✅ مُغلق | ست حصص، حالات مختلطة، لا تكرار، لا مسّ للإجازة، ارتداد كامل | `test/close_day_test.dart` |
 | **T3** تكامل الهجرة | ✅ مُغلق | `PRAGMA foreign_key_check` + بقاء `scan_events.session_id` | `test/migration_v6_test.dart` |
+| **استيراد الأسماء** (الملحق أ) | ✅ مُنفَّذ | `lib/core/name_import.dart` + `AppDb.importStudentNames` + شاشة معاينة/تأكيد | `test/name_import_test.dart` (10) — التفاصيل في `docs/NAME-IMPORT-ar.md` |
 
 ---
 
@@ -88,6 +89,7 @@
 | `test/partial_absence_test.dart` | 6 | تسمية اليوم (جزئي/كامل/حاضر/إجازة/غير مسجَّل)، النص العربي للعدد، اللون، ثبات العدّاد القانوني |
 | `test/migration_v6_test.dart` | +1 تأكيد | `foreign_key_check` وبقاء `scan_events.session_id` |
 | `test/year_delete_test.dart` | +3 تأكيدات | حذف تنبيهات السنة المحذوفة وحدها |
+| `test/name_import_test.dart` | 10 | استيراد الأسماء: TXT (UTF‑8/UTF‑16/1256)، DOCX (فقرات/جدول)، ترويسة، عمود الاسم، تطبيع، تكرار، كتابة ذرّية |
 
 ---
 

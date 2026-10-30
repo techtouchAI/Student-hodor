@@ -1,20 +1,14 @@
 00:00 +0: loading /home/runner/work/Student-hodor/Student-hodor/test/seq_and_badge_test.dart
 00:00 +0: /home/runner/work/Student-hodor/Student-hodor/test/seq_and_badge_test.dart: تسلسل السنة فريد عبر صفين ورموز البادجات لا تتصادم
-00:00 +1: /home/runner/work/Student-hodor/Student-hodor/test/seq_and_badge_test.dart: تسلسل السنة فريد عبر صفين ورموز البادجات لا تتصادم
-00:00 +2: /home/runner/work/Student-hodor/Student-hodor/test/partial_absence_test.dart: غياب حصتين: «حصتان» بالنص العربي الصحيح
-00:00 +3: /home/runner/work/Student-hodor/Student-hodor/test/seq_and_badge_test.dart: بدل فاقد: إبطال القديم وإصدار رمز مختلف صالح للقراءة
-00:00 +4: /home/runner/work/Student-hodor/Student-hodor/test/seq_and_badge_test.dart: بدل فاقد: إبطال القديم وإصدار رمز مختلف صالح للقراءة
-00:00 +5: /home/runner/work/Student-hodor/Student-hodor/test/seq_and_badge_test.dart: بدل فاقد: إبطال القديم وإصدار رمز مختلف صالح للقراءة
-00:00 +6: /home/runner/work/Student-hodor/Student-hodor/test/seq_and_badge_test.dart: بدل فاقد: إبطال القديم وإصدار رمز مختلف صالح للقراءة
-00:00 +7: /home/runner/work/Student-hodor/Student-hodor/test/seq_and_badge_test.dart: بدل فاقد: إبطال القديم وإصدار رمز مختلف صالح للقراءة
-00:00 +8: loading /home/runner/work/Student-hodor/Student-hodor/test/backup_roundtrip_test.dart
-00:00 +8: /home/runner/work/Student-hodor/Student-hodor/test/backup_roundtrip_test.dart: تسلسل الطالب يحمل الهاتف ذهاباً وإياباً
+00:00 +1: /home/runner/work/Student-hodor/Student-hodor/test/seq_and_badge_test.dart: بدل فاقد: إبطال القديم وإصدار رمز مختلف صالح للقراءة
+00:00 +2: /home/runner/work/Student-hodor/Student-hodor/test/partial_absence_test.dart: غياب حصة واحدة من ست: جزئي وليس «غائب»
+00:00 +3: /home/runner/work/Student-hodor/Student-hodor/test/partial_absence_test.dart: غياب حصتين: «حصتان» بالنص العربي الصحيح
+00:00 +4: /home/runner/work/Student-hodor/Student-hodor/test/partial_absence_test.dart: غياب كل حصص الجدول: «غياب كامل»
+00:00 +5: /home/runner/work/Student-hodor/Student-hodor/test/partial_absence_test.dart: يوم حاضر أو بإجازة: يبقى نصه الحالي
+00:00 +6: /home/runner/work/Student-hodor/Student-hodor/test/partial_absence_test.dart: لون اليوم: باهت للجزئي وأحمر للكامل
+00:00 +7: /home/runner/work/Student-hodor/Student-hodor/test/partial_absence_test.dart: العدّاد القانوني يبقى يومياً: ست حصص غياب في يوم = يوم واحد
+00:01 +8: /home/runner/work/Student-hodor/Student-hodor/test/backup_roundtrip_test.dart: تسلسل الطالب يحمل الهاتف ذهاباً وإياباً
 00:01 +9: /home/runner/work/Student-hodor/Student-hodor/test/backup_roundtrip_test.dart: حاوية zip: الصور والتدقيق والهاتف ذهاباً وإياباً
-00:01 +10: /home/runner/work/Student-hodor/Student-hodor/test/backup_roundtrip_test.dart: حاوية zip: الصور والتدقيق والهاتف ذهاباً وإياباً
-00:01 +11: /home/runner/work/Student-hodor/Student-hodor/test/backup_roundtrip_test.dart: حاوية zip: الصور والتدقيق والهاتف ذهاباً وإياباً
-00:01 +12: /home/runner/work/Student-hodor/Student-hodor/test/backup_roundtrip_test.dart: حاوية zip: الصور والتدقيق والهاتف ذهاباً وإياباً
-00:01 +13: /home/runner/work/Student-hodor/Student-hodor/test/backup_roundtrip_test.dart: حاوية zip: الصور والتدقيق والهاتف ذهاباً وإياباً
-00:01 +14: /home/runner/work/Student-hodor/Student-hodor/test/backup_roundtrip_test.dart: حاوية zip: الصور والتدقيق والهاتف ذهاباً وإياباً
 WARNING (drift): It looks like you've created the database class AppDb multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
@@ -32,7 +26,7 @@ Here is the stacktrace from when the database was opened a second time:
 #8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
-00:01 +15: /home/runner/work/Student-hodor/Student-hodor/test/backup_roundtrip_test.dart: نسخة JSON قديمة تُسترجع كاملة (بلا صور ولا تدقيق مستورد)
+00:01 +10: /home/runner/work/Student-hodor/Student-hodor/test/backup_roundtrip_test.dart: نسخة JSON قديمة تُسترجع كاملة (بلا صور ولا تدقيق مستورد)
 WARNING (drift): It looks like you've created the database class AppDb multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
@@ -50,55 +44,60 @@ Here is the stacktrace from when the database was opened a second time:
 #8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
+00:01 +11: /home/runner/work/Student-hodor/Student-hodor/test/badge_code_test.dart: رمز المدرسة حتمي لنفس الاسم ومختلف لاسم آخر
+00:01 +12: /home/runner/work/Student-hodor/Student-hodor/test/badge_code_test.dart: دورة make/parse سليمة
+00:01 +13: /home/runner/work/Student-hodor/Student-hodor/test/badge_code_test.dart: رمز تالف يُرفض (checksum)
+00:01 +14: /home/runner/work/Student-hodor/Student-hodor/test/badge_code_test.dart: نص عشوائي لا يُقبل
+00:01 +15: /home/runner/work/Student-hodor/Student-hodor/test/badge_code_test.dart: نسخة البدل الفاقد تُشفَّر وتُفك ولا تكسر الرموز القديمة
 00:02 +16: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: بلوغ الحد الثاني يولّد تنبيهاً واحداً والاحتساب المتكرر لا يُكرر
-00:02 +17: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: بلوغ الحد الثاني يولّد تنبيهاً واحداً والاحتساب المتكرر لا يُكرر
-00:02 +18: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: بلوغ الحد الثاني يولّد تنبيهاً واحداً والاحتساب المتكرر لا يُكرر
-00:02 +19: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: بلوغ الحد الثاني يولّد تنبيهاً واحداً والاحتساب المتكرر لا يُكرر
-00:02 +20: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: بلوغ الحد الثاني يولّد تنبيهاً واحداً والاحتساب المتكرر لا يُكرر
-00:02 +21: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: بلوغ الحد الثاني يولّد تنبيهاً واحداً والاحتساب المتكرر لا يُكرر
-00:02 +22: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: خفض العتبة في الإعدادات يُدخل من لم يكن على القائمة
-00:02 +23: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: ازدياد الغياب يحدّث الإحصاء بلا تنبيه جديد
+00:02 +17: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: خفض العتبة في الإعدادات يُدخل من لم يكن على القائمة
+00:02 +18: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: ازدياد الغياب يحدّث الإحصاء بلا تنبيه جديد
+00:02 +19: /home/runner/work/Student-hodor/Student-hodor/test/nav_test.dart: بناء روابط الصفوف العنوان العربي يُرمَّز مرة واحدة ويُفكّ مرة واحدة
+00:02 +20: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: من انخفض تحت العتبة يحتفظ بتنبيهه (سجل تاريخي)
+00:02 +21: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: من انخفض تحت العتبة يحتفظ بتنبيهه (سجل تاريخي)
+00:02 +22: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: من انخفض تحت العتبة يحتفظ بتنبيهه (سجل تاريخي)
+00:02 +23: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: من انخفض تحت العتبة يحتفظ بتنبيهه (سجل تاريخي)
 00:02 +24: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: من انخفض تحت العتبة يحتفظ بتنبيهه (سجل تاريخي)
 00:02 +25: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: وسم القراءة: فردي وجماعي — ويحرّك عدّاد الجرس
 00:02 +26: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: حذف الطالب يحذف تنبيهه (حذف متسلسل)
 00:02 +27: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: بلا سنة فعّالة لا تُحسب تنبيهات
 00:02 +28: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: تحليل الحمولة: مسار ووسم، والتالف لا ينفجر
 00:02 +29: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: تسوية أيام العتبة نصياً
-00:02 +30: /home/runner/work/Student-hodor/Student-hodor/test/leave_sync_test.dart: إضافة إجازة تحوّل الغياب التلقائي إلى إجازة وحذفها يعيده
-00:02 +31: /home/runner/work/Student-hodor/Student-hodor/test/leave_sync_test.dart: إضافة إجازة تلغي الغياب اليدوي أيضاً وتحافظ على مصدره
+00:03 +30: /home/runner/work/Student-hodor/Student-hodor/test/leave_sync_test.dart: إضافة إجازة تحوّل الغياب التلقائي إلى إجازة وحذفها يعيده
+00:03 +31: /home/runner/work/Student-hodor/Student-hodor/test/leave_sync_test.dart: إضافة إجازة تلغي الغياب اليدوي أيضاً وتحافظ على مصدره
 00:03 +32: /home/runner/work/Student-hodor/Student-hodor/test/leave_sync_test.dart: الحضور والتأخر والإجازة اليدوية لا تُمسّ بالمزامنة
 00:03 +33: /home/runner/work/Student-hodor/Student-hodor/test/leave_sync_test.dart: upsertAttendance يحدّث السجل القائم ولا يكرره
 00:03 +34: /home/runner/work/Student-hodor/Student-hodor/test/leave_sync_test.dart: الفهارس تُنشأ عند إنشاء قاعدة جديدة
 00:03 +35: /home/runner/work/Student-hodor/Student-hodor/test/year_delete_test.dart: حذف سنة يزيل كل ما يخصها وحدها ويُبقى السنة الأخرى سالمة
-00:03 +36: /home/runner/work/Student-hodor/Student-hodor/test/year_delete_test.dart: حذف آخر سنة يفرغ القاعدة بالكامل بلا استثناء
-00:03 +37: /home/runner/work/Student-hodor/Student-hodor/test/month_key_test.dart: monthsBetweenKeys يحل السنة الميلادية الصحيحة لأشهر عابرة
-00:03 +38: /home/runner/work/Student-hodor/Student-hodor/test/month_key_test.dart: isValidDay يميز أشهر 30/31 يوماً وشباط
-00:03 +39: /home/runner/work/Student-hodor/Student-hodor/test/month_key_test.dart: sanitizeSheetName: بلا محارف ممنوعة وبقص آمن
+00:04 +36: /home/runner/work/Student-hodor/Student-hodor/test/year_delete_test.dart: حذف آخر سنة يفرغ القاعدة بالكامل بلا استثناء
+00:04 +37: /home/runner/work/Student-hodor/Student-hodor/test/month_key_test.dart: monthsBetweenKeys يحل السنة الميلادية الصحيحة لأشهر عابرة
+00:04 +38: /home/runner/work/Student-hodor/Student-hodor/test/month_key_test.dart: isValidDay يميز أشهر 30/31 يوماً وشباط
+00:04 +39: /home/runner/work/Student-hodor/Student-hodor/test/month_key_test.dart: sanitizeSheetName: بلا محارف ممنوعة وبقص آمن
 00:04 +40: /home/runner/work/Student-hodor/Student-hodor/test/student_phone_test.dart: الهاتف الاختياري يُحفظ ويُسترجع
 00:04 +41: /home/runner/work/Student-hodor/Student-hodor/test/student_phone_test.dart: سطر هاتف الباج: الرقم أو فراغ 11 رقماً
-00:04 +42: /home/runner/work/Student-hodor/Student-hodor/test/lessons_test.dart: قواعد الجدول (دوال نقية) الجدول الافتراضي صالح: ست حصص متتابعة بلا تداخل
-00:04 +43: /home/runner/work/Student-hodor/Student-hodor/test/lessons_test.dart: قواعد الجدول (دوال نقية) التحقق يرفض التداخل والنهاية قبل البداية والجدول الفارغ
-00:04 +44: /home/runner/work/Student-hodor/Student-hodor/test/lessons_test.dart: قواعد الجدول (دوال نقية) اختيار الحصة: الجارية ثم التالية، وقبل الدوام الأولى
-00:04 +45: /home/runner/work/Student-hodor/Student-hodor/test/lessons_test.dart: قواعد الجدول (دوال نقية) نص نطاق الإجازة بأشكاله الأربعة
-00:04 +46: /home/runner/work/Student-hodor/Student-hodor/test/lessons_test.dart: قواعد الجدول (دوال نقية) نطاق الحصة يغطي الحدين ويشمل الكل عند غياب الطرفين
-00:04 +47: /home/runner/work/Student-hodor/Student-hodor/test/lessons_test.dart: العقد مع قاعدة البيانات الحضور لكل حصة: غياب حصة لا يمسّ حصة أخرى
-00:04 +48: /home/runner/work/Student-hodor/Student-hodor/test/lessons_test.dart: العقد مع قاعدة البيانات حفظ الجدول يحفظ الهوية ويحمي الحصص ذات السجلات
+00:05 +42: /home/runner/work/Student-hodor/Student-hodor/test/lessons_test.dart: قواعد الجدول (دوال نقية) الجدول الافتراضي صالح: ست حصص متتابعة بلا تداخل
+00:05 +43: /home/runner/work/Student-hodor/Student-hodor/test/lessons_test.dart: قواعد الجدول (دوال نقية) التحقق يرفض التداخل والنهاية قبل البداية والجدول الفارغ
+00:05 +44: /home/runner/work/Student-hodor/Student-hodor/test/lessons_test.dart: قواعد الجدول (دوال نقية) اختيار الحصة: الجارية ثم التالية، وقبل الدوام الأولى
+00:05 +45: /home/runner/work/Student-hodor/Student-hodor/test/lessons_test.dart: قواعد الجدول (دوال نقية) نص نطاق الإجازة بأشكاله الأربعة
+00:05 +46: /home/runner/work/Student-hodor/Student-hodor/test/lessons_test.dart: قواعد الجدول (دوال نقية) نطاق الحصة يغطي الحدين ويشمل الكل عند غياب الطرفين
+00:05 +47: /home/runner/work/Student-hodor/Student-hodor/test/lessons_test.dart: العقد مع قاعدة البيانات الحضور لكل حصة: غياب حصة لا يمسّ حصة أخرى
+00:05 +48: /home/runner/work/Student-hodor/Student-hodor/test/lessons_test.dart: العقد مع قاعدة البيانات حفظ الجدول يحفظ الهوية ويحمي الحصص ذات السجلات
 00:07 +49: /home/runner/work/Student-hodor/Student-hodor/test/badge_print_test.dart: ترقيم ورقة A4: 10 بادجات للصفحة
 00:07 +50: /home/runner/work/Student-hodor/Student-hodor/test/badge_print_test.dart: ورقة A4 وباج مفرد بخط أميري: PDF صالح بعدد الصفحات الصحيح
+Courier has no Unicode support see https://github.com/DavBfr/dart_pdf/wiki/Fonts-Management
 00:07 +51: /home/runner/work/Student-hodor/Student-hodor/test/badge_print_test.dart: ورقة A4 وباج مفرد بخط أميري: PDF صالح بعدد الصفحات الصحيح
 00:07 +52: /home/runner/work/Student-hodor/Student-hodor/test/badge_print_test.dart: ورقة A4 وباج مفرد بخط أميري: PDF صالح بعدد الصفحات الصحيح
 00:07 +53: /home/runner/work/Student-hodor/Student-hodor/test/badge_print_test.dart: ورقة A4 وباج مفرد بخط أميري: PDF صالح بعدد الصفحات الصحيح
 Courier has no Unicode support see https://github.com/DavBfr/dart_pdf/wiki/Fonts-Management
-Courier has no Unicode support see https://github.com/DavBfr/dart_pdf/wiki/Fonts-Management
 00:07 +54: /home/runner/work/Student-hodor/Student-hodor/test/badge_print_test.dart: التحقق من الصورة: صالح يُقبَل وتالف/فارغ يُرفَض
-00:07 +55: /home/runner/work/Student-hodor/Student-hodor/test/school_time_test.dart: الجمعة والسبت خارج أيام الدوام الافتراضية
-00:07 +56: /home/runner/work/Student-hodor/Student-hodor/test/school_time_test.dart: العطلة تمنع اعتبار اليوم يوم دوام
-00:07 +57: /home/runner/work/Student-hodor/Student-hodor/test/school_time_test.dart: keysBetween شامل الطرفين
-00:07 +58: /home/runner/work/Student-hodor/Student-hodor/test/school_time_test.dart: parseKey يعكس dateKey
+00:08 +55: /home/runner/work/Student-hodor/Student-hodor/test/school_time_test.dart: الجمعة والسبت خارج أيام الدوام الافتراضية
+00:08 +56: /home/runner/work/Student-hodor/Student-hodor/test/school_time_test.dart: العطلة تمنع اعتبار اليوم يوم دوام
+00:08 +57: /home/runner/work/Student-hodor/Student-hodor/test/school_time_test.dart: keysBetween شامل الطرفين
+00:08 +58: /home/runner/work/Student-hodor/Student-hodor/test/school_time_test.dart: parseKey يعكس dateKey
 00:08 +59: /home/runner/work/Student-hodor/Student-hodor/test/close_session_test.dart: إقفال الجلسة يولّد غياباً لمن لم يُسجّل ويحترم الإجازة
-00:08 +60: /home/runner/work/Student-hodor/Student-hodor/test/close_day_test.dart: إقفال اليوم: ست حصص، لا تكرار، والإجازة لا تُمسّ
-00:08 +61: /home/runner/work/Student-hodor/Student-hodor/test/close_day_test.dart: إقفال اليوم ذرّي: فشل لاحق يردّ كل سجلات الإقفال
-00:08 +62: /home/runner/work/Student-hodor/Student-hodor/test/close_day_test.dart: إعادة فتح اليوم ذرّية: فشل لاحق يُبقي الحصص مقفلة
+00:09 +60: /home/runner/work/Student-hodor/Student-hodor/test/close_day_test.dart: إقفال اليوم: ست حصص، لا تكرار، والإجازة لا تُمسّ
+00:09 +61: /home/runner/work/Student-hodor/Student-hodor/test/close_day_test.dart: إقفال اليوم ذرّي: فشل لاحق يردّ كل سجلات الإقفال
+00:09 +62: /home/runner/work/Student-hodor/Student-hodor/test/close_day_test.dart: إعادة فتح اليوم ذرّية: فشل لاحق يُبقي الحصص مقفلة
 00:09 +63: /home/runner/work/Student-hodor/Student-hodor/test/lesson_scope_test.dart: حذف حصة قبل النطاق: الإجازة تنتقل مع حصصها نفسها
 00:09 +64: /home/runner/work/Student-hodor/Student-hodor/test/lesson_scope_test.dart: حذف حصة داخل النطاق: يقلّ النطاق بواحد ويبقى مربوطاً بالحصص
 00:09 +65: /home/runner/work/Student-hodor/Student-hodor/test/lesson_scope_test.dart: حذف حصة بعد النطاق: النطاق لا يتغيّر
@@ -142,8 +141,8 @@ Courier has no Unicode support see https://github.com/DavBfr/dart_pdf/wiki/Fonts
   test/lesson_scope_test.dart 259:5                   main.<fn>
   
 00:09 +66 -3: /home/runner/work/Student-hodor/Student-hodor/test/lesson_scope_test.dart: إجازة «كل الحصص» تبقى كل الحصص بعد الحذف
-00:09 +67 -3: /home/runner/work/Student-hodor/Student-hodor/test/absences_export_test.dart: ورقة الغيابات فقط تعرض غيابات الطالب وحدها وبلا الحالات الأخرى
-00:10 +68 -3: /home/runner/work/Student-hodor/Student-hodor/test/backup_legacy_test.dart: نسخة v2 بلا حصص: زرع افتراضي وإسناد كل سطر إلى الحصة الأولى
+00:10 +67 -3: /home/runner/work/Student-hodor/Student-hodor/test/absences_export_test.dart: ورقة الغيابات فقط تعرض غيابات الطالب وحدها وبلا الحالات الأخرى
+00:10 +68 -3: /home/runner/work/Student-hodor/Student-hodor/test/absences_export_test.dart: ورقة الغيابات فقط الأشهر المحددة ترشّح الغيابات
 00:10 +69 -3: /home/runner/work/Student-hodor/Student-hodor/test/backup_legacy_test.dart: نسخة v2 بلا حصص: زرع افتراضي وإسناد كل سطر إلى الحصة الأولى
 00:10 +70 -3: /home/runner/work/Student-hodor/Student-hodor/test/backup_legacy_test.dart: نسخة v2 بلا حصص: زرع افتراضي وإسناد كل سطر إلى الحصة الأولى
 WARNING (drift): It looks like you've created the database class AppDb multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
@@ -163,11 +162,11 @@ Here is the stacktrace from when the database was opened a second time:
 #8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
-00:10 +70 -4: /home/runner/work/Student-hodor/Student-hodor/test/absences_export_test.dart: PDF الغيابات فقط يبني مستنداً بصفحة على الأقل غياباتٍ فقط بلا كشوف ولا ملخص
+00:10 +71 -3: /home/runner/work/Student-hodor/Student-hodor/test/backup_legacy_test.dart: نسخة v2 بلا حصص: زرع افتراضي وإسناد كل سطر إلى الحصة الأولى
 00:10 +71 -4: /home/runner/work/Student-hodor/Student-hodor/test/absences_export_test.dart: PDF الغيابات فقط الترشيح بشهر محدد يبني مستنداً صالحاً أيضاً
 00:10 +71 -4: /home/runner/work/Student-hodor/Student-hodor/test/backup_legacy_test.dart: نسخة v2 بلا حصص: زرع افتراضي وإسناد كل سطر إلى الحصة الأولى [E]
   SqliteException(1555): while executing statement, UNIQUE constraint failed: audit_logs.id, constraint failed (code 1555)
-    Causing statement: INSERT INTO "audit_logs" ("id", "at", "actor", "action", "details") VALUES (?, ?, ?, ?, ?), parameters: 2, 2026-10-30T22:54:37.638514, local, student_add, طالب 1
+    Causing statement: INSERT INTO "audit_logs" ("id", "at", "actor", "action", "details") VALUES (?, ?, ?, ?, ?), parameters: 2, 2026-10-30T23:03:00.973725, local, student_add, طالب 1
   package:sqlite3/src/implementation/exception.dart 101:3               throwException
   package:sqlite3/src/implementation/statement.dart 52:5                StatementImplementation.throwStatementException
   package:sqlite3/src/implementation/statement.dart 100:7               StatementImplementation._execute
@@ -224,7 +223,7 @@ This warning will only appear on debug builds.
   dart:async                                                            _CustomZone.registerUnaryCallback
   test/backup_legacy_test.dart 70:9                                     main.<fn>
   
-00:10 +71 -4: /home/runner/work/Student-hodor/Student-hodor/test/backup_legacy_test.dart: نسخة v3: الحصص والإجازات والحضور تعود كما هي
+00:10 +72 -4: /home/runner/work/Student-hodor/Student-hodor/test/backup_legacy_test.dart: نسخة v3: الحصص والإجازات والحضور تعود كما هي
 WARNING (drift): It looks like you've created the database class AppDb multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
@@ -242,7 +241,6 @@ Here is the stacktrace from when the database was opened a second time:
 #8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
-00:10 +72 -4: /home/runner/work/Student-hodor/Student-hodor/test/backup_legacy_test.dart: نسخة v3: الحصص والإجازات والحضور تعود كما هي
 00:10 +73 -4: /home/runner/work/Student-hodor/Student-hodor/test/backup_legacy_test.dart: الدمج: حصتان في اليوم نفسه تُدمان، ولا تُدمج الحصة نفسها مرتين
 WARNING (drift): It looks like you've created the database class AppDb multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
@@ -309,70 +307,70 @@ Here is the stacktrace from when the database was opened a second time:
 #9      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
-00:10 +75 -5: /home/runner/work/Student-hodor/Student-hodor/test/migration_v6_test.dart: ترقية 5⇒6 تُسند كل سطر قديم إلى الحصة الأولى وتُبقي البيانات
-00:11 +76 -5: /home/runner/work/Student-hodor/Student-hodor/test/migration_v6_test.dart: ترقية 5⇒6 تُسند كل سطر قديم إلى الحصة الأولى وتُبقي البيانات
-00:11 +77 -5: /home/runner/work/Student-hodor/Student-hodor/test/migration_v6_test.dart: ترقية 5⇒6 تُسند كل سطر قديم إلى الحصة الأولى وتُبقي البيانات
-00:11 +78 -5: /home/runner/work/Student-hodor/Student-hodor/test/migration_v6_test.dart: ترقية 5⇒6 تُسند كل سطر قديم إلى الحصة الأولى وتُبقي البيانات
-00:11 +79 -5: /home/runner/work/Student-hodor/Student-hodor/test/late_time_test.dart: المسح يثبّت وقت الوصول الفعلي بعد نافذة السماح: متأخر مع وقته، وقبلها: حاضر مع وقته
+00:11 +75 -5: /home/runner/work/Student-hodor/Student-hodor/test/migration_v6_test.dart: ترقية 5⇒6 تُسند كل سطر قديم إلى الحصة الأولى وتُبقي البيانات
+00:11 +76 -5: /home/runner/work/Student-hodor/Student-hodor/test/migration_v6_test.dart: قاعدة جديدة تكتب الإصدار 6 من أول فتح
+00:11 +77 -5: /home/runner/work/Student-hodor/Student-hodor/test/late_time_test.dart: أدوات وقت التأخر تنسيق الوقت وتحليله
+00:11 +78 -5: /home/runner/work/Student-hodor/Student-hodor/test/late_time_test.dart: أدوات وقت التأخر مدة التأخر وصيغتها العربية
+00:11 +79 -5: /home/runner/work/Student-hodor/Student-hodor/test/late_time_test.dart: أدوات وقت التأخر سطر عرض المتأخر بحسب المعطيات
 00:11 +80 -5: /home/runner/work/Student-hodor/Student-hodor/test/late_time_test.dart: المسح يثبّت وقت الوصول الفعلي بعد نافذة السماح: متأخر مع وقته، وقبلها: حاضر مع وقته
 00:11 +81 -5: /home/runner/work/Student-hodor/Student-hodor/test/late_time_test.dart: المسح يثبّت وقت الوصول الفعلي نافذة السماح: بداية الدوام + دقائق السماح من الإعدادات
 00:11 +82 -5: /home/runner/work/Student-hodor/Student-hodor/test/late_time_test.dart: الوقت في سجل الحضور تغيير الحالة يدوياً بلا وقت يمسح الوقت السابق
-00:11 +83 -5: /home/runner/work/Student-hodor/Student-hodor/test/backup_downloads_test.dart: اسم النسخة المميز يحمل السبب والتاريخ والوقت بصيغة ثابتة
-00:11 +84 -5: /home/runner/work/Student-hodor/Student-hodor/test/backup_downloads_test.dart: اسم النسخة المميز بلا محارف ممنوعة في أسماء الملفات ولو جاء السبب بها
-00:11 +85 -5: /home/runner/work/Student-hodor/Student-hodor/test/backup_downloads_test.dart: مخزن التنزيلات يعيد null بلا قناة منصة فيُستخدم المسار البديل
+00:12 +83 -5: /home/runner/work/Student-hodor/Student-hodor/test/backup_downloads_test.dart: اسم النسخة المميز يحمل السبب والتاريخ والوقت بصيغة ثابتة
+00:12 +84 -5: /home/runner/work/Student-hodor/Student-hodor/test/backup_downloads_test.dart: اسم النسخة المميز بلا محارف ممنوعة في أسماء الملفات ولو جاء السبب بها
+00:12 +85 -5: /home/runner/work/Student-hodor/Student-hodor/test/backup_downloads_test.dart: مخزن التنزيلات يعيد null بلا قناة منصة فيُستخدم المسار البديل
 00:12 +86 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: النطاق من بداية السنة حتى اليوم والحالات في مواضعها
 00:12 +87 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: اليوم بعد نهاية السنة يُكبَت بنهايتها
 00:12 +88 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: Excel السجل: أيام ملونة وإحصائيات وRTL
-00:12 +89 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: Excel السجل: أيام ملونة وإحصائيات وRTL
-00:12 +90 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: Excel السجل: أيام ملونة وإحصائيات وRTL
-00:12 +91 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: Excel السجل: أيام ملونة وإحصائيات وRTL
-00:12 +92 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: Excel السجل: أيام ملونة وإحصائيات وRTL
-00:12 +93 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: Excel السجل: أيام ملونة وإحصائيات وRTL
-00:12 +94 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: Excel السجل: أيام ملونة وإحصائيات وRTL
-00:12 +95 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: Excel السجل: أيام ملونة وإحصائيات وRTL
-00:12 +96 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: Excel السجل: أيام ملونة وإحصائيات وRTL
-00:12 +97 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: Excel السجل: أيام ملونة وإحصائيات وRTL
-00:12 +98 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: Excel السجل: أيام ملونة وإحصائيات وRTL
-00:12 +99 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: Excel السجل: أيام ملونة وإحصائيات وRTL
-00:12 +100 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: Excel السجل: أيام ملونة وإحصائيات وRTL
-00:12 +101 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: Excel السجل: أيام ملونة وإحصائيات وRTL
-00:12 +102 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: Excel السجل: أيام ملونة وإحصائيات وRTL
-00:12 +103 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: Excel السجل: أيام ملونة وإحصائيات وRTL
-00:12 +104 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: Excel السجل: أيام ملونة وإحصائيات وRTL
-00:12 +105 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: Excel السجل: أيام ملونة وإحصائيات وRTL
-00:12 +106 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: Excel السجل: أيام ملونة وإحصائيات وRTL
-00:12 +107 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: PDF السجل يُبنى صفحات صالحة
-00:12 +108 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: اسم ملف السجل عربي وآمن
-00:18 +109 -5: /home/runner/work/Student-hodor/Student-hodor/test/early_alerts_test.dart: العتبة الأولى تُدخل من بلغها أياماً مرتبين بالأكثر غياباً
+00:13 +89 -5: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: تشكيل سياقي: محمد
+00:13 +90 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: PDF السجل يُبنى صفحات صالحة
+00:13 +91 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: PDF السجل يُبنى صفحات صالحة
+00:13 +92 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: PDF السجل يُبنى صفحات صالحة
+00:13 +93 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: PDF السجل يُبنى صفحات صالحة
+00:13 +94 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: PDF السجل يُبنى صفحات صالحة
+00:13 +95 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: PDF السجل يُبنى صفحات صالحة
+00:13 +96 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: PDF السجل يُبنى صفحات صالحة
+00:13 +97 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: PDF السجل يُبنى صفحات صالحة
+00:13 +98 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: PDF السجل يُبنى صفحات صالحة
+00:13 +99 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: PDF السجل يُبنى صفحات صالحة
+00:13 +100 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: PDF السجل يُبنى صفحات صالحة
+00:13 +101 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: PDF السجل يُبنى صفحات صالحة
+00:13 +102 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: PDF السجل يُبنى صفحات صالحة
+00:13 +103 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: PDF السجل يُبنى صفحات صالحة
+00:13 +104 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: PDF السجل يُبنى صفحات صالحة
+00:13 +105 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: PDF السجل يُبنى صفحات صالحة
+00:13 +106 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: PDF السجل يُبنى صفحات صالحة
+00:13 +107 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: PDF السجل يُبنى صفحات صالحة
+00:13 +108 -5: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: اسم ملف السجل عربي وآمن
+00:18 +109 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الصفوف: قائمة الصفوف تظهر
 00:18 +110 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الصفوف: قائمة الصفوف تظهر
-00:18 +111 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الصفوف: قائمة الصفوف تظهر
-00:18 +112 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الصفوف: قائمة الصفوف تظهر
-00:19 +113 -5: /home/runner/work/Student-hodor/Student-hodor/test/excel_export_test.dart: ملف Excel المصدَّر كل أوراقه RTL وتجميد العنوانين محفوظان داخل الـxlsx
-00:19 +114 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الصفوف → الطلاب: ضغط الصف يفتح شاشة فيها الطلاب
-00:19 +115 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الصفوف → الطلاب: ضغط الصف يفتح شاشة فيها الطلاب
-00:19 +116 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الصفوف → الطلاب: ضغط الصف يفتح شاشة فيها الطلاب
-00:19 +117 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الصفوف → الطلاب: ضغط الصف يفتح شاشة فيها الطلاب
-00:19 +118 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الصفوف → الطلاب: ضغط الصف يفتح شاشة فيها الطلاب
-00:19 +119 -5: /home/runner/work/Student-hodor/Student-hodor/test/excel_export_test.dart: ملف Excel المصدَّر ورقة الملخص تحمل عنواناً وترويسة في الصف الثالث
-00:19 +120 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الطلاب: رابط مباشر بمعامِلات عربية مرمّزة
-00:19 +121 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الطلاب: رابط مباشر بمعامِلات عربية مرمّزة
-00:19 +122 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الطلاب: رابط مباشر بمعامِلات عربية مرمّزة
-00:19 +123 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الطلاب: رابط مباشر بمعامِلات عربية مرمّزة
-00:19 +124 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها البادجات: الشاشة تُحمِّل باجات الصف بلا عطل
-00:20 +125 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها كشف اليوم: قائمة الحالات + شريط الملخّص
+00:19 +111 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الصفوف: قائمة الصفوف تظهر
+00:19 +112 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الصفوف: قائمة الصفوف تظهر
+00:19 +113 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الصفوف → الطلاب: ضغط الصف يفتح شاشة فيها الطلاب
+00:19 +114 -5: /home/runner/work/Student-hodor/Student-hodor/test/excel_export_test.dart: ملف Excel المصدَّر كل أوراقه RTL وتجميد العنوانين محفوظان داخل الـxlsx
+00:19 +115 -5: /home/runner/work/Student-hodor/Student-hodor/test/excel_export_test.dart: ملف Excel المصدَّر كل أوراقه RTL وتجميد العنوانين محفوظان داخل الـxlsx
+00:20 +116 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها البادجات: الشاشة تُحمِّل باجات الصف بلا عطل
+00:20 +117 -5: /home/runner/work/Student-hodor/Student-hodor/test/excel_export_test.dart: ملف Excel المصدَّر يبقى صالحاً بعد الترقيع: أسماء أوراق عربية وبلا Sheet1
+00:20 +118 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها كشف اليوم: قائمة الحالات + شريط الملخّص
+00:20 +119 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها كشف اليوم: قائمة الحالات + شريط الملخّص
+00:20 +120 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها كشف اليوم: قائمة الحالات + شريط الملخّص
+00:20 +121 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها كشف اليوم: قائمة الحالات + شريط الملخّص
+00:20 +122 -5: /home/runner/work/Student-hodor/Student-hodor/test/excel_export_test.dart: ملف Excel المصدَّر ورقة الملخص تحمل عنواناً وترويسة في الصف الثالث
+00:20 +123 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء معرّف صف محذوف ⇒ يُعتمد الصف الوحيد ولا استثناء
+00:20 +124 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء معرّف صف محذوف ⇒ يُعتمد الصف الوحيد ولا استثناء
+00:20 +125 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء معرّف صف محذوف ⇒ يُعتمد الصف الوحيد ولا استثناء
 00:20 +126 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء معرّف صف محذوف ⇒ يُعتمد الصف الوحيد ولا استثناء
 00:20 +127 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء بلا معامِلات إطلاقاً ⇒ الشاشة تُحلّ صفّها من القاعدة
 00:20 +128 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء قيمة class غير رقمية ⇒ لا انهيار
-00:20 +129 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء قيمة class غير رقمية ⇒ لا انهيار
-00:20 +130 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء قيمة class غير رقمية ⇒ لا انهيار
-00:20 +131 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء قيمة class غير رقمية ⇒ لا انهيار
-00:20 +132 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء قيمة class غير رقمية ⇒ لا انهيار
-00:20 +133 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء كشف اليوم بلا تاريخ ⇒ يُعتمد اليوم
-00:20 +134 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء بلا سنة فعّالة ⇒ رسالة إرشادية لا بياض
-00:20 +135 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: extra يتجاوز معاملة الرابط ClassRef عبر extra يحدّد الصف والعنوان
-00:21 +136 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: بطاقات الصفوف والطلاب: لا نص مقتطع بطاقة الصف: الاسم وعدد الطلاب بلا ellipsis وبلا حدّ أسطر
-00:21 +137 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: بطاقات الصفوف والطلاب: لا نص مقتطع بطاقة الطالب: رقم الطالب بلا ellipsis
-00:21 +138 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: ملف الطالب يُحمَّل فعلاً (لا دوران بلا نهاية) ضغط اسم الطالب يعرض ملفه كاملاً
+00:20 +129 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء كشف اليوم بلا تاريخ ⇒ يُعتمد اليوم
+00:20 +130 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء بلا سنة فعّالة ⇒ رسالة إرشادية لا بياض
+00:20 +131 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: extra يتجاوز معاملة الرابط ClassRef عبر extra يحدّد الصف والعنوان
+00:20 +132 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: بطاقات الصفوف والطلاب: لا نص مقتطع بطاقة الصف: الاسم وعدد الطلاب بلا ellipsis وبلا حدّ أسطر
+00:20 +133 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: بطاقات الصفوف والطلاب: لا نص مقتطع بطاقة الطالب: رقم الطالب بلا ellipsis
+00:20 +134 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: ملف الطالب يُحمَّل فعلاً (لا دوران بلا نهاية) ضغط اسم الطالب يعرض ملفه كاملاً
+00:21 +135 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: ملف الطالب يُحمَّل فعلاً (لا دوران بلا نهاية) التنقّل بين الأشهر يعيد بناء الشبكة بلا عطل
+00:21 +136 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: ملف الطالب يُحمَّل فعلاً (لا دوران بلا نهاية) التنقّل بين الأشهر يعيد بناء الشبكة بلا عطل
+00:21 +137 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: ملف الطالب يُحمَّل فعلاً (لا دوران بلا نهاية) التنقّل بين الأشهر يعيد بناء الشبكة بلا عطل
+00:21 +138 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: ملف الطالب يُحمَّل فعلاً (لا دوران بلا نهاية) التنقّل بين الأشهر يعيد بناء الشبكة بلا عطل
 00:21 +139 -5: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: ملف الطالب يُحمَّل فعلاً (لا دوران بلا نهاية) التنقّل بين الأشهر يعيد بناء الشبكة بلا عطل
 00:21 +140 -5: Some tests failed.
 

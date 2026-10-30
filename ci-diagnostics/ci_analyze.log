@@ -1,2 +1,5 @@
 Analyzing Student-hodor...                                      
-No issues found! (ran in 14.2s)
+
+   info • Missing a required trailing comma. Try adding a trailing comma • lib/data/backup_service.dart:486:68 • require_trailing_commas
+
+1 issue found. (ran in 18.2s)

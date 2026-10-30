@@ -130,8 +130,9 @@ class ScanService {
     }
     // الحصة مصدر الوقت واسم الرسالة؛ غيابها يعني قاعدة غير مزرعة (يُزرع
     // تلقائياً عند الفتح) — نرجع للحصة الأولى كي لا يتعطل المسح أبداً.
-    final Lesson lesson = await db.lessonById(session.lessonId) ??
-        await db.firstLesson();
+    final LessonWindow lesson = AppDb.windowOf(
+      await db.lessonById(session.lessonId) ?? await db.firstLesson(),
+    );
     final AttendanceRow? existing =
         await db.attendanceOf(student.id, session.date, session.lessonId);
     if (existing != null &&

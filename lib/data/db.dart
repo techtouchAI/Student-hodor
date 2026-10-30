@@ -340,12 +340,14 @@ class AppDb extends _$AppDb {
   Future<void> _migrateToLessons(Migrator m) async {
     await m.createTable(lessons);
     await ensureLessonsSeeded();
+    // كل سطر قديم (كان يوماً كاملاً) يُسند إلى **الحصة الأولى** المزروعة، فلا
+    // يبقى أي سجل بلا حصة وتبقى التقارير القديمة مقروءة.
     final int firstLessonId = await _firstLessonId();
     await m.alterTable(
       TableMigration(
         sessions,
-        newColumns: <Column<Object>>[sessions.lessonId],
-        columnTransformer: <Column<Object>, Expression<Object?>>{
+        newColumns: <GeneratedColumn<Object>>[sessions.lessonId],
+        columnTransformer: <GeneratedColumn<Object>, Expression<Object>>{
           sessions.lessonId: Constant<int>(firstLessonId),
         },
       ),
@@ -353,8 +355,8 @@ class AppDb extends _$AppDb {
     await m.alterTable(
       TableMigration(
         attendanceRows,
-        newColumns: <Column<Object>>[attendanceRows.lessonId],
-        columnTransformer: <Column<Object>, Expression<Object?>>{
+        newColumns: <GeneratedColumn<Object>>[attendanceRows.lessonId],
+        columnTransformer: <GeneratedColumn<Object>, Expression<Object>>{
           attendanceRows.lessonId: Constant<int>(firstLessonId),
         },
       ),

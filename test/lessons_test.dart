@@ -97,8 +97,10 @@ void main() {
         3,
         reason: 'بعد آخر حصة ⇒ الأخيرة للتصحيح المتأخر',
       );
-      expect(LessonSchedule.suggested(const <LessonWindow>[], DateTime.now()),
-          isNull);
+      expect(
+        LessonSchedule.suggested(const <LessonWindow>[], DateTime.now()),
+        isNull,
+      );
     });
 
     test('نص نطاق الإجازة بأشكاله الأربعة', () {

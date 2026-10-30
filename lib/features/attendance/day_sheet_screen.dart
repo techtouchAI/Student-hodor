@@ -386,6 +386,9 @@ class _DaySheetState extends ConsumerState<DaySheetScreen> {
     final AppDb db = ref.read(dbProvider);
     try {
       final List<Session> sessions = await db.sessionsOfDay(c.id, _date);
+      if (!mounted) {
+        return;
+      }
       final bool anyOpen =
           sessions.isEmpty || sessions.any((Session s) => s.closedAt == null);
       final bool? ok = await showDialog<bool>(

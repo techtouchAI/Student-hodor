@@ -30,7 +30,9 @@ jobs:
         run: flutter pub get
 
       - name: Codegen (drift)
-        run: dart run build_runner build --delete-conflicting-outputs
+        # السجل يُحفظ ليُرفق بتعليق الفشل: فشل التوليد يعني عادة خطأ ترجمة في
+        # أحد ملفات `lib/`، ونص الخطأ وحده يكفي لتشخيصه بلا تنزيل سجلات.
+        run: set -o pipefail; dart run build_runner build --delete-conflicting-outputs 2>&1 | tee ci_codegen.log
 
       - name: Analyze (zero warnings policy)
         run: set -o pipefail; flutter analyze --fatal-warnings --fatal-infos 2>&1 | tee ci_analyze.log
@@ -45,6 +47,13 @@ jobs:
         run: |
           {
             echo '## تفاصيل فشل التحقق (تقرير تلقائي)'
+            if [ -s ci_codegen.log ]; then
+              echo
+              echo '### build_runner (codegen)'
+              echo '```'
+              tail -n 120 ci_codegen.log
+              echo '```'
+            fi
             if [ -s ci_analyze.log ]; then
               echo
               echo '### flutter analyze'

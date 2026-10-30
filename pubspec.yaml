@@ -60,6 +60,10 @@ dev_dependencies:
   flutter_lints: 4.0.0
   build_runner: 2.16.1
   drift_dev: 2.35.0
+  # سقف analyzer مقصود: analyzer 14 أزال `AnalysisOptionsImpl.contextFeatures`
+  # التي ما زال build_runner 2.16.1 يستخدمها، فيفشل التوليد (وشاشة بيضاء لاحقاً)
+  # بسبب اعتمادية عابرة لا علاقة لها بكودنا. التثبيت يحفظ توليداً قابلاً للتكرار.
+  analyzer: ">=7.4.0 <14.0.0"
 
 flutter:
   uses-material-design: true

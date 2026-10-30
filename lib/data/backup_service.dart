@@ -482,8 +482,9 @@ class BackupService {
     return parts.first +
         parts
             .skip(1)
-            .map((String p) =>
-                p.isEmpty ? p : p[0].toUpperCase() + p.substring(1))
+            .map(
+              (String p) => p.isEmpty ? p : p[0].toUpperCase() + p.substring(1),
+            )
             .join();
   }
 

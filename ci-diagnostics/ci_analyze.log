@@ -1,2 +1,5 @@
 Analyzing Student-hodor...                                      
-No issues found! (ran in 13.4s)
+
+   info • Use 'const' for final variables initialized to a constant value. Try replacing 'final' with 'const' • lib/core/name_import.dart:642:3 • prefer_const_declarations
+
+1 issue found. (ran in 16.9s)

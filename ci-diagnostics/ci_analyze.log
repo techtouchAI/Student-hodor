@@ -11,4 +11,4 @@ warning • Unused import: '../core/lesson.dart'. Try removing the import direct
 warning • Unused import: '../../core/lesson.dart'. Try removing the import directive • lib/features/export/student_record_pdf.dart:11:8 • unused_import
    info • Missing a required trailing comma. Try adding a trailing comma • test/lessons_test.dart:101:17 • require_trailing_commas
 
-10 issues found. (ran in 16.9s)
+10 issues found. (ran in 14.1s)

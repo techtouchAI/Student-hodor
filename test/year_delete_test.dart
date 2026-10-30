@@ -54,6 +54,7 @@ Future<int> _seedYear(AppDb db, String yearName, String start) async {
     yearId: yearId,
     classId: classId,
     studentId: studentId,
+    lessonId: (await db.firstLesson()).id,
     date: date,
     status: AttendanceStatus.present,
     source: AttendanceSource.scan,

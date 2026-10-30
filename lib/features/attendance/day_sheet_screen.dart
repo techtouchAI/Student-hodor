@@ -15,12 +15,14 @@ import 'package:go_router/go_router.dart';
 import '../../core/attendance_labels.dart';
 import '../../core/error_guard.dart';
 import '../../core/late_time.dart';
+import '../../core/lesson.dart';
 import '../../core/nav.dart';
 import '../../core/school_time.dart';
 import '../../data/db.dart';
 import '../../data/error_log.dart';
 import '../../state/providers.dart';
 import 'late_time_picker.dart';
+import 'lesson_picker.dart';
 
 enum _Filter { all, missing }
 
@@ -37,6 +39,10 @@ class DaySheetScreen extends ConsumerStatefulWidget {
 class _DaySheetState extends ConsumerState<DaySheetScreen> {
   late String _date;
   ClassRef? _class;
+
+  /// جدول الحصص والحصة المعروضة — كل الكشف (الحالات والإقفال) للحصة الواحدة.
+  List<LessonWindow> _lessons = <LessonWindow>[];
+  LessonWindow? _lesson;
   Stream<List<Student>>? _students;
   Stream<List<AttendanceRow>>? _rows;
   Stream<Session?>? _session;
@@ -94,20 +100,17 @@ class _DaySheetState extends ConsumerState<DaySheetScreen> {
         });
         return;
       }
+      final List<LessonWindow> lessons = await db.lessonWindows();
+      final LessonWindow? lesson =
+          LessonSchedule.suggested(lessons, DateTime.now());
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _class = resolved;
-        _students = (db.select(db.students)
-              ..where((s) => s.classId.equals(resolved.id))
-              ..orderBy(<OrderClauseGenerator<Students>>[
-                (Students s) => OrderingTerm.asc(s.fullName),
-              ]))
-            .watch();
-        _rows = (db.select(db.attendanceRows)
-              ..where(
-                (a) => a.classId.equals(resolved.id) & a.date.equals(_date),
-              ))
-            .watch();
-        _session = db.watchSession(resolved.id, _date);
+        _lessons = lessons;
+        _lesson = lesson;
+        _bindStreams(db, resolved, lesson);
         _resolving = false;
       });
     } catch (e, st) {
@@ -119,6 +122,44 @@ class _DaySheetState extends ConsumerState<DaySheetScreen> {
         });
       }
     }
+  }
+
+  /// يربط تدفقات الكشف بالصف والحصة المختارة (مصدر واحد للحقيقة).
+  void _bindStreams(AppDb db, ClassRef c, LessonWindow? lesson) {
+    _students = (db.select(db.students)
+          ..where((s) => s.classId.equals(c.id))
+          ..orderBy(<OrderClauseGenerator<Students>>[
+            (Students s) => OrderingTerm.asc(s.fullName),
+          ]))
+        .watch();
+    final LessonWindow? l = lesson;
+    if (l == null) {
+      _rows = null;
+      _session = null;
+      return;
+    }
+    _rows = (db.select(db.attendanceRows)
+          ..where(
+            (a) =>
+                a.classId.equals(c.id) &
+                a.date.equals(_date) &
+                a.lessonId.equals(l.id),
+          ))
+        .watch();
+    _session = db.watchSession(c.id, _date, l.id);
+  }
+
+  /// تبديل الحصة المعروضة: يغيّر السجلات والجلسة معاً (لا يعيد بناء الشاشة).
+  void _selectLesson(LessonWindow lesson) {
+    final ClassRef? c = _class;
+    if (c == null || lesson.id == _lesson?.id) {
+      return;
+    }
+    setState(() {
+      _lesson = lesson;
+      _filter = _Filter.all;
+      _bindStreams(ref.read(dbProvider), c, lesson);
+    });
   }
 
   Future<List<SchoolClass>> _classesOfActiveYear(AppDb db) async {
@@ -167,26 +208,34 @@ class _DaySheetState extends ConsumerState<DaySheetScreen> {
   /// [arrivalTime] وقت الوصول للتسجيل اليدوي «متأخر»؛ `null` لغيره يمسح
   /// أي وقت سابق — تصحيح الحالة يدوياً يبدأ سجلاً نظيفاً.
   Future<void> _setStatus(Student s, int? status, {String? arrivalTime}) async {
+    final LessonWindow? lesson = _lesson;
+    if (lesson == null) {
+      _snack('لا حصة محددة — اختر الحصة أولاً');
+      return;
+    }
     try {
       final AppDb db = ref.read(dbProvider);
-      final Session? ses = await db.sessionOf(s.classId, _date);
+      final Session? ses = await db.sessionOf(s.classId, _date, lesson.id);
       if (status == null) {
-        await (db.delete(db.attendanceRows)
-              ..where((a) => a.studentId.equals(s.id) & a.date.equals(_date)))
-            .go();
+        // حذف تسجيل الحصة وحدها: بقية حصص اليوم تبقى كما هي.
+        await db.deleteAttendance(s.id, _date, lessonId: lesson.id);
       } else {
         await db.upsertAttendance(
           yearId: s.yearId,
           classId: s.classId,
           studentId: s.id,
           date: _date,
+          lessonId: lesson.id,
           status: status,
           source: AttendanceSource.manual,
           sessionId: ses?.id,
           arrivalTime: arrivalTime,
         );
       }
-      await db.logAudit('day_sheet_set', '${s.fullName} => $status');
+      await db.logAudit(
+        'day_sheet_set',
+        '${s.fullName} => $status lesson=${lesson.slot}',
+      );
     } catch (e, st) {
       AppErrorLog.instance.record(e, st, where: 'daySheet:setStatus');
       _snack('تعذر حفظ الحالة: $e');
@@ -220,7 +269,7 @@ class _DaySheetState extends ConsumerState<DaySheetScreen> {
           if (current != null)
             SimpleDialogOption(
               onPressed: () => Navigator.pop(context, -1),
-              child: const Text('إلغاء التسجيل لهذا اليوم'),
+              child: const Text('إلغاء التسجيل في هذه الحصة'),
             ),
         ],
       ),
@@ -273,10 +322,11 @@ class _DaySheetState extends ConsumerState<DaySheetScreen> {
     return await showDialog<bool>(
           context: context,
           builder: (BuildContext context) => AlertDialog(
-            title: const Text('إقفال اليوم'),
+            title: Text('إقفال ${_lesson?.displayName ?? 'الحصة'}'),
             content: Text(
               '${schoolDay ? '' : 'تنبيه: هذا اليوم ليس يوم دوام حسب الإعدادات!\n'}'
-              'سيُسجل $missing طالباً كغائبين (أو بإجازة إن وجدت). '
+              'سيُسجل $missing طالباً كغائبين في هذه الحصة (أو بإجازة إن '
+              'وجدت). الحصص الأخرى لا تتأثر. '
               'يمكن إعادة الفتح لاحقاً لتصحيح الأخطاء.',
             ),
             actions: <Widget>[
@@ -286,7 +336,7 @@ class _DaySheetState extends ConsumerState<DaySheetScreen> {
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text('أقفل اليوم'),
+                child: const Text('أقفل الحصة'),
               ),
             ],
           ),
@@ -303,10 +353,10 @@ class _DaySheetState extends ConsumerState<DaySheetScreen> {
           return;
         }
         final int n = await db.closeSession(ses.id);
-        _snack('أُقفل اليوم وولّد $n سجلاً');
+        _snack('أُقفلت الحصة وولّدت $n سجلاً');
       } else {
         await db.reopenSession(ses.id);
-        _snack('أُعيد فتح اليوم؛ حُذفت السجلات التلقائية');
+        _snack('أُعيد فتح الحصة؛ حُذفت سجلاتها التلقائية');
       }
     } catch (e, st) {
       AppErrorLog.instance.record(e, st, where: 'daySheet:toggleClose');
@@ -315,11 +365,76 @@ class _DaySheetState extends ConsumerState<DaySheetScreen> {
   }
 
   Future<int> _missingCount(AppDb db, int classId) async {
+    final LessonWindow? lesson = _lesson;
+    if (lesson == null) {
+      return 0;
+    }
     final List<Student> roster = await (db.select(db.students)
           ..where((s) => s.classId.equals(classId)))
         .get();
-    final int recorded = await db.recordedCount(classId, _date);
+    final int recorded =
+        await db.recordedCount(classId, _date, lesson.id);
     return roster.length - recorded;
+  }
+
+  /// إقفال/إعادة فتح **كل حصص اليوم** — نهاية اليوم الدراسي بدل حصة حصة.
+  Future<void> _toggleCloseAll() async {
+    final ClassRef? c = _class;
+    if (c == null) {
+      return;
+    }
+    final AppDb db = ref.read(dbProvider);
+    try {
+      final List<Session> sessions = await db.sessionsOfDay(c.id, _date);
+      final bool anyOpen =
+          sessions.isEmpty || sessions.any((Session s) => s.closedAt == null);
+      final bool? ok = await showDialog<bool>(
+        context: context,
+        builder: (BuildContext context) => AlertDialog(
+          title: Text(anyOpen ? 'إقفال كل حصص اليوم' : 'إعادة فتح كل الحصص'),
+          content: Text(
+            anyOpen
+                ? 'ستُقفل كل حصص $_date لهذا الصف، ويُسجَّل من لم يُمسح في كل '
+                    'حصة غائباً فيها. الحصص المفتوحة فقط تتأثر.'
+                : 'ستُعاد فتح كل الحصص المقفلة ويُحذف ما ولّدته من غياب تلقائي.',
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('تراجع'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(anyOpen ? 'أقفل الكل' : 'إعادة فتح الكل'),
+            ),
+          ],
+        ),
+      );
+      if (ok != true) {
+        return;
+      }
+      if (anyOpen) {
+        final AcademicYear? year = await db.activeYear();
+        if (year == null) {
+          _snack('لا سنة فعّالة');
+          return;
+        }
+        final int n = await db.closeDaySessions(
+          yearId: year.id,
+          classId: c.id,
+          date: _date,
+        );
+        _snack('أُقفلت كل الحصص وولّدت $n سجلاً');
+      } else {
+        for (final Session s in sessions) {
+          await db.reopenSession(s.id);
+        }
+        _snack('أُعيد فتح كل الحصص');
+      }
+    } catch (e, st) {
+      AppErrorLog.instance.record(e, st, where: 'daySheet:closeAll');
+      _snack('تعذر تنفيذ العملية: $e');
+    }
   }
 
   @override
@@ -329,6 +444,12 @@ class _DaySheetState extends ConsumerState<DaySheetScreen> {
       appBar: AppBar(
         title: Text(c == null ? 'كشف اليوم $_date' : 'كشف ${c.displayTitle} — $_date'),
         actions: <Widget>[
+          if (c != null)
+            IconButton(
+              tooltip: 'إقفال كل الحصص / إعادة فتحها',
+              icon: const Icon(Icons.lock_clock),
+              onPressed: _toggleCloseAll,
+            ),
           if (c != null)
             IconButton(
               tooltip: 'شاشة المسح',
@@ -388,15 +509,31 @@ class _DaySheetState extends ConsumerState<DaySheetScreen> {
     if (sessionStream == null || studentsStream == null || rowsStream == null) {
       return const Center(child: CircularProgressIndicator());
     }
+    if (_lesson == null) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text(
+            'لا جدول حصص — أضف الحصص من الإعدادات › جدول الحصص.',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
     return Column(
       children: <Widget>[
+        LessonPicker(
+          lessons: _lessons,
+          selectedId: _lesson?.id,
+          onSelect: _selectLesson,
+        ),
         _SummaryBar(
           sessionStream: sessionStream,
           studentsStream: studentsStream,
           rowsStream: rowsStream,
           onToggleClose: (Session? ses) async {
             if (ses == null) {
-              _snack('لم تُفتح جلسة لهذا اليوم بعد — افتحها من شاشة المسح');
+              _snack('لم تُفتح جلسة لهذه الحصة بعد — افتحها من شاشة المسح');
               return;
             }
             try {
@@ -404,7 +541,7 @@ class _DaySheetState extends ConsumerState<DaySheetScreen> {
               await _toggleClose(ses, m);
             } catch (e, st) {
               AppErrorLog.instance.record(e, st, where: 'daySheet:close');
-              _snack('تعذر إقفال اليوم: $e');
+              _snack('تعذر إقفال الحصة: $e');
             }
           },
         ),
@@ -525,10 +662,12 @@ class _SummaryBar extends StatelessWidget {
                       children: <Widget>[
                         Text('مسجل: $recorded / $total'),
                         Text(ses == null ? 'لا جلسة' : (closed ? 'مقفلة' : 'مفتوحة')),
-                        FilledButton.icon(
-                          onPressed: () => onToggleClose(ses),
-                          icon: Icon(closed ? Icons.lock_open : Icons.lock),
-                          label: Text(closed ? 'إعادة فتح' : 'إقفال اليوم'),
+                        Flexible(
+                          child: FilledButton.icon(
+                            onPressed: () => onToggleClose(ses),
+                            icon: Icon(closed ? Icons.lock_open : Icons.lock),
+                            label: Text(closed ? 'إعادة فتح' : 'إقفال الحصة'),
+                          ),
                         ),
                       ],
                     ),

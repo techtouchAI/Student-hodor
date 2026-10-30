@@ -1,11 +1,16 @@
-/// منطق قراءة الباجات: تحقق متعدد الطبقات + سجل أحداث + منع التكرار + نافذة تأخر
-/// + تثبيت وقت الوصول الفعلي (ساعة ودقيقة) في سجل الحضور.
+/// منطق قراءة الباجات: تحقق متعدد الطبقات + سجل أحداث + منع التكرار **داخل
+/// الحصة** + نافذة تأخر تبدأ من وقت الحصة + تثبيت وقت الوصول الفعلي في السجل.
+///
+/// كل قراءة تنتمي إلى جلسة حصة (`session.lessonId`)؛ فحضور الطالب في الحصة
+/// الأولى لا يمنعه من التسجيل في الثانية، والتأخير يُقاس على بداية حصته لا
+/// على بداية الدوام.
 library;
 
 import 'package:drift/drift.dart';
 
 import '../core/badge_code.dart';
 import '../core/late_time.dart';
+import '../core/lesson.dart';
 import '../core/school_time.dart';
 import 'db.dart';
 
@@ -33,10 +38,21 @@ class ScanService {
 
   final AppDb db;
 
-  /// حد قبول الحضور الكامل: بداية اليوم + دقائق السماح، وبعده «متأخر».
-  static DateTime lateCutoff(Map<String, String> settings, String dateKey) {
+  /// حد قبول الحضور الكامل **لحصة**: بداية الحصة + دقائق السماح، وبعده
+  /// «متأخر».
+  ///
+  /// [lessonStart] وقت بداية الحصة `HH:mm`؛ إن كان غير صالح أو غائباً رجعنا
+  /// إلى `day_start` (بداية الدوام) — لا نُسقط الحد أبداً.
+  static DateTime lateCutoff(
+    Map<String, String> settings,
+    String dateKey, {
+    String? lessonStart,
+  }) {
     final DateTime day = SchoolTime.parseKey(dateKey);
-    final List<String> hm = (settings['day_start'] ?? '08:00').split(':');
+    final String start = parseArrivalMinutes(lessonStart) == null
+        ? (settings['day_start'] ?? '08:00')
+        : lessonStart!;
+    final List<String> hm = start.split(':');
     final int h = int.tryParse(hm.first) ?? 8;
     final int m = hm.length > 1 ? (int.tryParse(hm[1]) ?? 0) : 0;
     final int extra = int.tryParse(settings['late_after_minutes'] ?? '15') ?? 15;
@@ -109,11 +125,15 @@ class ScanService {
       return ScanOutcome(
         result: ScanResult.sessionClosed,
         studentName: student.fullName,
-        message: 'الجلسة مقفلة — أعد فتحها لتسجيل قراءات',
+        message: 'الحصة مقفلة — أعد فتحها لتسجيل قراءات',
       );
     }
+    // الحصة مصدر الوقت واسم الرسالة؛ غيابها يعني قاعدة غير مزرعة (يُزرع
+    // تلقائياً عند الفتح) — نرجع للحصة الأولى كي لا يتعطل المسح أبداً.
+    final Lesson lesson = await db.lessonById(session.lessonId) ??
+        await db.firstLesson();
     final AttendanceRow? existing =
-        await db.attendanceOf(student.id, session.date);
+        await db.attendanceOf(student.id, session.date, session.lessonId);
     if (existing != null &&
         (existing.status == AttendanceStatus.present ||
             existing.status == AttendanceStatus.late ||
@@ -122,12 +142,14 @@ class ScanService {
       return ScanOutcome(
         result: ScanResult.duplicate,
         studentName: student.fullName,
-        message: '${student.fullName}: مسجل مسبقاً',
+        message: '${student.fullName}: مسجل مسبقاً في ${lesson.displayName}',
       );
     }
     final Map<String, String> settings = await db.effectiveSettings();
     final DateTime at = now ?? DateTime.now();
-    final bool isLate = at.isAfter(lateCutoff(settings, session.date));
+    final bool isLate = at.isAfter(
+      lateCutoff(settings, session.date, lessonStart: lesson.start),
+    );
     final int status =
         isLate ? AttendanceStatus.late : AttendanceStatus.present;
     final String arrival = arrivalTimeString(at);
@@ -136,6 +158,7 @@ class ScanService {
       classId: session.classId,
       studentId: student.id,
       date: session.date,
+      lessonId: session.lessonId,
       status: status,
       source: AttendanceSource.scan,
       sessionId: session.id,
@@ -151,12 +174,14 @@ class ScanService {
       return ScanOutcome(
         result: ScanResult.ok,
         studentName: student.fullName,
-        message: 'تم تسجيل حضور ${student.fullName}',
+        message: 'تم تسجيل حضور ${student.fullName} — ${lesson.displayName}',
         arrivalTime: arrival,
       );
     }
+    // المدة من بداية **الحصة** لا من بداية الدوام: حاضر الحصة الرابعة في
+    // وقتها ليس متأخراً 150 دقيقة.
     final String dur = lateDurationLabel(
-      latenessDuration(arrivalTime: arrival, dayStart: settings['day_start']),
+      latenessDuration(arrivalTime: arrival, dayStart: lesson.start),
     );
     return ScanOutcome(
       result: ScanResult.late,

@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../data/db.dart';
+import 'lesson.dart';
 
 /// اسم الحالة بالعربية؛ `null` تعني «لم يُسجَّل بعد».
 String statusName(int? status) {
@@ -45,3 +46,40 @@ String statusLetter(int? status) => statusName(status).characters.first;
 
 /// وصف حالة اليوم في كشف اليوم (يشمل «لم يُسجَّل»).
 String statusHint(int? status) => status == null ? 'لم يُسجَّل بعد' : statusName(status);
+
+/// سطر حالات الحصص في يوم واحد — للعرض في التلميحات وقوائم الطالب:
+/// «الأولى: حاضر • الثانية: غائب • الثالثة: —».
+///
+/// المصدر هو خريطة الحالات (lessonId ⇒ status) التي يبنيها
+/// [ReportsService.summarizeDay]؛ الحصص التي لم تُسجَّل تظهر «—» صراحةً بدل
+/// حذفها، لأن غياب السطر يعني معلومة ناقصة لا حضوراً.
+String lessonBreakdownText(
+  List<LessonWindow> lessons,
+  Map<int, int> statuses,
+) {
+  if (lessons.isEmpty) {
+    return '';
+  }
+  return lessons
+      .map((LessonWindow l) => '${l.displayName}: ${statusName(statuses[l.id])}')
+      .join(' • ');
+}
+
+/// حروف الحصص المضغوطة بترتيب الجدول: «ح·غ·—·ح».
+///
+/// تُستخدم في الأماكن الضيقة (خلية شبكة الشهر) حيث لا يتسع الاسم الكامل.
+String lessonCompactMarks(
+  List<LessonWindow> lessons,
+  Map<int, int> statuses,
+) {
+  if (lessons.isEmpty) {
+    return '';
+  }
+  return lessons
+      .map(
+        (LessonWindow l) => statuses[l.id] == null
+            ? '—'
+            : statusLetter(statuses[l.id]),
+      )
+      .join('·');
+}

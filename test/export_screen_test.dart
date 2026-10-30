@@ -60,6 +60,29 @@ void main() {
       );
     });
 
+    test('سجل الحصص التفصيلي قسم كافٍ في الصيغتين', () {
+      expect(
+        exportHasContent(
+          format: ExportFormat.excel,
+          daily: false,
+          summary: false,
+          leaves: false,
+          lessonLog: true,
+        ),
+        isTrue,
+      );
+      expect(
+        exportHasContent(
+          format: ExportFormat.pdf,
+          daily: false,
+          summary: false,
+          leaves: false,
+          lessonLog: true,
+        ),
+        isTrue,
+      );
+    });
+
     test('PDF: الإجازات ليست قسماً (خاصة بإكسل)', () {
       expect(
         exportHasContent(

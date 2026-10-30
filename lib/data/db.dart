@@ -2,8 +2,10 @@
 ///
 /// مبادئ:
 /// - كل تاريخ يُخزّن كمفتاح نصي ISO (yyyy-MM-dd) قابل للفهرسة والمقارنة.
-/// - قيود فريدة تمنع التكرار المنطقي (طالب/تاريخ، جلسة/صف/تاريخ، رمز باج).
-/// - إقفال اليوم عملية ذرّية (transaction): الغياب يُشتق ممن لم يُمسح.
+/// - قيود فريدة تمنع التكرار المنطقي (طالب/تاريخ/حصة، جلسة/صف/تاريخ/حصة،
+///   رمز باج).
+/// - الحضور **لحصة بحصة**: لكل حصة سجلها وجلستها؛ إقفال الحصة عملية ذرّية
+///   (transaction): الغياب يُشتق ممن لم يُمسح في تلك الحصة وحدها.
 /// - التسلسل (`seq`) فريد على مستوى **السنة الدراسية كلها** (لا الصف) لأنه يدخل
 ///   في رمز الباج الفريد؛ مصدره الوحيد [AppDb.nextSeqForYear] داخل معاملة.
 library;
@@ -17,6 +19,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../core/badge_code.dart';
+import '../core/lesson.dart';
 import '../core/nav.dart';
 
 part 'db.g.dart';
@@ -36,6 +39,22 @@ class AttendanceSource {
   static const int scan = 0;
   static const int manual = 1;
   static const int autoClose = 2;
+}
+
+/// حذف حصة لها سجلات تاريخية: مرفوض برسالة مفهومة للمستخدم.
+class LessonInUseException implements Exception {
+  const LessonInUseException({required this.slot, required this.records});
+
+  /// رقم الحصة التي حاول المستخدم حذفها.
+  final int slot;
+
+  /// عدد السجلات (جلسات + حضور) المرتبطة بها.
+  final int records;
+
+  @override
+  String toString() =>
+      'الحصة $slot لها $records سجلاً — لا يمكن حذفها. '
+      'أبقِها أو غيّر اسمها/وقتها بدل حذفها.';
 }
 
 /// نتائج قراءة الباركود.
@@ -112,6 +131,21 @@ class Badges extends Table {
   TextColumn get issuedAt => text()();
 }
 
+/// جدول الحصص المدرسي: صف واحد لكل حصة في اليوم (1..N) بوقتها.
+///
+/// الفصل بين المعرّف ([id]) ورقم الحصة ([slot]) مقصود: السجلات التاريخية
+/// تشير إلى المعرّف (فتعديل الاسم/الوقت لا يمسّها)، ونطاقات الإجازات تشير إلى
+/// الرقم (فهي وصف بشري: «من الحصة الثالثة»).
+class Lessons extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get slot => integer().unique()();
+  TextColumn get name => text().withDefault(const Constant(''))();
+  /// بداية الحصة `HH:mm` (24 ساعة) — حد التأخير يُحسب منها.
+  TextColumn get start => text()();
+  /// نهاية الحصة `HH:mm`.
+  TextColumn get end => text()();
+}
+
 class Sessions extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get yearId =>
@@ -119,11 +153,19 @@ class Sessions extends Table {
   IntColumn get classId =>
       integer().references(SchoolClasses, #id, onDelete: KeyAction.cascade)();
   TextColumn get date => text()();
+  /// الحصة التي تخصّها الجلسة. القيمة الافتراضية 1 للتوافق مع السجلات التي
+  /// سبقت التعديل (كانت جلسة واحدة لليوم ⇒ الحصة الأولى).
+  ///
+  /// بلا `onDelete` (أي `NO ACTION`): حذف حصة لها جلسات ممنوع في القاعدة نفسها،
+  /// فوق الحماية التي يفرضها [AppDb.saveLessons].
+  IntColumn get lessonId => integer()
+      .withDefault(const Constant(1))
+      .references(Lessons, #id)();
   TextColumn get openedAt => text()();
   TextColumn get closedAt => text().nullable()();
   @override
   List<Set<Column<Object>>> get uniqueKeys => <Set<Column<Object>>>[
-        <Column<Object>>{classId, date},
+        <Column<Object>>{classId, date, lessonId},
       ];
 }
 
@@ -136,6 +178,11 @@ class AttendanceRows extends Table {
   IntColumn get studentId =>
       integer().references(Students, #id, onDelete: KeyAction.cascade)();
   TextColumn get date => text()();
+  /// الحصة التي تصفها الواقعة. هي جوهر التعديل: التفرّد صار
+  /// (طالب، تاريخ، حصة) بدل (طالب، تاريخ)، فيمكن تسجيل الطالب في كل حصة.
+  IntColumn get lessonId => integer()
+      .withDefault(const Constant(1))
+      .references(Lessons, #id)();
   IntColumn get status => integer()();
   IntColumn get source => integer()();
   IntColumn get sessionId => integer().nullable()();
@@ -145,7 +192,7 @@ class AttendanceRows extends Table {
   TextColumn get arrivalTime => text().nullable()();
   @override
   List<Set<Column<Object>>> get uniqueKeys => <Set<Column<Object>>>[
-        <Column<Object>>{studentId, date},
+        <Column<Object>>{studentId, date, lessonId},
       ];
 }
 
@@ -166,6 +213,12 @@ class Leaves extends Table {
       integer().references(Students, #id, onDelete: KeyAction.cascade)();
   TextColumn get start => text()();
   TextColumn get end => text()();
+  /// نطاق الحصص داخل كل يوم من أيام الإجازة:
+  /// - `null` في الاثنين ⇒ كل حصص اليوم (السلوك القديم: إجازة يوم كامل).
+  /// - `3..6` ⇒ من الحصة الثالثة حتى السادسة.
+  /// - `1..1` ⇒ الحصة الأولى وحدها (تأخر صباحي/موعد طبي).
+  IntColumn get fromSlot => integer().nullable()();
+  IntColumn get toSlot => integer().nullable()();
   /// 0 = مرضية، 1 = عرضية، 2 = طارئة.
   IntColumn get type => integer()();
   TextColumn get reason => text().withDefault(const Constant(''))();
@@ -231,6 +284,7 @@ class AlertNotifications extends Table {
     Holidays,
     AuditLogs,
     AlertNotifications,
+    Lessons,
   ],
 )
 class AppDb extends _$AppDb {
@@ -238,15 +292,20 @@ class AppDb extends _$AppDb {
 
   AppDb.forTesting(super.e);
 
-  /// الإصدار 5: جدول `alert_notifications` (تنبيهات حد الفصل).
+  /// الإصدار 6: الحصص (`lessons`) والحضور لكل حصة.
+  ///
+  /// 1. جدول حصص، 2. تنبيهات حد الفصل، 3. هاتف الطالب، 4. وقت الوصول،
+  /// 5. تنبيهات النظام، 6. الحضور بالحصة.
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (Migrator m) async {
           await m.createAll();
+          await ensureLessonsSeeded();
           await _ensureIndexes();
+          await _ensureLessonIndexes();
         },
         onUpgrade: (Migrator m, int from, int to) async {
           // هجرات مرقّمة تُضاف هنا مع كل تغيير مخطط.
@@ -263,8 +322,49 @@ class AppDb extends _$AppDb {
           if (from < 5) {
             await m.createTable(alertNotifications);
           }
+          if (from < 6) {
+            await _migrateToLessons(m);
+          }
         },
       );
+
+  /// هجرة الإصدار 6: يوم كامل ⇒ حصص.
+  ///
+  /// الترتيب إلزامي:
+  /// 1. إنشاء جدول الحصص وزرع الجدول الافتراضي (وإلا فلا مفتاح أجنبي صالح).
+  /// 2. إعادة بناء `sessions` و`attendance_rows` بـ`TableMigration` — وهي
+  ///    الطريقة الوحيدة في SQLite لإضافة عمود بمفتاح أجنبي **وتغيير قيد
+  ///    التفرّد** مع الحفاظ على البيانات (كل سطر قديم ⇒ الحصة الأولى).
+  /// 3. أعمدة نطاق الإجازة (اختيارية فلا تحتاج إعادة بناء).
+  /// 4. إعادة إنشاء الفهارس: إعادة بناء الجدول تُسقطها.
+  Future<void> _migrateToLessons(Migrator m) async {
+    await m.createTable(lessons);
+    await ensureLessonsSeeded();
+    final int firstLessonId = await _firstLessonId();
+    await m.alterTable(
+      TableMigration(
+        sessions,
+        newColumns: <Column<Object>>[sessions.lessonId],
+        columnTransformer: <Column<Object>, Expression<Object?>>{
+          sessions.lessonId: Constant<int>(firstLessonId),
+        },
+      ),
+    );
+    await m.alterTable(
+      TableMigration(
+        attendanceRows,
+        newColumns: <Column<Object>>[attendanceRows.lessonId],
+        columnTransformer: <Column<Object>, Expression<Object?>>{
+          attendanceRows.lessonId: Constant<int>(firstLessonId),
+        },
+      ),
+    );
+    await m.addColumn(leaves, leaves.fromSlot);
+    await m.addColumn(leaves, leaves.toSlot);
+    // إعادة بناء الجدولين أسقطت فهارسهما: تُعاد هنا وفي كل فتح (IF NOT EXISTS).
+    await _ensureIndexes();
+    await _ensureLessonIndexes();
+  }
 
   Future<void> _ensureIndexes() async {
     await customStatement(
@@ -287,6 +387,23 @@ class AppDb extends _$AppDb {
     await customStatement(
       'CREATE INDEX IF NOT EXISTS idx_students_year_class '
       'ON students (year_id, class_id)',
+    );
+  }
+
+  /// فهارس بُعد الحصة — تُنشأ **بعد** وجود أعمدة `lesson_id` فقط:
+  /// هجرة قاعدة قديمة (from < 2) تستدعي `_ensureIndexes` قبل إضافة الأعمدة.
+  Future<void> _ensureLessonIndexes() async {
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_attendance_lesson '
+      'ON attendance_rows (class_id, date, lesson_id)',
+    );
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_attendance_student_date_lesson '
+      'ON attendance_rows (student_id, date, lesson_id)',
+    );
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_sessions_lesson '
+      'ON sessions (class_id, date, lesson_id)',
     );
   }
 
@@ -320,6 +437,185 @@ class AppDb extends _$AppDb {
   /// الإعدادات المخزّنة فوق القيم الافتراضية — ما تستخدمه الشاشات دائماً.
   Future<Map<String, String>> effectiveSettings() async =>
       <String, String>{...settingDefaults, ...await allSettings()};
+
+  // ---------- الحصص ----------
+
+  /// زرع جدول الحصص الافتراضي إن كان الجدول فارغاً (idempotent).
+  ///
+  /// يُستدعى في: إنشاء قاعدة جديدة، هجرة الإصدار 6، استعادة نسخة قديمة،
+  /// والتصفير الشامل — فلا توجد حالة تعمل فيها الشاشات بجدول حصص فارغ.
+  Future<void> ensureLessonsSeeded() async {
+    if (await lessonCount() > 0) {
+      return;
+    }
+    for (final LessonTemplate t in LessonSchedule.defaults) {
+      await into(lessons).insert(
+        LessonsCompanion.insert(
+          slot: t.slot,
+          start: t.start,
+          end: t.end,
+          name: Value(t.name),
+        ),
+      );
+    }
+    await logAudit('lessons_seed', 'count=${LessonSchedule.defaults.length}');
+  }
+
+  Future<int> _firstLessonId() async {
+    final Lesson? l = await (select(lessons)
+          ..orderBy(<OrderClauseGenerator<Lessons>>[
+            (Lessons x) => OrderingTerm.asc(x.slot),
+            (Lessons x) => OrderingTerm.asc(x.id),
+          ])
+          ..limit(1))
+        .getSingleOrNull();
+    return l?.id ?? 1;
+  }
+
+  Future<int> lessonCount() async {
+    final TypedResult row = await (selectOnly(lessons)
+          ..addColumns(<Expression<int>>[countAll()]))
+        .getSingle();
+    return row.read(countAll()) ?? 0;
+  }
+
+  Future<List<Lesson>> allLessons() => (select(lessons)
+        ..orderBy(<OrderClauseGenerator<Lessons>>[
+          (Lessons l) => OrderingTerm.asc(l.slot),
+          (Lessons l) => OrderingTerm.asc(l.id),
+        ]))
+      .get();
+
+  Stream<List<Lesson>> watchLessons() => (select(lessons)
+        ..orderBy(<OrderClauseGenerator<Lessons>>[
+          (Lessons l) => OrderingTerm.asc(l.slot),
+          (Lessons l) => OrderingTerm.asc(l.id),
+        ]))
+      .watch();
+
+  /// نافذة الحصة الجاهزة للاستهلاك في الواجهات والخدمات (بلا اعتماد على Drift).
+  static LessonWindow windowOf(Lesson l) => LessonWindow(
+        id: l.id,
+        slot: l.slot,
+        name: l.name,
+        start: l.start,
+        end: l.end,
+      );
+
+  /// كل الحصص كنوافذ مرتبة — المصدر الموحّد لمنتقي الحصص في كل شاشة.
+  Future<List<LessonWindow>> lessonWindows() async => <LessonWindow>[
+        for (final Lesson l in await allLessons()) windowOf(l),
+      ];
+
+  Future<Lesson?> lessonById(int id) =>
+      (select(lessons)..where((l) => l.id.equals(id))).getSingleOrNull();
+
+  Future<Lesson?> lessonBySlot(int slot) =>
+      (select(lessons)..where((l) => l.slot.equals(slot))).getSingleOrNull();
+
+  /// الحصة الأولى (الأدنى رقماً) — تُستخدم كقيمة احتياطية موثوقة.
+  Future<Lesson> firstLesson() async {
+    await ensureLessonsSeeded();
+    final Lesson? l = await (select(lessons)
+          ..orderBy(<OrderClauseGenerator<Lessons>>[
+            (Lessons x) => OrderingTerm.asc(x.slot),
+            (Lessons x) => OrderingTerm.asc(x.id),
+          ])
+          ..limit(1))
+        .getSingleOrNull();
+    if (l == null) {
+      // لا يقع عملياً بعد الزرع؛ حماية من قاعدة تالفة.
+      throw StateError('لا يوجد جدول حصص');
+    }
+    return l;
+  }
+
+  /// حفظ جدول الحصص كاملاً من المحرر.
+  ///
+  /// القواعد المحفوظة:
+  /// - الترتيب في [drafts] هو ترتيب الحصص: `slot = index + 1`.
+  /// - الحصة القائمة تُطابق بـ[id] فتُحدَّث هويتها (اسم/وقت) لا تُستبدل —
+  ///   فيبقى كل سجل تاريخي مرتبطاً بحصته الصحيحة.
+  /// - حذف حصة **لها سجلات** مرفوض بـ[LessonInUseException] (لا حذف صامت
+  ///   لتاريخ)، ويُسمح بحذف حصة بلا سجلات.
+  /// - إعادة الترقيم تمرّ بمرحلتين (أرقام مؤقتة سالبة) لتفادي تصادم القيد
+  ///   الفريد على `slot` أثناء التبديل.
+  Future<void> saveLessons(List<LessonWindow> drafts) async {
+    final List<LessonWindow> ordered = <LessonWindow>[
+      for (int i = 0; i < drafts.length; i++)
+        LessonWindow(
+          id: drafts[i].id,
+          slot: i + 1,
+          name: drafts[i].name.trim(),
+          start: drafts[i].start.trim(),
+          end: drafts[i].end.trim(),
+        ),
+    ];
+    final String? invalid = LessonSchedule.validate(ordered);
+    if (invalid != null) {
+      throw FormatException(invalid);
+    }
+    await transaction<void>(() async {
+      final List<Lesson> existing = await allLessons();
+      // 1) تحييد الأرقام الحالية (سالبة = فريدة دائماً في هذا الجدول).
+      for (final Lesson l in existing) {
+        await (update(lessons)..where((x) => x.id.equals(l.id)))
+            .write(LessonsCompanion(slot: Value(-l.id)));
+      }
+      // 2) تحديث القائم وإدراج الجديد.
+      final Set<int> kept = <int>{};
+      for (final LessonWindow d in ordered) {
+        final bool exists = existing.any((Lesson l) => l.id == d.id);
+        if (d.id > 0 && exists) {
+          kept.add(d.id);
+          await (update(lessons)..where((x) => x.id.equals(d.id))).write(
+            LessonsCompanion(
+              slot: Value(d.slot),
+              name: Value(d.name),
+              start: Value(d.start),
+              end: Value(d.end),
+            ),
+          );
+        } else {
+          final int id = await into(lessons).insert(
+            LessonsCompanion.insert(
+              slot: d.slot,
+              start: d.start,
+              end: d.end,
+              name: Value(d.name),
+            ),
+          );
+          kept.add(id);
+        }
+      }
+      // 3) حذف ما أزاله المستخدم — بعد التأكد أنه بلا سجلات.
+      for (final Lesson l in existing) {
+        if (kept.contains(l.id)) {
+          continue;
+        }
+        final int used = await _lessonUsage(l.id);
+        if (used > 0) {
+          throw LessonInUseException(slot: l.slot, records: used);
+        }
+        await (delete(lessons)..where((x) => x.id.equals(l.id))).go();
+      }
+    });
+    await logAudit('lessons_save', 'count=${ordered.length}');
+  }
+
+  /// عدد السجلات التاريخية المرتبطة بحصة (جلسات + حضور) — حارس الحذف.
+  Future<int> _lessonUsage(int lessonId) async {
+    final TypedResult sessionsRow = await (selectOnly(sessions)
+          ..addColumns(<Expression<int>>[countAll()])
+          ..where(sessions.lessonId.equals(lessonId)))
+        .getSingle();
+    final TypedResult rowsRow = await (selectOnly(attendanceRows)
+          ..addColumns(<Expression<int>>[countAll()])
+          ..where(attendanceRows.lessonId.equals(lessonId)))
+        .getSingle();
+    return (sessionsRow.read(countAll()) ?? 0) +
+        (rowsRow.read(countAll()) ?? 0);
+  }
 
   // ---------- سنوات ----------
 
@@ -524,16 +820,94 @@ class AppDb extends _$AppDb {
 
   // ---------- جلسات وحضور ----------
 
-  Future<Session?> sessionOf(int classId, String date) =>
+  /// جلسة حصة واحدة (صف + تاريخ + حصة) — المفتاح الجديد للتفرّد.
+  Future<Session?> sessionOf(int classId, String date, int lessonId) =>
       (select(sessions)
-            ..where((s) => s.classId.equals(classId) & s.date.equals(date)))
+            ..where(
+              (s) =>
+                  s.classId.equals(classId) &
+                  s.date.equals(date) &
+                  s.lessonId.equals(lessonId),
+            ))
           .getSingleOrNull();
 
-  Stream<Session?> watchSession(int classId, String date) =>
+  Stream<Session?> watchSession(int classId, String date, int lessonId) =>
       (select(sessions)
-            ..where((s) => s.classId.equals(classId) & s.date.equals(date)))
+            ..where(
+              (s) =>
+                  s.classId.equals(classId) &
+                  s.date.equals(date) &
+                  s.lessonId.equals(lessonId),
+            ))
           .watchSingleOrNull();
 
+  /// جلسة حصة برقمها (لنطاقات الإجازات وأدوات العرض) — `null` إن لم تُفتح.
+  Future<Session?> sessionForSlot(int classId, String date, int slot) async {
+    final Lesson? lesson = await lessonBySlot(slot);
+    if (lesson == null) {
+      return null;
+    }
+    return sessionOf(classId, date, lesson.id);
+  }
+
+  /// كل جلسات اليوم لصف (حصة لكل صف) مرتبة بترتيب الحصص.
+  Future<List<Session>> sessionsOfDay(int classId, String date) =>
+      (select(sessions)
+            ..where((s) => s.classId.equals(classId) & s.date.equals(date)))
+          .get();
+
+  Stream<List<Session>> watchDaySessions(int classId, String date) =>
+      (select(sessions)
+            ..where((s) => s.classId.equals(classId) & s.date.equals(date)))
+          .watch();
+
+  /// فتح جلسة حصة (idempotent): يُعيد القائمة إن كانت مفتوحة سابقاً.
+  ///
+  /// يستخدمها المسح مباشرة، فتبقى الجلسة الواحدة لكل (صف، تاريخ، حصة) مهما
+  /// تكرر الدخول للشاشة أو تبديل الحصص.
+  Future<Session> openLessonSession({
+    required int yearId,
+    required int classId,
+    required String date,
+    required int lessonId,
+  }) async {
+    final Session? existing = await sessionOf(classId, date, lessonId);
+    if (existing != null) {
+      return existing;
+    }
+    return into(sessions).insertReturning(
+      SessionsCompanion(
+        yearId: Value(yearId),
+        classId: Value(classId),
+        date: Value(date),
+        lessonId: Value(lessonId),
+        openedAt: Value(_now()),
+      ),
+    );
+  }
+
+  /// يفتح جلسات **كل حصص اليوم** لصف — للإقفال الشامل من كشف اليوم.
+  Future<List<Session>> ensureDaySessions({
+    required int yearId,
+    required int classId,
+    required String date,
+  }) async {
+    final List<Lesson> all = await allLessons();
+    final List<Session> out = <Session>[];
+    for (final Lesson l in all) {
+      out.add(
+        await openLessonSession(
+          yearId: yearId,
+          classId: classId,
+          date: date,
+          lessonId: l.id,
+        ),
+      );
+    }
+    return out;
+  }
+
+  /// كل سجلات يوم صف (كل الحصص) — للمجاميع اليومية لا لكشف حصة.
   Future<List<AttendanceRow>> attendanceForClassDate(
     int classId,
     String date,
@@ -542,9 +916,28 @@ class AppDb extends _$AppDb {
             ..where((a) => a.classId.equals(classId) & a.date.equals(date)))
           .get();
 
-  /// عدد الطلاب المسجَّلين (حاضر/متأخر/إجازة) ليوم صف — لعرض «المتبقي».
-  Future<int> recordedCount(int classId, String date) async {
-    final List<AttendanceRow> rows = await attendanceForClassDate(classId, date);
+  /// سجلات حصة واحدة في صف وتاريخ — ما يعرضه كشف الحصة.
+  Future<List<AttendanceRow>> attendanceForLesson({
+    required int classId,
+    required String date,
+    required int lessonId,
+  }) =>
+      (select(attendanceRows)
+            ..where(
+              (a) =>
+                  a.classId.equals(classId) &
+                  a.date.equals(date) &
+                  a.lessonId.equals(lessonId),
+            ))
+          .get();
+
+  /// عدد المسجَّلين (حاضر/متأخر/إجازة) في حصة — لعرض «المتبقي”.
+  Future<int> recordedCount(int classId, String date, int lessonId) async {
+    final List<AttendanceRow> rows = await attendanceForLesson(
+      classId: classId,
+      date: date,
+      lessonId: lessonId,
+    );
     return rows
         .where(
           (AttendanceRow r) =>
@@ -555,15 +948,40 @@ class AppDb extends _$AppDb {
         .length;
   }
 
-  Future<AttendanceRow?> attendanceOf(int studentId, String date) async =>
+  /// سجل طالب في حصة.
+  Future<AttendanceRow?> attendanceOf(
+    int studentId,
+    String date,
+    int lessonId,
+  ) async =>
       (select(attendanceRows)
-            ..where((a) => a.studentId.equals(studentId) & a.date.equals(date)))
+            ..where(
+              (a) =>
+                  a.studentId.equals(studentId) &
+                  a.date.equals(date) &
+                  a.lessonId.equals(lessonId),
+            ))
           .getSingleOrNull();
 
-  /// تسجيل/تحديث حالة حضور لطالب في تاريخ (idempotent).
+  /// خريطة حالة كل طالب في حصة (studentId ⇒ status).
+  Future<Map<int, int>> statusesForLesson({
+    required int classId,
+    required String date,
+    required int lessonId,
+  }) async {
+    final List<AttendanceRow> rows = await attendanceForLesson(
+      classId: classId,
+      date: date,
+      lessonId: lessonId,
+    );
+    return <int, int>{for (final AttendanceRow r in rows) r.studentId: r.status};
+  }
+
+  /// تسجيل/تحديث حالة حضور لطالب في **حصة** (idempotent).
   ///
-  /// ملاحظة: `insertOnConflictUpdate` يستهدف القيد الفريد الأساسي (id) فقط،
-  /// لذا يُنفَّذ الإدراج أو التحديث صراحةً وفق القيد الفريد (studentId, date).
+  /// التفرّد هو (طالب، تاريخ، حصة): سجل الطالب في الحصة الأولى لا علاقة له
+  /// بسجله في الثالثة. الإدراج/التحديث صريح لأن `insertOnConflictUpdate`
+  /// يستهدف المفتاح الأساسي (id) وحده.
   ///
   /// [arrivalTime] وقت الوصول الفعلي `HH:mm` (للتأخر خصوصاً)؛ تمرير `null`
   /// **يمسح** الوقت المحفوظ — مقصود عند تغيير الحالة يدوياً بلا وقت معروف.
@@ -572,13 +990,14 @@ class AppDb extends _$AppDb {
     required int classId,
     required int studentId,
     required String date,
+    required int lessonId,
     required int status,
     required int source,
     int? sessionId,
     String? note,
     String? arrivalTime,
   }) async {
-    final AttendanceRow? existing = await attendanceOf(studentId, date);
+    final AttendanceRow? existing = await attendanceOf(studentId, date, lessonId);
     if (existing == null) {
       await into(attendanceRows).insert(
         AttendanceRowsCompanion(
@@ -586,6 +1005,7 @@ class AppDb extends _$AppDb {
           classId: Value(classId),
           studentId: Value(studentId),
           date: Value(date),
+          lessonId: Value(lessonId),
           status: Value(status),
           source: Value(source),
           sessionId: Value(sessionId),
@@ -608,24 +1028,48 @@ class AppDb extends _$AppDb {
     );
   }
 
-  /// هل يغطي الطالبَ إجازةٌ في هذا التاريخ؟ (فلترة SQL لا تحميل الذاكرة).
-  Future<bool> isOnLeave(int studentId, String date) async =>
-      (await (select(leaves)
-                ..where(
-                  (l) =>
-                      l.studentId.equals(studentId) &
-                      l.start.isSmallerOrEqualValue(date) &
-                      l.end.isBiggerOrEqualValue(date),
-                ))
-              .get())
-          .isNotEmpty;
+  /// هل يقع رقم الحصة داخل نطاق إجازة؟ (`null` في الطرفين = كل الحصص).
+  ///
+  /// دالة نقية عامة: تستخدمها قاعدة البيانات والواجهات والتصدير بالمنطق نفسه.
+  static bool slotInScope(int slot, int? fromSlot, int? toSlot) {
+    if (fromSlot == null && toSlot == null) {
+      return true;
+    }
+    final int from = fromSlot ?? 1;
+    final int to = toSlot ?? 1 << 30;
+    return slot >= from && slot <= to;
+  }
+
+  /// هل يغطي الطالبَ إجازةٌ في هذا التاريخ؟ وعند تمرير [slot] هل تشمل حصته؟
+  ///
+  /// فلترة التاريخ في SQL (فهرس)، وفلترة النطاق في الذاكرة لأنها مقارنة
+  /// رقمية بسيطة على صفوف قليلة (إجازات الطالب في يوم واحد).
+  Future<bool> isOnLeave(int studentId, String date, {int? slot}) async {
+    final List<Leave> covering = await (select(leaves)
+          ..where(
+            (l) =>
+                l.studentId.equals(studentId) &
+                l.start.isSmallerOrEqualValue(date) &
+                l.end.isBiggerOrEqualValue(date),
+          ))
+        .get();
+    if (covering.isEmpty) {
+      return false;
+    }
+    if (slot == null) {
+      return true;
+    }
+    return covering.any(
+      (Leave l) => slotInScope(slot, l.fromSlot, l.toSlot),
+    );
+  }
 
   /// وسم التحويل بالمزامنة: يميّز الغياب الذي ألغته إجازة عن إجازة
   /// سجّلها بشر يدوياً — الأول يعود غياباً عند حذف الإجازة والثانية تبقى.
   static const String leaveSyncNote = 'leave-sync';
 
-  /// مزامنة إجازة مع سجلات الحضور داخل نطاقها:
-  /// إضافة ⇒ أي غياب (تلقائي أو يدوي) يصبح إجازة مع بقاء مصدره؛
+  /// مزامنة إجازة مع سجلات الحضور داخل نطاقها (تاريخياً وحصةً):
+  /// إضافة ⇒ أي غياب (تلقائي أو يدوي) في حصص النطاق يصبح إجازة مع بقاء مصدره؛
   /// حذف ⇒ ما حُوّل بالمزامنة أو وُلّد تلقائياً يعود غياباً إن لم تغطّه
   /// إجازة أخرى. الحضور والتأخر لا يُمسّان أبداً (واقعة حضور ثابتة).
   Future<int> syncLeaveToAttendance({
@@ -633,12 +1077,17 @@ class AppDb extends _$AppDb {
     required String start,
     required String end,
     required bool added,
+    int? fromSlot,
+    int? toSlot,
   }) async =>
       transaction<int>(() async {
         final Student? st = await studentById(studentId);
         if (st == null) {
           return 0;
         }
+        final Map<int, int> slotOf = <int, int>{
+          for (final Lesson l in await allLessons()) l.id: l.slot,
+        };
         final List<AttendanceRow> rows = await (select(attendanceRows)
               ..where(
                 (a) =>
@@ -649,33 +1098,42 @@ class AppDb extends _$AppDb {
             .get();
         int changed = 0;
         for (final AttendanceRow r in rows) {
+          final int slot = slotOf[r.lessonId] ?? 1;
+          if (!slotInScope(slot, fromSlot, toSlot)) {
+            continue;
+          }
           if (added && r.status == AttendanceStatus.absent) {
             await upsertAttendance(
               yearId: r.yearId,
               classId: r.classId,
               studentId: r.studentId,
               date: r.date,
+              lessonId: r.lessonId,
               status: AttendanceStatus.leave,
               source: r.source,
               sessionId: r.sessionId,
               note: leaveSyncNote,
+              arrivalTime: r.arrivalTime,
             );
             changed++;
           } else if (!added &&
               r.status == AttendanceStatus.leave &&
               (r.note == leaveSyncNote ||
                   r.source == AttendanceSource.autoClose)) {
-            final bool stillCovered = await isOnLeave(studentId, r.date);
+            final bool stillCovered =
+                await isOnLeave(studentId, r.date, slot: slot);
             if (!stillCovered) {
               await upsertAttendance(
                 yearId: r.yearId,
                 classId: r.classId,
                 studentId: r.studentId,
                 date: r.date,
+                lessonId: r.lessonId,
                 status: AttendanceStatus.absent,
                 source: r.source,
                 sessionId: r.sessionId,
                 note: null,
+                arrivalTime: r.arrivalTime,
               );
               changed++;
             }
@@ -684,16 +1142,35 @@ class AppDb extends _$AppDb {
         return changed;
       });
 
-  /// حذف تسجيل حضور ليوم (تصحيح يدوي من شبكة ملف الطالب).
-  Future<void> deleteAttendance(int studentId, String date) async =>
-      (delete(attendanceRows)
+  /// حذف تسجيل حضور (تصحيح يدوي من ملف الطالب).
+  ///
+  /// [lessonId] = `null` يعني حذف سجلات **اليوم كله** (كل الحصص) — مقصود
+  /// لزر «مسح تسجيل اليوم»، وتمريره يحذف الحصة وحدها.
+  Future<void> deleteAttendance(
+    int studentId,
+    String date, {
+    int? lessonId,
+  }) async {
+    if (lessonId == null) {
+      await (delete(attendanceRows)
             ..where(
               (a) => a.studentId.equals(studentId) & a.date.equals(date),
             ))
           .go();
+      return;
+    }
+    await (delete(attendanceRows)
+          ..where(
+            (a) =>
+                a.studentId.equals(studentId) &
+                a.date.equals(date) &
+                a.lessonId.equals(lessonId),
+          ))
+        .go();
+  }
 
-  /// إقفال جلسة اليوم: كل طالب بلا تسجيل وبلا إجازة => غائب. عملية ذرّية.
-  /// يعيد عدد سجلات الغياب المولّدة.
+  /// إقفال جلسة حصة: كل طالب بلا سجل **في هذه الحصة** وبلا إجازة يغطيها
+  /// => غائب. عملية ذرّية. يعيد عدد سجلات الغياب المولّدة.
   Future<int> closeSession(int sessionId) async => transaction<int>(() async {
         final Session? session = await (select(sessions)
               ..where((s) => s.id.equals(sessionId)))
@@ -701,22 +1178,25 @@ class AppDb extends _$AppDb {
         if (session == null || session.closedAt != null) {
           return 0;
         }
+        final Lesson? lesson = await lessonById(session.lessonId);
+        final int slot = lesson?.slot ?? 1;
         final List<Student> roster = await (select(students)
               ..where((s) => s.classId.equals(session.classId)))
             .get();
         int generated = 0;
         for (final Student st in roster) {
           final AttendanceRow? existing =
-              await attendanceOf(st.id, session.date);
+              await attendanceOf(st.id, session.date, session.lessonId);
           if (existing != null) {
             continue;
           }
-          if (await isOnLeave(st.id, session.date)) {
+          if (await isOnLeave(st.id, session.date, slot: slot)) {
             await upsertAttendance(
               yearId: session.yearId,
               classId: session.classId,
               studentId: st.id,
               date: session.date,
+              lessonId: session.lessonId,
               status: AttendanceStatus.leave,
               source: AttendanceSource.autoClose,
               sessionId: sessionId,
@@ -727,6 +1207,7 @@ class AppDb extends _$AppDb {
               classId: session.classId,
               studentId: st.id,
               date: session.date,
+              lessonId: session.lessonId,
               status: AttendanceStatus.absent,
               source: AttendanceSource.autoClose,
               sessionId: sessionId,
@@ -736,7 +1217,29 @@ class AppDb extends _$AppDb {
         }
         await (update(sessions)..where((s) => s.id.equals(sessionId)))
             .write(SessionsCompanion(closedAt: Value(_now())));
-        await logAudit('close_session', 'session=$sessionId generated=$generated');
+        await logAudit(
+          'close_session',
+          'session=$sessionId lesson=$slot generated=$generated',
+        );
+        return generated;
+      });
+
+  /// إقفال **كل حصص اليوم** لصف (يفتح الناقص منها أولاً). يعيد مجموع ما وُلّد.
+  Future<int> closeDaySessions({
+    required int yearId,
+    required int classId,
+    required String date,
+  }) async =>
+      transaction<int>(() async {
+        final List<Session> sessions = await ensureDaySessions(
+          yearId: yearId,
+          classId: classId,
+          date: date,
+        );
+        int generated = 0;
+        for (final Session s in sessions) {
+          generated += await closeSession(s.id);
+        }
         return generated;
       });
 
@@ -876,10 +1379,12 @@ class AppDb extends _$AppDb {
         'SELECT 1 AS x',
         readsFrom: {
           attendanceRows,
+          sessions,
           settings,
           students,
           academicYears,
           alertNotifications,
+          lessons,
         },
       )
           .watch()

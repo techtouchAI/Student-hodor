@@ -37,6 +37,7 @@ Future<AppDb> _seed() async {
         yearId: year,
         classId: cls,
         studentId: id,
+        lessonId: (await db.firstLesson()).id,
         date: '2026-09-${(i + 1).toString().padLeft(2, '0')}',
         status: statuses[i],
         source: AttendanceSource.manual,

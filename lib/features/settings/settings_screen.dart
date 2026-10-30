@@ -17,6 +17,7 @@ import '../../data/backup_service.dart';
 import '../../data/db.dart';
 import '../../data/error_log.dart';
 import '../../features/about/about_screen.dart';
+import '../../features/lessons/lessons_screen.dart';
 import '../../state/providers.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -198,6 +199,17 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
     ref.invalidate(effectiveSettingsProvider);
   }
 
+  Future<void> _lessons() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) => const LessonsScreen(),
+      ),
+    );
+    // الجدول قد تغيّر: لا تُعرض قيم قديمة في بقية الشاشة أو في التقارير.
+    ref.invalidate(effectiveSettingsProvider);
+  }
+
   Future<void> _holidays() async {
     final AppDb db = ref.read(dbProvider);
     await Navigator.push<void>(
@@ -356,8 +368,8 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
                 child: TextField(
                   controller: _dayStart,
                   decoration: const InputDecoration(
-                    labelText: 'بداية اليوم',
-                    helperText: 'مثال: 08:00',
+                    labelText: 'بداية الدوام',
+                    helperText: 'مرجع احتياطي — التأخير يُحسب من بداية الحصة',
                   ),
                 ),
               ),
@@ -368,7 +380,7 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
                     labelText: 'دقائق السماح',
-                    helperText: 'بعدها يُسجَّل «متأخر»',
+                    helperText: 'بعد بداية الحصة يُسجَّل «متأخر»',
                   ),
                 ),
               ),
@@ -453,6 +465,14 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
             onChanged: (bool v) => setState(() => _hijri = v),
           ),
           const Divider(),
+          ListTile(
+            leading: const Icon(Icons.schedule),
+            title: const Text('جدول الحصص'),
+            subtitle: const Text(
+              'عدد الحصص وأسماؤها وأوقاتها — الحضور يُسجَّل حصةً حصة',
+            ),
+            onTap: _lessons,
+          ),
           ListTile(
             leading: const Icon(Icons.calendar_month),
             title: const Text('العطل الرسمية'),

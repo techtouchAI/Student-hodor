@@ -30,8 +30,13 @@ bool exportHasContent({
   required bool summary,
   required bool leaves,
   bool absences = false,
+  bool lessonLog = false,
 }) =>
-    daily || summary || absences || (format == ExportFormat.excel && leaves);
+    daily ||
+    summary ||
+    absences ||
+    lessonLog ||
+    (format == ExportFormat.excel && leaves);
 
 class ExportScreen extends ConsumerStatefulWidget {
   const ExportScreen({super.key});
@@ -49,6 +54,7 @@ class _ExportState extends ConsumerState<ExportScreen> {
   bool _includeSummary = true;
   bool _includeLeaves = true;
   bool _includeAbsences = true;
+  bool _includeLessonLog = true;
   bool _busy = false;
 
   List<MonthKey> _monthsOf(AcademicYear year) =>
@@ -119,6 +125,7 @@ class _ExportState extends ConsumerState<ExportScreen> {
         summary: _includeSummary,
         leaves: _includeLeaves,
         absences: _includeAbsences,
+        lessonLog: _includeLessonLog,
       )) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -144,6 +151,7 @@ class _ExportState extends ConsumerState<ExportScreen> {
           includeSummary: _includeSummary,
           includeLeaves: _includeLeaves,
           includeAbsences: _includeAbsences,
+          includeLessonLog: _includeLessonLog,
         );
         final List<int> bytes = await builder.build();
         final Directory tmp = Directory.systemTemp;
@@ -153,7 +161,8 @@ class _ExportState extends ConsumerState<ExportScreen> {
         final bool absencesOnly = _includeAbsences &&
             !_includeDaily &&
             !_includeSummary &&
-            !_includeLeaves;
+            !_includeLeaves &&
+            !_includeLessonLog;
         final String fileName = absencesOnly
             ? ExcelBuilder.absencesFileName(
                 schoolName: settings['school_name'] ?? '',
@@ -190,6 +199,7 @@ class _ExportState extends ConsumerState<ExportScreen> {
           includeDaily: _includeDaily,
           includeSummary: _includeSummary,
           includeAbsences: _includeAbsences,
+          includeLessonLog: _includeLessonLog,
         );
         await report.layout();
       }
@@ -307,10 +317,18 @@ class _ExportState extends ConsumerState<ExportScreen> {
                   onChanged: (bool v) => setState(() => _includeLeaves = v),
                 ),
               SwitchListTile(
-                value: _includeAbsences,
-                title: const Text('الغيابات فقط'),
+                value: _includeLessonLog,
+                title: const Text('سجل الحصص التفصيلي'),
                 subtitle: const Text(
-                  'غيابات كل طالب وحدها — بلا أشهر محددة تشمل السنة كلها',
+                  'كل حصة سطر مستقل بحالتها ووقتها ومصدرها — للأرشفة',
+                ),
+                onChanged: (bool v) => setState(() => _includeLessonLog = v),
+              ),
+              SwitchListTile(
+                value: _includeAbsences,
+                title: const Text('الغيابات فقط (حصةً حصة)'),
+                subtitle: const Text(
+                  'غيابات كل طالب مع حصتها — بلا أشهر محددة تشمل السنة كلها',
                 ),
                 onChanged: (bool v) => setState(() => _includeAbsences = v),
               ),

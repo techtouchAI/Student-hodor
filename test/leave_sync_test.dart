@@ -45,6 +45,7 @@ void main() {
       yearId: 1,
       classId: cls,
       studentId: stu,
+      lessonId: (await db.firstLesson()).id,
       date: _date,
       status: AttendanceStatus.absent,
       source: AttendanceSource.autoClose,
@@ -57,7 +58,7 @@ void main() {
       added: true,
     );
     expect(added, 1);
-    AttendanceRow? row = await db.attendanceOf(stu, _date);
+    AttendanceRow? row = await db.attendanceOf(stu, _date, (await db.firstLesson()).id);
     expect(row?.status, AttendanceStatus.leave);
     expect(row?.note, AppDb.leaveSyncNote);
 
@@ -68,7 +69,7 @@ void main() {
       added: false,
     );
     expect(removed, 1);
-    row = await db.attendanceOf(stu, _date);
+    row = await db.attendanceOf(stu, _date, (await db.firstLesson()).id);
     expect(row?.status, AttendanceStatus.absent);
     expect(row?.note, isNull);
   });
@@ -81,6 +82,7 @@ void main() {
       yearId: 1,
       classId: cls,
       studentId: stu,
+      lessonId: (await db.firstLesson()).id,
       date: _date,
       status: AttendanceStatus.absent,
       source: AttendanceSource.manual,
@@ -92,7 +94,7 @@ void main() {
       added: true,
     );
     expect(added, 1);
-    AttendanceRow? row = await db.attendanceOf(stu, _date);
+    AttendanceRow? row = await db.attendanceOf(stu, _date, (await db.firstLesson()).id);
     expect(row?.status, AttendanceStatus.leave);
     expect(row?.source, AttendanceSource.manual);
     expect(row?.note, AppDb.leaveSyncNote);
@@ -104,7 +106,7 @@ void main() {
       added: false,
     );
     expect(removed, 1);
-    row = await db.attendanceOf(stu, _date);
+    row = await db.attendanceOf(stu, _date, (await db.firstLesson()).id);
     expect(row?.status, AttendanceStatus.absent);
     expect(row?.source, AttendanceSource.manual);
     expect(row?.note, isNull);
@@ -124,6 +126,7 @@ void main() {
         yearId: 1,
         classId: cls,
         studentId: stu,
+        lessonId: (await db.firstLesson()).id,
         date: r.$1,
         status: r.$2,
         source: r.$3,
@@ -144,7 +147,7 @@ void main() {
     );
     expect(removed, 0);
     for (final (String, int, int) r in rows) {
-      final AttendanceRow? row = await db.attendanceOf(stu, r.$1);
+      final AttendanceRow? row = await db.attendanceOf(stu, r.$1, (await db.firstLesson()).id);
       expect(row?.status, r.$2);
       expect(row?.source, r.$3);
     }
@@ -158,6 +161,7 @@ void main() {
       yearId: 1,
       classId: cls,
       studentId: stu,
+      lessonId: (await db.firstLesson()).id,
       date: _date,
       status: AttendanceStatus.present,
       source: AttendanceSource.scan,
@@ -166,6 +170,7 @@ void main() {
       yearId: 1,
       classId: cls,
       studentId: stu,
+      lessonId: (await db.firstLesson()).id,
       date: _date,
       status: AttendanceStatus.late,
       source: AttendanceSource.manual,

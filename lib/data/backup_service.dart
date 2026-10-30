@@ -1,20 +1,27 @@
 /// النسخ الاحتياطي والاسترجاع والدمج بين الأجهزة.
 ///
-/// الصيغة 2 (حالية): حاوية zip واحدة —
-/// - `backup.json`: البيان — كل الجداول (ومنها سجل التدقيق) + الإعدادات.
+/// الصيغة 3 (حالية): حاوية zip واحدة —
+/// - `backup.json`: البيان — كل الجداول (ومنها **جدول الحصص** وسجل التدقيق)
+///   + الإعدادات. أعمدة `lesson_id` ونطاق الإجازة تُلتقط تلقائياً لأنها في
+///   `toJson` لكل صف.
 /// - `photos/<id الطالب>.<ext>`: ملفات صور الطلاب.
-/// الصيغة 1 (قديمة): ملف JSON وحده بلا صور ولا تدقيق — تُقرأ للاسترجاع
-/// والدمج كما هي. التعرف بالبصمة السحرية (`PK\x03\x04`) لا بامتداد الملف،
-/// فإعادة التسمية لا تكسر الاسترجاع.
+/// الصيغة 2: حاوية zip بلا جدول حصص (نسخة ما قبل الحصص).
+/// الصيغة 1 (قديمة): ملف JSON وحده بلا صور ولا تدقيق.
+///
+/// **توافق الحصص**: نسخة بلا `lessons` تُستعاد بحصص افتراضية مزروعة، ويُسند
+/// كل سطر قديم (جلسة/حضور) إلى الحصة الأولى — فيُقرأ اليوم القديم كما كان
+/// ولا يُفقد سطر. التعرف بالبصمة السحرية (`PK\x03\x04`) لا بالامتداد.
 ///
 /// مسارات الصور في البيان تخص الجهاز المصدِّر؛ عند الاسترجاع تُثبَّت صور
 /// الحاوية في مخزن الجهاز الجديد وتُعاد كتابة المسارات — ومن لا صورة له
 /// في الحاوية يبقى مساره كما هو (ينفع الاسترجاع على الجهاز نفسه).
 ///
 /// قواعد الدمج الآمن:
-/// - الجلسات: عدم تكرار (classId+date).
-/// - الحضور: عدم الكتابة فوق سجل موجود (الأقدم موثوق).
-/// - الدمج تراكمي للجلسات والحضور والمسح فقط؛ لا يمسّ الطلاب والصور والتدقيق.
+/// - الجلسات: عدم تكرار (classId+date+lessonId).
+/// - الحضور: عدم الكتابة فوق سجل موجود (الأقدم موثوق)، بمفتاح
+///   (studentId+date+lessonId) فلا تتصادم الحصص.
+/// - الدمج تراكمي للجلسات والحضور والمسح فقط؛ لا يمسّ الطلاب والصور والتدقيق
+///   ولا جدول الحصص (إعداد مدرسة يُدار من شاشتها).
 library;
 
 import 'dart:convert';
@@ -51,7 +58,7 @@ class BackupService {
 
   static const String manifestName = 'backup.json';
   static const String photosPrefix = 'photos/';
-  static const int backupVersion = 2;
+  static const int backupVersion = 3;
 
   Future<Map<String, Object?>> _snapshot() async => <String, Object?>{
         'format': 'student-hodor-backup',
@@ -67,6 +74,8 @@ class BackupService {
         'scanEvents': _rows(await db.select(db.scanEvents).get()),
         'leaves': _rows(await db.select(db.leaves).get()),
         'holidays': _rows(await db.select(db.holidays).get()),
+        'lessons': _rows(await db.select(db.lessons).get()),
+        'alertNotifications': _rows(await db.select(db.alertNotifications).get()),
         'auditLogs': _rows(await db.select(db.auditLogs).get()),
       };
 
@@ -172,12 +181,15 @@ class BackupService {
       await db.delete(db.scanEvents).go();
       await db.delete(db.attendanceRows).go();
       await db.delete(db.sessions).go();
+      await db.delete(db.alertNotifications).go();
       await db.delete(db.leaves).go();
       await db.delete(db.badges).go();
       await db.delete(db.students).go();
       await db.delete(db.schoolClasses).go();
       await db.delete(db.academicYears).go();
       await db.delete(db.holidays).go();
+      // الحصص آخر ما يُحذف (السجلات تشير إليها) وأول ما يُدرَج.
+      await db.delete(db.lessons).go();
       await db.delete(db.auditLogs).go();
       await db.delete(db.settings).go();
       await _insertAll(decoded.manifest, photoPaths: installed);
@@ -296,6 +308,24 @@ class BackupService {
     Map<String, Object?> data, {
     Map<int, String> photoPaths = const <int, String>{},
   }) async {
+    // 1) الحصص أولاً: الجلسات والسجلات تحمل مفاتيح أجنبية إليها.
+    //    نسخة قديمة (صيغة 1/2) بلا `lessons` ⇒ جدول افتراضي، وكل سطر قديم
+    //    يُسند إلى الحصة الأولى (كان اليوم كله حصة واحدة).
+    final List<Map<String, Object?>> lessonRows = _list(data['lessons']);
+    final Set<int> knownLessons = <int>{};
+    for (final Map<String, Object?> r in lessonRows) {
+      final Lesson row = Lesson.fromJson(r);
+      await db.into(db.lessons).insert(row.toCompanion(false));
+      knownLessons.add(row.id);
+    }
+    if (knownLessons.isEmpty) {
+      await db.ensureLessonsSeeded();
+      knownLessons.addAll(
+        <int>[for (final Lesson l in await db.allLessons()) l.id],
+      );
+    }
+    final int fallbackLesson = (await db.firstLesson()).id;
+
     for (final Map<String, Object?> r in _list(data['years'])) {
       await db.into(db.academicYears).insert(AcademicYear.fromJson(r).toCompanion(false));
     }
@@ -303,7 +333,9 @@ class BackupService {
       await db.into(db.schoolClasses).insert(SchoolClass.fromJson(r).toCompanion(false));
     }
     for (final Map<String, Object?> r in _list(data['students'])) {
-      StudentsCompanion c = Student.fromJson(r).toCompanion(false);
+      StudentsCompanion c = Student.fromJson(
+        _withDefaults(r, <String, Object?>{'phone': null}),
+      ).toCompanion(false);
       // مسار الصورة في البيان يخص الجهاز المصدِّر؛ إن جاءت صورته في
       // الحاوية ثُبّتت محلياً وحلّ مسارها الجديد محلّه.
       final int? id = c.id.present ? c.id.value : null;
@@ -317,21 +349,53 @@ class BackupService {
       await db.into(db.badges).insert(Badge.fromJson(r).toCompanion(false));
     }
     for (final Map<String, Object?> r in _list(data['sessions'])) {
-      await db.into(db.sessions).insert(Session.fromJson(r).toCompanion(false));
+      final Map<String, Object?> row = _withDefaults(
+        r,
+        <String, Object?>{'lesson_id': fallbackLesson},
+      );
+      final SessionsCompanion c = Session.fromJson(row).toCompanion(false);
+      await db.into(db.sessions).insert(
+            c.copyWith(
+              lessonId:
+                  Value(_lessonOf(c.lessonId, knownLessons, fallbackLesson)),
+            ),
+          );
     }
     for (final Map<String, Object?> r in _list(data['attendance'])) {
-      await db
-          .into(db.attendanceRows)
-          .insert(AttendanceRow.fromJson(r).toCompanion(false));
+      final Map<String, Object?> row = _withDefaults(
+        r,
+        <String, Object?>{'lesson_id': fallbackLesson, 'arrival_time': null},
+      );
+      final AttendanceRowsCompanion c =
+          AttendanceRow.fromJson(row).toCompanion(false);
+      await db.into(db.attendanceRows).insert(
+            c.copyWith(
+              lessonId:
+                  Value(_lessonOf(c.lessonId, knownLessons, fallbackLesson)),
+            ),
+          );
     }
     for (final Map<String, Object?> r in _list(data['scanEvents'])) {
       await db.into(db.scanEvents).insert(ScanEvent.fromJson(r).toCompanion(false));
     }
     for (final Map<String, Object?> r in _list(data['leaves'])) {
-      await db.into(db.leaves).insert(Leave.fromJson(r).toCompanion(false));
+      // إجازة قديمة بلا نطاق = كل حصص اليوم (الدلالة الأصلية).
+      await db.into(db.leaves).insert(
+            Leave.fromJson(
+              _withDefaults(
+                r,
+                <String, Object?>{'from_slot': null, 'to_slot': null},
+              ),
+            ).toCompanion(false),
+          );
     }
     for (final Map<String, Object?> r in _list(data['holidays'])) {
       await db.into(db.holidays).insert(Holiday.fromJson(r).toCompanion(false));
+    }
+    for (final Map<String, Object?> r in _list(data['alertNotifications'])) {
+      await db
+          .into(db.alertNotifications)
+          .insert(AlertNotification.fromJson(r).toCompanion(false));
     }
     for (final Map<String, Object?> r in _list(data['auditLogs'])) {
       await db.into(db.auditLogs).insert(AuditLog.fromJson(r).toCompanion(false));
@@ -344,22 +408,60 @@ class BackupService {
     }
   }
 
+  /// حصة صالحة لسطر مستورد: القيمة المخزّنة إن وُجدت في جدول الحصص، وإلا
+  /// الحصة الأولى — فلا يفشل الاسترجاع بمفتاح أجنبي مفقود.
+  static int _lessonOf(
+    Value<int> stored,
+    Set<int> known,
+    int fallback,
+  ) {
+    if (stored.present && known.contains(stored.value)) {
+      return stored.value;
+    }
+    return fallback;
+  }
+
+  /// يدمج قيماً افتراضية في سطر بيان قديم قبل `fromJson`.
+  ///
+  /// ضرورة توافق: النسخ الأقدم تفتقد أعمدة أُضيفت لاحقاً (`lesson_id`،
+  /// `arrival_time`، `phone`، نطاق الإجازة…)، و`fromJson` يتوقع كل الأعمدة.
+  /// القيم الافتراضية هي **دلالة** العمود وقت إضافته لا رقم اعتباطي:
+  /// السطر القديم = الحصة الأولى، وبلا وقت وصول، وإجازة كل اليوم.
+  static Map<String, Object?> _withDefaults(
+    Map<String, Object?> row,
+    Map<String, Object?> defaults,
+  ) =>
+      <String, Object?>{...defaults, ...row};
+
   List<Map<String, Object?>> _list(Object? v) => v is List
       ? v.cast<Map<String, Object?>>()
       : const <Map<String, Object?>>[];
 
   Future<int> _mergeSessions(Object? v) async {
     int n = 0;
+    final int fallback = (await db.firstLesson()).id;
+    // الدمج لا يمسّ جدول الحصص: أي رقم حصة غير موجود عندنا يُسند إلى الحصة
+    // الأولى، وإلا كسر المفتاح الأجنبي عملية الدمج كلها.
+    final Set<int> known = <int>{
+      for (final Lesson l in await db.allLessons()) l.id,
+    };
     for (final Map<String, Object?> r in _list(v)) {
-      final SessionsCompanion c = Session.fromJson(r).toCompanion(false);
+      final SessionsCompanion c = Session.fromJson(
+        _withDefaults(r, <String, Object?>{'lesson_id': fallback}),
+      ).toCompanion(false);
+      final int lessonId = _lessonOf(c.lessonId, known, fallback);
       final Session? existing = await (db.select(db.sessions)
             ..where(
               (s) =>
-                  s.classId.equals(c.classId.value) & s.date.equals(c.date.value),
+                  s.classId.equals(c.classId.value) &
+                  s.date.equals(c.date.value) &
+                  s.lessonId.equals(lessonId),
             ))
           .getSingleOrNull();
       if (existing == null) {
-        await db.into(db.sessions).insert(c);
+        await db.into(db.sessions).insert(
+              c.copyWith(lessonId: Value(lessonId)),
+            );
         n++;
       }
     }
@@ -368,12 +470,29 @@ class BackupService {
 
   Future<int> _mergeAttendance(Object? v) async {
     int n = 0;
+    // الدمج لا يمسّ جدول الحصص: نسخة قديمة أو حصة غير موجودة تُسند إلى
+    // الحصة الأولى القائمة.
+    final int fallback = (await db.firstLesson()).id;
+    final Set<int> known = <int>{
+      for (final Lesson l in await db.allLessons()) l.id,
+    };
     for (final Map<String, Object?> r in _list(v)) {
-      final AttendanceRowsCompanion c = AttendanceRow.fromJson(r).toCompanion(false);
-      final AttendanceRow? existing =
-          await db.attendanceOf(c.studentId.value, c.date.value);
+      final AttendanceRowsCompanion c = AttendanceRow.fromJson(
+        _withDefaults(
+          r,
+          <String, Object?>{'lesson_id': fallback, 'arrival_time': null},
+        ),
+      ).toCompanion(false);
+      final int lessonId = _lessonOf(c.lessonId, known, fallback);
+      final AttendanceRow? existing = await db.attendanceOf(
+        c.studentId.value,
+        c.date.value,
+        lessonId,
+      );
       if (existing == null) {
-        await db.into(db.attendanceRows).insert(c);
+        await db.into(db.attendanceRows).insert(
+              c.copyWith(lessonId: Value(lessonId)),
+            );
         n++;
       }
     }

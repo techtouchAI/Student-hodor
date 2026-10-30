@@ -26,6 +26,11 @@ jobs:
           channel: stable
           cache: true
 
+      # سجلات `ci-diagnostics/` المرفوعة مع المستودع قد تكون من تشغيل قديم؛
+      # تُمسح أولاً حتى لا يُنشر سجل قديم مكان سجل هذا التشغيل.
+      - name: Clear stale logs
+        run: rm -f ci_*.log
+
       - name: Pub get
         run: flutter pub get
 
@@ -47,6 +52,8 @@ jobs:
         run: |
           {
             echo '## تفاصيل فشل التحقق (تقرير تلقائي)'
+            echo
+            echo "الالتزام: \`$(git rev-parse --short HEAD)\` — $(date -u +%FT%TZ)"
             if [ -s ci_codegen.log ]; then
               echo
               echo '### build_runner (codegen)'

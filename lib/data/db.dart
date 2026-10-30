@@ -677,8 +677,8 @@ class AppDb extends _$AppDb {
     required Map<int, int> newSlots,
   }) async {
     bool changedAny = false;
-    final List<Leave> leaves = await select(leaves).get();
-    for (final Leave l in leaves) {
+    final List<Leave> allLeaves = await select(leaves).get();
+    for (final Leave l in allLeaves) {
       final int from = l.fromSlot ?? 1;
       final int to = l.toSlot ?? (1 << 30);
       // لا شيء يتغيّر: إجازة «كل الحصص» تبقى كل الحصص.

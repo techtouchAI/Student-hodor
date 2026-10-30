@@ -544,14 +544,14 @@ class ReportsService {
       'COUNT(DISTINCT CASE WHEN status = ? THEN date END) AS absent_days '
       'FROM attendance_rows WHERE year_id = ? GROUP BY student_id',
       variables: <Variable<int>>[
-        Variable<int>(AttendanceStatus.present),
-        Variable<int>(AttendanceStatus.absent),
-        Variable<int>(AttendanceStatus.leave),
-        Variable<int>(AttendanceStatus.late),
-        Variable<int>(AttendanceStatus.absent),
+        const Variable<int>(AttendanceStatus.present),
+        const Variable<int>(AttendanceStatus.absent),
+        const Variable<int>(AttendanceStatus.leave),
+        const Variable<int>(AttendanceStatus.late),
+        const Variable<int>(AttendanceStatus.absent),
         Variable<int>(yearId),
       ],
-      readsFrom: <Table>{db.attendanceRows},
+      readsFrom: {db.attendanceRows},
     ).get();
     return <int, StatusTotals>{
       for (final QueryRow r in rows)

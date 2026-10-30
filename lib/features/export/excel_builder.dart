@@ -328,14 +328,14 @@ class ExcelBuilder {
                         ? '$marks ($arrivalAt)'
                         : marks),
               );
-              final DayPresence day = describeDay(
+              final DayPresence presence = describeDay(
                 status: status,
                 lessonStatuses: statuses,
                 totalLessons: lessons.length,
               );
               cell.cellStyle = CellStyle(
                 backgroundColorHex: ExcelColor.fromHexString(
-                  _colorFor(status, schoolDay, partial: day.isPartial),
+                  _colorFor(status, schoolDay, partial: presence.isPartial),
                 ),
                 fontFamily: _fontFamily,
                 fontSize: 10,

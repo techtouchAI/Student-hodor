@@ -9,6 +9,7 @@ import 'package:printing/printing.dart';
 
 import '../../core/arabic_shaping.dart';
 import '../../core/attendance_labels.dart';
+import '../../core/lesson.dart';
 import '../../core/school_time.dart';
 import '../../data/db.dart';
 import '../../data/reports_service.dart';

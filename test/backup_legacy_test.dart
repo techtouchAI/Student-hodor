@@ -214,7 +214,7 @@ void main() {
         .toList()
       ..sort((Lesson a, Lesson b) => a.id.compareTo(b.id));
     expect(<int>[for (final Lesson l in restored) l.id],
-        <int>[for (final Lesson l in lessons) l.id]);
+        <int>[for (final LessonWindow l in lessons) l.id]);
     expect(<String>[for (final Lesson l in restored) l.name],
         <String>[for (int i = 1; i <= lessons.length; i++) 'حصة $i']);
 

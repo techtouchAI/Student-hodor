@@ -45,7 +45,7 @@ void main() {
       final String block = _step(yaml, step);
       expect(
         block,
-        contains("if: env.PUBLISH_RELEASE == 'true'"),
+        matches(RegExp(r"if: [^\n]*env\.PUBLISH_RELEASE == 'true'")),
         reason: '«$step» لا تُنفَّذ في بناء فرع عمل',
       );
     }

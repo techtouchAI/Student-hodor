@@ -563,7 +563,7 @@ void main() {
         );
 
     final Uint8List bytes = await BackupService(src).exportBytes();
-    final Map<String, Object?> manifest = await _manifestOf(bytes);
+    final Map<String, Object?> manifest = _manifestOf(bytes);
     expect(manifest['version'], BackupService.backupVersion);
 
     final AppDb dst = await _seed();
@@ -608,7 +608,7 @@ void main() {
       'الإجازات': <String>['type', 'x'],
     };
     for (final MapEntry<String, List<String>> c in cases.entries) {
-      final AppDb db = await _db();
+      final AppDb db = await _seed();
       addTearDown(db.close);
       final Map<String, Object?> manifest = _v1Manifest();
       final List<Map<String, Object?>> rows =
@@ -643,7 +643,7 @@ void main() {
       'attendance',
       'leaves',
     ]) {
-      final AppDb db = await _db();
+      final AppDb db = await _seed();
       final Map<String, Object?> manifest = _v1Manifest();
       final List<Map<String, Object?>> rows =
           (manifest[section]! as List<Object?>).cast<Map<String, Object?>>();
@@ -670,7 +670,7 @@ void main() {
   });
 
   test('حقل إلزامي في المخطط الأول (`closed`) لا يُخترع له افتراضي', () async {
-    final AppDb db = await _db();
+    final AppDb db = await _seed();
     addTearDown(db.close);
     final Map<String, Object?> manifest = _v1Manifest();
     final List<Map<String, Object?>> years =
@@ -702,7 +702,7 @@ String _sectionKeyOf(String label) => switch (label) {
       _ => throw ArgumentError(label),
     };
 
-Future<Map<String, Object?>> _manifestOf(Uint8List zip) {
+Map<String, Object?> _manifestOf(Uint8List zip) {
   final Archive archive = ZipDecoder().decodeBytes(zip);
   final ArchiveFile file = archive.files.firstWhere(
     (ArchiveFile f) => f.name == BackupService.manifestName,

@@ -560,7 +560,7 @@ class BackupService {
           failed++;
         }
       }
-      final String kept = created.length - victims.length;
+      final int kept = created.length - victims.length;
       final StringBuffer note = StringBuffer()
         ..write(' نُظّف $removed ملف صورة أنشأتها المحاولة');
       if (kept > 0) {

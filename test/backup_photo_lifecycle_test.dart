@@ -7,7 +7,6 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:drift/drift.dart' hide isNotNull, isNull;
@@ -120,9 +119,12 @@ void main() {
     bad['classes'] = <Map<String, Object?>>[
       <String, Object?>{'id': 1, 'yearId': 999, 'grade': 'x', 'section': 'أ'},
     ];
-    final Uint8List zip = _zipOf(bad, photos: <String, List<int>>{
-      'photos/1.jpg': <int>[1, 2, 3],
-    });
+    final Uint8List zip = _zipOf(
+      bad,
+      photos: <String, List<int>>{
+        'photos/1.jpg': <int>[1, 2, 3],
+      },
+    );
     final BackupService svc = BackupService(
       db,
       photoInstaller: installer,
@@ -153,9 +155,12 @@ void main() {
       <String, Object?>{'id': 1, 'date': '2026-09-20', 'title': 'أ'},
       <String, Object?>{'id': 2, 'date': '2026-09-20', 'title': 'مكرر'},
     ];
-    final Uint8List zip = _zipOf(manifest, photos: <String, List<int>>{
-      'photos/1.jpg': <int>[1, 2, 3],
-    });
+    final Uint8List zip = _zipOf(
+      manifest,
+      photos: <String, List<int>>{
+        'photos/1.jpg': <int>[1, 2, 3],
+      },
+    );
     final List<String> createdBefore = dir
         .listSync()
         .whereType<File>()
@@ -283,9 +288,12 @@ void main() {
   test('نجاح الاستعادة يُبقي الصور الجديدة ويربطها بالسجلات', () async {
     final AppDb db = await _db();
     addTearDown(db.close);
-    final Uint8List zip = _zipOf(_manifest(), photos: <String, List<int>>{
-      'photos/1.jpg': <int>[4, 5, 6],
-    });
+    final Uint8List zip = _zipOf(
+      _manifest(),
+      photos: <String, List<int>>{
+        'photos/1.jpg': <int>[4, 5, 6],
+      },
+    );
 
     await BackupService(
       db,

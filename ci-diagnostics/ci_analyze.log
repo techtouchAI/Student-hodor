@@ -1,5 +1,6 @@
 Analyzing Student-hodor...                                      
 
-warning • Unnecessary cast. Try removing the cast • test/backup_legacy_test.dart:112:34 • unnecessary_cast
+   info • Missing a required trailing comma. Try adding a trailing comma • test/backup_legacy_test.dart:187:63 • require_trailing_commas
+warning • Returning a 'Future' without 'await' inside a try block. Try adding an 'await' • test/lesson_log_export_test.dart:170:5 • unawaited_return_in_try_block
 
-1 issue found. (ran in 18.5s)
+2 issues found. (ran in 17.1s)

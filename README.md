@@ -476,7 +476,7 @@ flutter build apk --release --split-per-abi
 
 ### 🧪 الاختبارات وضمان الجودة
 
-توجد في المستودع **35 ملف اختبار و203 تصريح اختبار** (عدّ ثابت من الملفات عند تحديث هذا الدليل)، تشمل اختبارات وحدة وواجهات. من التغطيات المرتبطة بالميزات:
+توجد في المستودع **36 ملف اختبار و208 تصريح اختبار** (عدّ ثابت من الملفات عند تحديث هذا الدليل)، تشمل اختبارات وحدة وواجهات. من التغطيات المرتبطة بالميزات:
 
 | المجال | أمثلة الاختبارات |
 |---|---|
@@ -486,6 +486,7 @@ flutter build apk --release --split-per-abi
 | النسخ وسلامة البيانات | `backup_restore_test.dart`، `backup_compat_test.dart`، `backup_photo_lifecycle_test.dart`، `backup_roundtrip_test.dart`، `backup_legacy_test.dart`، `backup_downloads_test.dart`، `fk_integrity_test.dart`، `migration_v6_test.dart` |
 | التصدير وسجل الطالب | `excel_export_test.dart`، `absences_export_test.dart`، `lesson_log_export_test.dart`، `student_record_test.dart`، `export_screen_test.dart` |
 | الباجات والتنقل والواجهة | `badge_code_test.dart`، `badge_print_test.dart`، `nav_test.dart`، `screens_widget_test.dart` |
+| سياسة البناء والنشر | `ci_publish_policy_test.dart` (حارس انحدار على شروط النشر في `.github/workflows/build.yml`) |
 
 تفحص بوابات CI جلب الاعتماديات، وتوليد Drift، ثم `flutter analyze --fatal-warnings --fatal-infos`، ثم الاختبارات. يفحص بناء APK التوقيع وسلامة الأرشيف ومحاذاة المكتبات الأصلية لصفحات 16KB، وتوافق التوقيع و`versionCode` و`minSdk` والحزمة المنشورة، وعقد إزالة صلاحيات الشبكة.
 

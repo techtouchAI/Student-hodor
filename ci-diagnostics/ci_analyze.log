@@ -1,5 +1,8 @@
 Analyzing Student-hodor...                                      
 
-   info • Use 'const' for final variables initialized to a constant value. Try replacing 'final' with 'const' • lib/core/name_import.dart:642:3 • prefer_const_declarations
+   info • Unnecessary use of string interpolation. Try replacing the string literal with the variable name • test/backup_legacy_test.dart:112:34 • unnecessary_string_interpolations
+  error • The name 'isNotNull' is defined in the libraries 'package:drift/src/runtime/query_builder/query_builder.dart (via package:drift/drift.dart)' and 'package:matcher/src/core_matchers.dart (via package:flutter_test/flutter_test.dart)'. Try using 'as prefix' for one of the import directives, or hiding the name from all but one of the imports • test/backup_legacy_test.dart:126:35 • ambiguous_import
+   info • The import of 'dart:typed_data' is unnecessary because all of the used elements are also provided by the import of 'package:drift/drift.dart'. Try removing the import directive • test/import_names_screen_test.dart:9:8 • unnecessary_import
+   info • Use 'const' for final variables initialized to a constant value. Try replacing 'final' with 'const' • test/name_import_test.dart:231:5 • prefer_const_declarations
 
-1 issue found. (ran in 16.9s)
+4 issues found. (ran in 18.7s)

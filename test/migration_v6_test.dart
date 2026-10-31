@@ -83,6 +83,21 @@ void main() {
     );
     expect(sessions.single.closedAt, isNull);
 
+    // سلامة الروابط المرجعية بعد الهجرة: المفاتيح مفعّلة ولا صف يتيم.
+    expect(
+      (await db.customSelect('PRAGMA foreign_keys').getSingle())
+          .data
+          .values
+          .first,
+      1,
+      reason: 'PRAGMA foreign_keys فعّال فعلاً على الاتصال بعد الهجرة',
+    );
+    expect(
+      await db.customSelect('PRAGMA foreign_key_check').get(),
+      isEmpty,
+      reason: 'لا صف يتيم بعد 5⇒6',
+    );
+
     final List<AttendanceRow> rows = await db.select(db.attendanceRows).get();
     expect(rows, hasLength(2));
     expect(rows.every((AttendanceRow r) => r.lessonId == firstId), isTrue);

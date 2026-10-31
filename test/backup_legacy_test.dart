@@ -324,6 +324,21 @@ void main() {
     expect(leave.fromSlot, 2);
     expect(leave.toSlot, 5);
     expect(leave.type, 1);
+
+    // الرابط المرجعي سليم بعد الاستعادة: الحصص والأصفة والطلاب والسجلات.
+    expect(
+      (await dst.customSelect('PRAGMA foreign_keys').getSingle())
+          .data
+          .values
+          .first,
+      1,
+      reason: 'المفاتيح الأجنبية مفعّلة على اتصال القاعدة المستعادة',
+    );
+    expect(
+      await dst.customSelect('PRAGMA foreign_key_check').get(),
+      isEmpty,
+      reason: 'لا صف يتيم بعد الاستعادة الكاملة',
+    );
   });
 
   test('الدمج: حصتان في اليوم نفسه تُدمان، ولا تُدمج الحصة نفسها مرتين', () async {

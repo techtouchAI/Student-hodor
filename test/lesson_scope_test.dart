@@ -228,6 +228,90 @@ void main() {
     expect(await _covered(db), <int>{3, 4});
   });
 
+
+  test('إجازة مفتوحة النهاية (من الحصة ٣) تحفظ حصصها نفسها بعد الإضافة وإعادة الترتيب',
+      () async {
+    final (db: AppDb db, studentId: int studentId, classId: int classId) =
+        await _seed();
+    addTearDown(db.close);
+
+    // الحالة كما تنشئها شاشة الإجازات: «من الحصة ٣» و«إلى آخر اليوم» ⇒ to_slot = null.
+    for (final LessonWindow l in await db.lessonWindows()) {
+      if (l.slot < 3) {
+        continue;
+      }
+      await db.upsertAttendance(
+        yearId: 1,
+        classId: classId,
+        studentId: studentId,
+        date: '2026-09-20',
+        lessonId: l.id,
+        status: AttendanceStatus.absent,
+        source: AttendanceSource.autoClose,
+      );
+    }
+    await db.into(db.leaves).insert(
+          LeavesCompanion.insert(
+            yearId: 1,
+            studentId: studentId,
+            start: '2026-09-20',
+            end: '2026-09-20',
+            fromSlot: const Value<int?>(3),
+            toSlot: const Value<int?>(null),
+            type: 0,
+            createdAt: '2026-09-19T08:00:00',
+          ),
+        );
+    await db.syncLeaveToAttendance(
+      studentId: studentId,
+      start: '2026-09-20',
+      end: '2026-09-20',
+      added: true,
+      fromSlot: 3,
+      toSlot: null,
+    );
+
+    // 1) إضافة حصة سابعة: «إلى آخر اليوم» تبقى مفتوحة فتغطّي الجديدة.
+    final List<LessonWindow> six = await db.lessonWindows();
+    await db.saveLessons(<LessonWindow>[
+      ...six,
+      const LessonWindow(
+        id: 0,
+        slot: 7,
+        name: 'حصة إضافية',
+        start: '13:00',
+        end: '13:45',
+      ),
+    ]);
+    Leave leave = await db.select(db.leaves).getSingle();
+    expect(
+      leave.toSlot,
+      isNull,
+      reason: 'النطاق المفتوح لا يُحوَّل إلى رقم ثابت بمجرد إضافة حصة',
+    );
+    final int seventh = (await db.lessonWindows())
+        .firstWhere((LessonWindow w) => w.slot == 7)
+        .id;
+    expect(await _covered(db), <int>{3, 4, 5, 6, seventh});
+
+    // 2) عكس الترتيب كاملاً: المجموعة نفسها تصبح الحصص 1..5 ⇒ نطاق صريح مكافئ.
+    await _saveOrder(db, <int>[seventh, 6, 5, 4, 3, 2, 1]);
+    leave = await db.select(db.leaves).getSingle();
+    expect(leave.fromSlot, 1);
+    expect(leave.toSlot, 5);
+    expect(
+      await _covered(db),
+      <int>{3, 4, 5, 6, seventh},
+      reason: 'إعادة الترتيب لا تُسقط حصة من الإجازة ولا تضيف أخرى',
+    );
+
+    final Map<int, int> slots = <int, int>{
+      for (final LessonWindow w in await db.lessonWindows()) w.id: w.slot,
+    };
+    expect(await db.isOnLeave(studentId, '2026-09-20', slot: slots[3]), isTrue);
+    expect(await db.isOnLeave(studentId, '2026-09-20', slot: slots[2]), isFalse);
+  });
+
   test('تطابق isOnLeave مع السجلات بعد الحذف (لا حالة محتسبة مخالفة)', () async {
     final (db: AppDb db, studentId: int studentId, classId: int classId) =
         await _seed();

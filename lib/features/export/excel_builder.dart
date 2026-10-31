@@ -905,6 +905,11 @@ class ExcelBuilder {
         row++;
       }
     }
+    // سجل فارغ (لا سجلات في النطاق المحدد) ليس خطأً، لكن ورقة بعنوان وترويسة
+    // فقط تبدو للمستخدم ملفاً تالفاً — تُكتب الحالة صراحةً كما في صفحة PDF.
+    if (row == _firstDataRow) {
+      _text(sheet, column: 0, row: row, value: 'لا تسجيلات في النطاق المحدد');
+    }
     sheet.setColumnWidth(0, 6.0);
     sheet.setColumnWidth(1, 16.0);
     sheet.setColumnWidth(2, 30.0);

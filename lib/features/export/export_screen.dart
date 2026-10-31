@@ -21,8 +21,14 @@ import 'pdf_report.dart';
 enum ExportFormat { excel, pdf }
 
 /// هل اختار المستخدم قسماً واحداً على الأقل من محتوى الملف؟
-/// (ورقة الإجازات خاصة بإكسل؛ الغيابات في الصيغتين). تصدير بلا أي قسم كان
-/// يبني ملفاً بلا صفحات فيفشل لحظة الطباعة بخطأ غامض بدل رسالة واضحة.
+/// (ورقة الإجازات خاصة بإكسل؛ الغيابات وسجل الحصص في الصيغتين). تصدير بلا
+/// أي قسم كان يبني ملفاً بلا صفحات فيفشل لحظة الطباعة بخطأ غامض بدل رسالة
+/// واضحة.
+///
+/// **مصدر الحقيقة الوحيد** لشرط «قسم واحد على الأقل»: يستخدمه زر التوليد
+/// (`includeAnything`) وتحقّق [_ExportState._generate] معاً. كان الزر يعتمد
+/// شرطاً مكتوباً بيده ينسى سجل الحصص، فيُعطَّل التصدير عند اختياره وحده رغم أن
+/// المولّدين يدعمانه فعلاً.
 /// [absences] اختيارية بقيمة افتراضية حتى لا ينكسر مستدعٍ قديم.
 bool exportHasContent({
   required ExportFormat format,
@@ -345,9 +351,15 @@ class _ExportState extends ConsumerState<ExportScreen> {
     );
   }
 
-  bool get includeAnything =>
-      _includeDaily ||
-      _includeSummary ||
-      _includeAbsences ||
-      (_format == ExportFormat.excel && _includeLeaves);
+  /// نفس شرط [exportHasContent] حرفياً — لا نسخة ثانية تنحرف عنه.
+  /// (كان هنا شرط يدوي يغفل سجل الحصص فيبقى الزر معطّلاً وهو القسم الوحيد
+  /// المختار، وإن كان المولّدان يدعمانه.)
+  bool get includeAnything => exportHasContent(
+        format: _format,
+        daily: _includeDaily,
+        summary: _includeSummary,
+        leaves: _includeLeaves,
+        absences: _includeAbsences,
+        lessonLog: _includeLessonLog,
+      );
 }

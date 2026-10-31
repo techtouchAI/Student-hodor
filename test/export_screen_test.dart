@@ -83,6 +83,64 @@ void main() {
       );
     });
 
+    test('سجل الحصص وحده كافٍ في Excel وPDF (انحدار: زر التوليد)', () {
+      for (final ExportFormat format in ExportFormat.values) {
+        expect(
+          exportHasContent(
+            format: format,
+            daily: false,
+            summary: false,
+            leaves: false,
+            absences: false,
+            lessonLog: true,
+          ),
+          isTrue,
+          reason: 'سجل الحصص قسم مستقل صالح في $format',
+        );
+      }
+    });
+
+    test('سجل الحصص مع قسم آخر يبقى صالحاً، ولا اختيار يُرفض في الصيغتين', () {
+      for (final ExportFormat format in ExportFormat.values) {
+        expect(
+          exportHasContent(
+            format: format,
+            daily: false,
+            summary: false,
+            leaves: false,
+            absences: true,
+            lessonLog: true,
+          ),
+          isTrue,
+          reason: 'سجل الحصص + الغيابات',
+        );
+        expect(
+          exportHasContent(
+            format: format,
+            daily: true,
+            summary: true,
+            leaves: true,
+            absences: true,
+            lessonLog: true,
+          ),
+          isTrue,
+          reason: 'جميع الأقسام',
+        );
+        expect(
+          exportHasContent(
+            format: format,
+            daily: false,
+            summary: false,
+            leaves: false,
+            absences: false,
+            lessonLog: false,
+          ),
+          isFalse,
+          reason: 'لا اختيار لأي قسم في $format',
+        );
+      }
+    });
+
     test('PDF: الإجازات ليست قسماً (خاصة بإكسل)', () {
       expect(
         exportHasContent(

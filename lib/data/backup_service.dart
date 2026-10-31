@@ -518,7 +518,11 @@ class BackupService {
     final List<AcademicYear> years = _parseRows(
       yearRows,
       'السنوات',
-      (Map<String, dynamic> r) => AcademicYear.fromJson(r),
+      // عمود إقفال السنة أُضيف بعد الصيغة 2: غيابه يعني سنة مفتوحة (وهو
+      // الافتراضي في المخطط)، لا سطراً تالفاً.
+      (Map<String, dynamic> r) => AcademicYear.fromJson(
+        _withDefaults(r, <String, Object?>{'closed': false}),
+      ),
     );
     final List<SchoolClass> classes = _parseRows(
       classRows,

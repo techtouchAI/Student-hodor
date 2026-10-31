@@ -183,8 +183,10 @@ void main() {
       throwsA(isA<FormatException>()),
     );
 
-    expect(<String>[for (final Lesson l in await db.allLessons()) l.name],
-        <String>[for (final Lesson l in lessonsBefore) l.name]);
+    expect(
+      <String>[for (final Lesson l in await db.allLessons()) l.name],
+      <String>[for (final Lesson l in lessonsBefore) l.name],
+    );
     expect(await db.allSettings(), settingsBefore);
     expect(
       <Map<String, Object?>>[

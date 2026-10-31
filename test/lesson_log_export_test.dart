@@ -167,7 +167,8 @@ Future<Uint8List> _buildLessonLogPdf({required bool withRecords}) async {
       includeAbsences: false,
       includeLessonLog: true,
     );
-    return (await report.build()).save();
+    final Uint8List bytes = await (await report.build()).save();
+    return bytes;
   } finally {
     await seed.db.close();
   }

@@ -1,14 +1,5 @@
 Analyzing Student-hodor...                                      
 
-  error • A value of type 'int' can't be assigned to a variable of type 'String'. Try changing the type of the variable, or casting the right-hand type to 'String' • lib/data/backup_service.dart:563:27 • invalid_assignment
-  error • The operator '>' isn't defined for the type 'String'. Try defining the operator '>' • lib/data/backup_service.dart:566:16 • undefined_operator
-  error • The function '_db' isn't defined. Try importing the library that defines '_db', correcting the name to the name of an existing function, or defining a function named '_db' • test/backup_compat_test.dart:611:30 • undefined_function
-  error • The function '_db' isn't defined. Try importing the library that defines '_db', correcting the name to the name of an existing function, or defining a function named '_db' • test/backup_compat_test.dart:646:30 • undefined_function
-  error • The function '_db' isn't defined. Try importing the library that defines '_db', correcting the name to the name of an existing function, or defining a function named '_db' • test/backup_compat_test.dart:673:28 • undefined_function
-  error • A value of type 'Map<String, Object?>' can't be returned from the function '_manifestOf' because it has a return type of 'Future<Map<String, Object?>>' • test/backup_compat_test.dart:710:10 • return_of_invalid_type
-   info • The import of 'dart:typed_data' is unnecessary because all of the used elements are also provided by the import of 'package:drift/drift.dart'. Try removing the import directive • test/backup_photo_lifecycle_test.dart:10:8 • unnecessary_import
-   info • Missing a required trailing comma. Try adding a trailing comma • test/backup_photo_lifecycle_test.dart:125:6 • require_trailing_commas
-   info • Missing a required trailing comma. Try adding a trailing comma • test/backup_photo_lifecycle_test.dart:158:6 • require_trailing_commas
-   info • Missing a required trailing comma. Try adding a trailing comma • test/backup_photo_lifecycle_test.dart:288:6 • require_trailing_commas
+   info • The import of 'dart:typed_data' is unnecessary because all of the used elements are also provided by the import of 'package:drift/drift.dart'. Try removing the import directive • test/backup_compat_test.dart:21:8 • unnecessary_import
 
-10 issues found. (ran in 17.6s)
+1 issue found. (ran in 17.5s)

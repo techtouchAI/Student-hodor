@@ -83,7 +83,9 @@ void main() {
     );
     expect(sessions.single.closedAt, isNull);
 
-    // سلامة الروابط المرجعية بعد الهجرة: المفاتيح مفعّلة ولا صف يتيم.
+    // المفاتيح الأجنبية مفعّلة **على هذا الاتصال** بعد إعادة الفتح والهجرة
+    // (beforeOpen). سلامة البيانات نفسها (foreign_key_check) مُتحقَّقة في
+    // الخطوة (6) أدناه، فلا تُكرَّر هنا.
     expect(
       (await db.customSelect('PRAGMA foreign_keys').getSingle())
           .data
@@ -91,11 +93,6 @@ void main() {
           .first,
       1,
       reason: 'PRAGMA foreign_keys فعّال فعلاً على الاتصال بعد الهجرة',
-    );
-    expect(
-      await db.customSelect('PRAGMA foreign_key_check').get(),
-      isEmpty,
-      reason: 'لا صف يتيم بعد 5⇒6',
     );
 
     final List<AttendanceRow> rows = await db.select(db.attendanceRows).get();

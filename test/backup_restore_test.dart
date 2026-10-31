@@ -476,6 +476,9 @@ void main() {
           'start': '2024-09-01',
           'end': '2025-06-30',
           'active': true,
+          // `closed` جزء من المخطط الأول (لا هجرة أضافته) ⇒ في كل نسخة حقيقية.
+          'closed': false,
+          'closedAt': null,
         },
       ],
       'classes': <Map<String, Object?>>[

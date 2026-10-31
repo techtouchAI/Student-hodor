@@ -25,6 +25,13 @@
 /// مسارات الصور في البيان تخص الجهاز المصدِّر؛ عند الاستعادة تُثبَّت صور
 /// الحاوية في مخزن الجهاز الجديد وتُعاد كتابة المسارات — ومن لا صورة له
 /// في الحاوية يبقى مساره كما هو (ينفع الاستعادة على الجهاز نفسه).
+///
+/// **دورة حياة ملفات الصور:** التثبيت يسبق المعاملة، فمسار الفشل لا يترك
+/// ملفات يتيمة: كل ملف أنشأته المحاولة يُسجَّل، وعند الفشل تُحذف هذه الملفات
+/// وحدها — لا ملف كان موجوداً قبل المحاولة، ولا ملف يشير إليه سجل قائم في
+/// القاعدة (بعد التراجع). إن فشلت قراءة قائمة الصور السابقة يُلغى التنظيف
+/// كله ويُذكر ذلك في رسالة الخطأ. عند النجاح تبقى الصور الجديدة ولا يُحذف
+/// شيء قديم (`docs/RESTORE-FULL-ar.md`).
 library;
 
 import 'dart:convert';
@@ -43,6 +50,13 @@ import 'photo_store.dart';
 /// تثبيت صورة مسترجعة في المخزن الدائم — يُحقَن في الاختبارات بمجلد
 /// مؤقت. الافتراضي [PhotoStore.install].
 typedef PhotoInstaller = Future<String> Function(String fileName, List<int> bytes);
+
+/// يقرأ مسارات الصور الموجودة **قبل** الاستعادة.
+///
+/// الافتراضي [PhotoStore.existingPaths] (مجلد مستندات التطبيق). يُحقَن في
+/// الاختبارات بلا `path_provider`، وغيابه (`null` من الاستدعاء) يعني «غير
+/// معروف» ⇒ لا يُحذف أي ملف صورة بعد فشل الاستعادة.
+typedef PhotoSnapshotter = Future<Set<String>> Function();
 
 /// نسخة تالفة البنية أو غير متسقة المراجع: تُرفض **قبل** أي كتابة على القاعدة،
 /// فبيانات المستخدم الحالية تبقى كما هي بلا استثناء.
@@ -158,11 +172,16 @@ class _RestorePlan {
 }
 
 class BackupService {
-  BackupService(this.db, {PhotoInstaller? photoInstaller})
-      : _installPhoto = photoInstaller ?? PhotoStore.install;
+  BackupService(
+    this.db, {
+    PhotoInstaller? photoInstaller,
+    PhotoSnapshotter? photoSnapshot,
+  })  : _installPhoto = photoInstaller ?? PhotoStore.install,
+        _photoSnapshot = photoSnapshot ?? PhotoStore.existingPaths;
 
   final AppDb db;
   final PhotoInstaller _installPhoto;
+  final PhotoSnapshotter _photoSnapshot;
 
   static const String manifestName = 'backup.json';
   static const String photosPrefix = 'photos/';
@@ -332,9 +351,13 @@ class BackupService {
       final _DecodedBackup decoded = _decode(bytes);
       // كل التحقق قبل أول كتابة: نسخة تالفة لا تمسّ البيانات الحالية.
       final _RestorePlan plan = _planOf(decoded.manifest);
-      // الصور أولاً خارج المعاملة: ملفات يتيمة عند فشل لاحق أهون من
-      // معاملة مفتوحة على عمليات ملفات بطيئة. لا تُكتب صورة لملف لم يُتحقق منه.
-      final Map<int, String> installed = await _installPhotos(decoded);
+      // الصور أولاً خارج المعاملة: معاملة مفتوحة على عمليات ملفات بطيئة
+      // أسوأ من تثبيت مسبق. المقابل: فشل لاحق يترك ملفات أنشأتها هذه
+      // المحاولة، فتُتتبَّع هنا وتُنظَّف وحدها عند الفشل.
+      final Set<String>? existedBefore =
+          decoded.photos.isEmpty ? const <String>{} : await _snapshotPhotos();
+      final Set<String> created = <String>{};
+      final Map<int, String> installed = await _installPhotos(decoded, created);
       try {
         await db.transaction<void>(() async {
           await _clearAll();
@@ -346,15 +369,19 @@ class BackupService {
           );
         });
       } on FormatException {
+        await _discardCreatedPhotos(created, existedBefore);
         rethrow;
       } on BackupValidationException {
+        await _discardCreatedPhotos(created, existedBefore);
         rethrow;
       } on BackupApplyException {
+        await _discardCreatedPhotos(created, existedBefore);
         rethrow;
       } catch (e) {
+        final String note = await _discardCreatedPhotos(created, existedBefore);
         throw BackupApplyException(
           'تعذر تطبيق النسخة، وأُعيدت بياناتك السابقة كما كانت قبل المحاولة. '
-          '($e)',
+          '($e)$note',
         );
       }
     } finally {
@@ -427,7 +454,10 @@ class BackupService {
   /// أسماء المداخل لا تُكتب للقرص أبداً (درء Zip-Slip): المطابقة بنمط
   /// صارم، والتثبيت بالاسم المجرّد من أي مسار عبر [PhotoStore.install]
   /// الذي يجرّده بدوره.
-  Future<Map<int, String>> _installPhotos(_DecodedBackup decoded) async {
+  Future<Map<int, String>> _installPhotos(
+    _DecodedBackup decoded,
+    Set<String> created,
+  ) async {
     if (decoded.photos.isEmpty) {
       return const <int, String>{};
     }
@@ -442,15 +472,109 @@ class BackupService {
     final Map<int, String> installed = <int, String>{};
     for (final MapEntry<int, String> e in byId.entries) {
       try {
-        installed[e.key] = await _installPhoto(
+        final String path = await _installPhoto(
           p.basename(e.value),
           decoded.photos[e.value]!,
         );
+        installed[e.key] = path;
+        // يُسجَّل بعد نجاح التثبيت فقط: عند فشل لاحق تُحذف هذه الملفات
+        // وحدها، ولا يُمسّ ملف كان على الجهاز قبل المحاولة.
+        created.add(path);
       } catch (_) {
         continue; // صورة حاوية تالفة: تُتخطى ويُكمل الاسترجاع.
       }
     }
     return installed;
+  }
+
+  /// مسارات الصور السابقة، أو `null` إذا تعذّرت قراءتها.
+  ///
+  /// `null` تعني **تعطيل التنظيف**: الحذف بلا معرفة الملفات السابقة قد يمسّ
+  /// صورة موجودة، وترك ملفات أنشأتها محاولة فاشلة أهون من حذف صورة المستخدم.
+  Future<Set<String>?> _snapshotPhotos() async {
+    try {
+      return await _photoSnapshot();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// ملفات الصور التي أنشأتها هذه المحاولة ويجوز حذفها بعد فشلها.
+  ///
+  /// دالة نقية (بلا قرص) لتكون سياستها قابلة للاختبار وحدها:
+  /// 1. لا يُحذف ملف كان موجوداً قبل الاستعادة ([existedBefore]) — حتى لو
+  ///    أرجع المُثبِّت مساره.
+  /// 2. لا يُحذف ملف يشير إليه سجل طالب في القاعدة بعد التراجع
+  ///    ([referencedByRows]) — فقد يكون مشتركاً أو مستخدماً من سجل آخر.
+  /// 3. لا يُحذف إلا ما سجّلته العملية نفسها في [created].
+  static List<String> photosToDiscard({
+    required Iterable<String> created,
+    required Set<String> existedBefore,
+    required Set<String> referencedByRows,
+  }) {
+    final Set<String> out = <String>{};
+    for (final String path in created) {
+      if (path.isEmpty ||
+          existedBefore.contains(path) ||
+          referencedByRows.contains(path)) {
+        continue;
+      }
+      out.add(path);
+    }
+    return out.toList(growable: false);
+  }
+
+  /// ينظّف ملفات الصور التي أنشأتها محاولة **فاشلة**، ويعيد ملاحظة عربية
+  /// تُضاف إلى رسالة الفشل.
+  ///
+  /// لا يرمي أبداً: سبب فشل الاستعادة هو الخبر المهم، ولا يجوز أن يحجبه
+  /// فشل تنظيف ثانوي — يُذكر صراحةً في الملاحظة بدل إخفائه.
+  Future<String> _discardCreatedPhotos(
+    Set<String> created,
+    Set<String>? existedBefore,
+  ) async {
+    if (created.isEmpty) {
+      return '';
+    }
+    if (existedBefore == null) {
+      return ' لم تُنظَّف ملفات الصور التي أنشأتها المحاولة: تعذّرت قراءة '
+          'قائمة الصور السابقة، والحذف بلا معرفتها خطر على صورك.';
+    }
+    try {
+      final Set<String> referenced = <String>{
+        for (final Student s in await db.select(db.students).get())
+          if (s.photoPath != null && s.photoPath!.isNotEmpty) s.photoPath!,
+      };
+      final List<String> victims = photosToDiscard(
+        created: created,
+        existedBefore: existedBefore,
+        referencedByRows: referenced,
+      );
+      int removed = 0;
+      int failed = 0;
+      for (final String path in victims) {
+        try {
+          await PhotoStore.deleteIfExists(path);
+          removed++;
+        } catch (_) {
+          failed++;
+        }
+      }
+      final String kept = created.length - victims.length;
+      final StringBuffer note = StringBuffer()
+        ..write(' نُظّف $removed ملف صورة أنشأتها المحاولة');
+      if (kept > 0) {
+        note.write('، وأُبقي $kept ملفاً لأنه كان موجوداً مسبقاً أو يستخدمه سجل');
+      }
+      if (failed > 0) {
+        note.write('، وتعذّر حذف $failed ملف');
+      }
+      note.write('.');
+      return note.toString();
+    } catch (_) {
+      return ' تعذّر تنظيف ملفات الصور التي أنشأتها المحاولة؛ '
+          'راجع مجلد صور التطبيق إن أردت حذفها يدوياً.';
+    }
   }
 
   // ---------------- التحقق ----------------
@@ -518,11 +642,9 @@ class BackupService {
     final List<AcademicYear> years = _parseRows(
       yearRows,
       'السنوات',
-      // عمود إقفال السنة أُضيف بعد الصيغة 2: غيابه يعني سنة مفتوحة (وهو
-      // الافتراضي في المخطط)، لا سطراً تالفاً.
-      (Map<String, dynamic> r) => AcademicYear.fromJson(
-        _withDefaults(r, <String, Object?>{'closed': false}),
-      ),
+      // `closed` جزء من المخطط الأول: لم تُضف بأي هجرة، فكل نسخة حقيقية
+      // تحملها. تُعامل كحقل إلزامي ولا يُخترع لها افتراضي.
+      (Map<String, dynamic> r) => AcademicYear.fromJson(r),
     );
     final List<SchoolClass> classes = _parseRows(
       classRows,

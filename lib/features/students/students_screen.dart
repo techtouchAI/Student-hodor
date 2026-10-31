@@ -21,6 +21,7 @@ import '../../data/db.dart';
 import '../../data/error_log.dart';
 import '../../data/photo_store.dart';
 import '../../state/providers.dart';
+import 'import_names_screen.dart';
 
 class StudentsScreen extends ConsumerStatefulWidget {
   const StudentsScreen({super.key, required this.classRef});
@@ -142,6 +143,14 @@ class _StudentsState extends ConsumerState<StudentsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(c == null ? 'الطلاب' : 'طلاب ${c.displayTitle}'),
+        actions: <Widget>[
+          if (c != null)
+            IconButton(
+              tooltip: 'استيراد أسماء من ملف',
+              icon: const Icon(Icons.upload_file),
+              onPressed: () => _importNames(c),
+            ),
+        ],
       ),
       floatingActionButton: c == null
           ? null
@@ -481,6 +490,21 @@ class _StudentsState extends ConsumerState<StudentsScreen> {
     } catch (e, st) {
       AppErrorLog.instance.record(e, st, where: 'students:delete');
       _snack('تعذر الحذف: $e');
+    }
+  }
+
+  /// استيراد أسماء من ملف إلى الصف المفتوح (معاينة وتأكيد قبل أي كتابة).
+  Future<void> _importNames(ClassRef c) async {
+    final bool? done = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (BuildContext _) => ImportNamesScreen(
+          classId: c.id,
+          classTitle: c.displayTitle,
+        ),
+      ),
+    );
+    if (done == true && mounted) {
+      _snack('تم الاستيراد — القائمة تتحدّث تلقائياً');
     }
   }
 

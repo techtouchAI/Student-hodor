@@ -196,6 +196,11 @@ class YearsService {
             ..where((a) => a.yearId.equals(yearId)))
           .go();
       await (db.delete(db.leaves)..where((l) => l.yearId.equals(yearId))).go();
+      // تنبيهات حد الفصل تخصّ السنة والطالب معاً: تُحذف معهما صراحةً (لا
+      // نعتمد على cascade)، وبقية السنوات لا تُمسّ.
+      await (db.delete(db.alertNotifications)
+            ..where((n) => n.yearId.equals(yearId)))
+          .go();
       final List<Student> kids = await (db.select(db.students)
             ..where((s) => s.yearId.equals(yearId)))
           .get();
@@ -239,12 +244,18 @@ class YearsService {
       await db.delete(db.attendanceRows).go();
       await db.delete(db.sessions).go();
       await db.delete(db.leaves).go();
+      // تنبيهات حد الفصل تتبع السنة/الطالب؛ تُحذف صراحةً قبل والدها.
+      await db.delete(db.alertNotifications).go();
       await db.delete(db.badges).go();
       await db.delete(db.students).go();
       await db.delete(db.schoolClasses).go();
       await db.delete(db.academicYears).go();
       await db.delete(db.holidays).go();
       await db.delete(db.settings).go();
+      // جدول الحصص إعداد مدرسة: يُصفَّر ثم يُزرع الافتراضي (6 حصص) حتى
+      // تبقى الشاشات عاملة فوراً بعد «تصفير شامل».
+      await db.delete(db.lessons).go();
+      await db.ensureLessonsSeeded();
       await db.logAudit('reset_all', 'backup=$backupPath');
     });
     return backupPath;

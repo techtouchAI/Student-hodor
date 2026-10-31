@@ -46,6 +46,7 @@ Future<(AppDb, AcademicYear, Student, String)> _seed() async {
     yearId: year.id,
     classId: classId,
     studentId: studentId,
+    lessonId: (await db.firstLesson()).id,
     date: '2026-09-02',
     status: AttendanceStatus.absent,
     source: AttendanceSource.manual,
@@ -54,6 +55,7 @@ Future<(AppDb, AcademicYear, Student, String)> _seed() async {
     yearId: year.id,
     classId: classId,
     studentId: studentId,
+    lessonId: (await db.firstLesson()).id,
     date: '2026-09-03',
     status: AttendanceStatus.present,
     source: AttendanceSource.scan,
@@ -143,9 +145,15 @@ void main() {
       sheet.cell(CellIndex.indexByString('D4')).value?.toString(),
       'لم يسجل',
     );
+    // R2: يوم فيه غياب في **حصة واحدة** لا يُكتب «غائب» (غياب يوم كامل).
     expect(
       sheet.cell(CellIndex.indexByString('D5')).value?.toString(),
-      'غائب',
+      'غياب جزئي — غاب عن حصة واحدة',
+    );
+    expect(
+      sheet.cell(CellIndex.indexByString('D5')).value?.toString(),
+      isNot('غائب'),
+      reason: 'غياب حصة واحدة لا يوصف بغياب اليوم',
     );
     expect(
       sheet.cell(CellIndex.indexByString('D6')).value?.toString(),
@@ -160,17 +168,37 @@ void main() {
       sheet.cell(CellIndex.indexByString('D8')).value?.toString(),
       'عطلة',
     );
+    // عمود «الحصص»: حروف الحصص الست بترتيب الجدول — الأولى غياب والباقي
+    // لم يُسجَّل، بينما اليوم المسجّل حاضراً يبدأ بحرف الحضور.
+    expect(
+      sheet.cell(CellIndex.indexByString('E5')).value?.toString(),
+      'غ·—·—·—·—·—',
+    );
+    expect(
+      sheet.cell(CellIndex.indexByString('E6')).value?.toString(),
+      'ح·—·—·—·—·—',
+    );
+    // بلوك المجاميع: يبدأ بعد صف فارغ من آخر يوم (الصف 10) بعنوانين
+    // واضحين: حصص الغياب ثم أيام الغياب ثم نسبة الحضور.
     expect(
       sheet.cell(CellIndex.indexByString('B11')).value?.toString(),
-      'إجمالي الغياب',
+      'إجمالي الغياب (حصص)',
     );
     expect(
       sheet.cell(CellIndex.indexByString('C11')).value?.toString(),
       '1',
     );
-    // حزمة excel تُسقط .0 الزائدة عند إعادة القراءة (50.0 تُقرأ 50).
+    expect(
+      sheet.cell(CellIndex.indexByString('B15')).value?.toString(),
+      'أيام فيها غياب',
+    );
     expect(
       sheet.cell(CellIndex.indexByString('C15')).value?.toString(),
+      '1',
+    );
+    // حزمة excel تُسقط .0 الزائدة عند إعادة القراءة (50.0 تُقرأ 50).
+    expect(
+      sheet.cell(CellIndex.indexByString('C16')).value?.toString(),
       '50',
     );
     final Archive archive = ZipDecoder().decodeBytes(bytes);

@@ -10,10 +10,12 @@ import 'package:go_router/go_router.dart';
 import '../../core/attendance_labels.dart';
 import '../../core/error_guard.dart';
 import '../../core/late_time.dart';
+import '../../core/lesson.dart';
 import '../../core/school_time.dart';
 import '../../data/db.dart';
 import '../../data/reports_service.dart';
 import '../../state/providers.dart';
+import '../attendance/lesson_picker.dart';
 
 class ReportsScreen extends ConsumerStatefulWidget {
   const ReportsScreen({super.key});
@@ -137,35 +139,92 @@ class _ClassDayList extends StatefulWidget {
 }
 
 class _ClassDayListState extends State<_ClassDayList> {
-  /// (مصفوفة اليوم، بداية الدوام من الإعدادات) — الثانية لحساب مدة التأخر
-  /// المعروضة تحت اسم كل متأخر، وتُجلب في المستقبل نفسه لا في كل بناء.
-  late Future<(List<(Student, AttendanceRow?)>, String)> _future;
+  /// الحصة المعروضة (كل صف له حصص اليوم) + مستقبل (المصفوفة، بداية الحصة):
+  /// الثانية لحساب مدة التأخر تحت اسم كل متأخر.
+  List<LessonWindow> _lessons = <LessonWindow>[];
+  LessonWindow? _lesson;
+  bool _loadingLessons = true;
+  Future<(List<(Student, AttendanceRow?)>, String)>? _future;
 
-  Future<(List<(Student, AttendanceRow?)>, String)> _load() async {
+  Future<void> _loadLessons() async {
+    final List<LessonWindow> lessons = await widget.db.lessonWindows();
+    if (!mounted) {
+      return;
+    }
+    final LessonWindow? lesson =
+        LessonSchedule.suggested(lessons, DateTime.now());
+    setState(() {
+      _lessons = lessons;
+      _lesson = lesson;
+      _loadingLessons = false;
+      _future = lesson == null ? null : _load(lesson);
+    });
+  }
+
+  Future<(List<(Student, AttendanceRow?)>, String)> _load(
+    LessonWindow lesson,
+  ) async {
     final List<(Student, AttendanceRow?)> matrix =
-        await ReportsService(widget.db).classDayMatrix(widget.classId, widget.date);
+        await ReportsService(widget.db).classDayMatrix(
+      classId: widget.classId,
+      date: widget.date,
+      lessonId: lesson.id,
+    );
     final Map<String, String> settings = await widget.db.effectiveSettings();
-    return (matrix, settings['day_start'] ?? '08:00');
+    // مرجع مدة التأخر: بداية الحصة (لا بداية الدوام) — وإلا ظهر حاضر الحصة
+    // الرابعة متأخراً ساعتين ونصف.
+    return (matrix, parseArrivalMinutes(lesson.start) == null
+        ? (settings['day_start'] ?? '08:00')
+        : lesson.start);
   }
 
   @override
   void initState() {
     super.initState();
-    _future = _load();
+    unawaited(_loadLessons());
   }
 
   @override
   void didUpdateWidget(_ClassDayList oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.classId != widget.classId || oldWidget.date != widget.date) {
-      _future = _load();
+      unawaited(_loadLessons());
     }
   }
 
   @override
-  Widget build(BuildContext context) =>
+  Widget build(BuildContext context) {
+    if (_loadingLessons) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_lessons.isEmpty) {
+      return const Center(child: Text('لا جدول حصص — أضفه من الإعدادات'));
+    }
+    final Future<(List<(Student, AttendanceRow?)>, String)>? future = _future;
+    if (future == null) {
+      return const Center(child: Text('اختر حصة'));
+    }
+    return Column(
+      children: <Widget>[
+        LessonPicker(
+          lessons: _lessons,
+          selectedId: _lesson?.id,
+          onSelect: (LessonWindow l) => setState(() {
+            _lesson = l;
+            _future = _load(l);
+          }),
+          showTimes: true,
+        ),
+        Expanded(child: _matrixBody(future)),
+      ],
+    );
+  }
+
+  Widget _matrixBody(
+    Future<(List<(Student, AttendanceRow?)>, String)> future,
+  ) =>
       FutureBuilder<(List<(Student, AttendanceRow?)>, String)>(
-        future: _future,
+        future: future,
         builder: (
           BuildContext context,
           AsyncSnapshot<(List<(Student, AttendanceRow?)>, String)> snap,
@@ -296,10 +355,10 @@ class _AlertsListState extends State<_AlertsList> {
               itemCount: list.length,
               itemBuilder: (BuildContext context, int i) {
                 final (Student s, StatusTotals t) = list[i];
-                final double pct = t.recorded == 0
-                    ? 0
-                    : t.absent * 100 / t.recorded;
-                final bool danger = t.absent >= _t2;
+                final double pct =
+                    t.recorded == 0 ? 0 : t.absent * 100 / t.recorded;
+                // عتبة حد الفصل بالأيام (لا بالحصص) — دلالة قانونية ثابتة.
+                final bool danger = t.absentDays >= _t2;
                 return ListTile(
                   leading: CircleAvatar(
                     backgroundColor: danger ? Colors.red : Colors.orange,
@@ -308,9 +367,10 @@ class _AlertsListState extends State<_AlertsList> {
                   ),
                   title: Text(s.fullName),
                   subtitle: Text(
-                    'غياب ${t.absent} من ${t.recorded} يوم '
-                    '(${pct.toStringAsFixed(1)}%)'
-                    '${danger ? ' — تجاوز الحد الثاني' : ' — تجاوز الحد الأول'}',
+                    'غياب ${t.absentDays} يوماً (${t.absent} حصة) من '
+                    '${t.recordedDays} يوماً مسجَّلاً — '
+                    '${pct.toStringAsFixed(1)}% من الحصص'
+                    '${danger ? ' • تجاوز الحد الثاني' : ' • تجاوز الحد الأول'}',
                   ),
                   onTap: () => context.push('/student/${s.id}'),
                 );

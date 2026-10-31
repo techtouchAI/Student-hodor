@@ -49,8 +49,10 @@ class NotificationsService {
       await db.recordAlertCrossing(
         yearId: year.id,
         studentId: s.id,
-        absentDays: t.absent,
-        recordedDays: t.recorded,
+        // العتبة قانونية **بالأيام** لا بالحصص: يوم فيه ثلاث حصص غياب =
+        // يوم واحد. الحصص تُعرض تفصيلاً في التقارير لا في عدّاد الإنذار.
+        absentDays: t.absentDays,
+        recordedDays: t.recordedDays,
         thresholdDays: threshold,
         kind: AlertKinds.threshold2,
       );

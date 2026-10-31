@@ -47,6 +47,7 @@ Future<(AppDb, AcademicYear, List<ExportScopeClass>)> _seed() async {
     yearId: year.id,
     classId: classId,
     studentId: studentId,
+    lessonId: (await db.firstLesson()).id,
     date: '2026-09-02',
     status: AttendanceStatus.absent,
     source: AttendanceSource.autoClose,
@@ -55,6 +56,7 @@ Future<(AppDb, AcademicYear, List<ExportScopeClass>)> _seed() async {
     yearId: year.id,
     classId: classId,
     studentId: studentId,
+    lessonId: (await db.firstLesson()).id,
     date: '2026-09-03',
     status: AttendanceStatus.present,
     source: AttendanceSource.scan,
@@ -64,6 +66,7 @@ Future<(AppDb, AcademicYear, List<ExportScopeClass>)> _seed() async {
     yearId: year.id,
     classId: classId,
     studentId: studentId,
+    lessonId: (await db.firstLesson()).id,
     date: '2026-09-06',
     status: AttendanceStatus.late,
     source: AttendanceSource.scan,
@@ -73,6 +76,7 @@ Future<(AppDb, AcademicYear, List<ExportScopeClass>)> _seed() async {
     yearId: year.id,
     classId: classId,
     studentId: studentId,
+    lessonId: (await db.firstLesson()).id,
     date: '2026-10-05',
     status: AttendanceStatus.absent,
     source: AttendanceSource.manual,
@@ -136,17 +140,31 @@ void main() {
         sheet.cell(CellIndex.indexByString('D5')).value?.toString(),
         '2026-10-05',
       );
-      // طريقة التسجيل محفوظة من السجل.
+      // كل غياب صفٌّ مستقل بحصته ووقتها — العمودان «الحصة» و«وقت الحصة».
+      expect(
+        sheet.cell(CellIndex.indexByString('F3')).value?.toString(),
+        'الحصة',
+      );
       expect(
         sheet.cell(CellIndex.indexByString('F4')).value?.toString(),
+        'الحصة الأولى',
+      );
+      expect(
+        sheet.cell(CellIndex.indexByString('G4')).value?.toString(),
+        '08:00–08:45',
+      );
+      // طريقة التسجيل محفوظة من السجل (آخر عمود بعد إضافة الحصة).
+      expect(
+        sheet.cell(CellIndex.indexByString('I4')).value?.toString(),
         'إقفال تلقائي',
       );
       expect(
-        sheet.cell(CellIndex.indexByString('F5')).value?.toString(),
+        sheet.cell(CellIndex.indexByString('I5')).value?.toString(),
         'يدوي',
       );
-      // الإجمالي العام في الصف التالي لآخر غياب.
+      // الإجمالي في الصف التالي لآخر غياب: حصص الغياب + أيام الغياب.
       expect(sheet.cell(CellIndex.indexByString('D6')).value?.toString(), '2');
+      expect(sheet.cell(CellIndex.indexByString('F6')).value?.toString(), '2');
     });
 
     test('الأشهر المحددة ترشّح الغيابات', () async {
@@ -159,6 +177,7 @@ void main() {
       );
       // غياب تشرين الأول خارج الشهر المحدد، والصف التالي هو الإجمالي مباشرة.
       expect(sheet.cell(CellIndex.indexByString('D5')).value?.toString(), '1');
+      expect(sheet.cell(CellIndex.indexByString('F5')).value?.toString(), '1');
     });
 
     test('اسم الملف عربي ويصف النطاق', () {
@@ -204,6 +223,7 @@ void main() {
         includeDaily: false,
         includeSummary: false,
         includeAbsences: true,
+        includeLessonLog: false,
       );
       final pw.Document doc = await report.build();
       final Uint8List bytes = await doc.save();
@@ -229,6 +249,7 @@ void main() {
         includeDaily: false,
         includeSummary: false,
         includeAbsences: true,
+        includeLessonLog: false,
       );
       final Uint8List bytes = await (await report.build()).save();
       expect(_pageCount(bytes), greaterThanOrEqualTo(1));

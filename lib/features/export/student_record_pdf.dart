@@ -8,6 +8,8 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 import '../../core/arabic_shaping.dart';
+import '../../core/attendance_labels.dart';
+import '../../core/lesson.dart';
 import '../../core/school_time.dart';
 import '../../data/db.dart';
 import '../../data/reports_service.dart';
@@ -39,13 +41,6 @@ class StudentRecordPdf {
   final pw.Font fontBold;
   final DateTime? today;
 
-  static const List<String> _statusAr = <String>[
-    'حاضر',
-    'غائب',
-    'إجازة',
-    'متأخر',
-  ];
-
   /// صفوف كل جدول: الجدول الواحد لا يُقسَّم تلقائياً بموثوقية داخل
   /// MultiPage، فنقطّع الأيام لمقاطع يسع المقطعُ الصفحةَ حتماً.
   static const int _chunkRows = 44;
@@ -55,15 +50,18 @@ class StudentRecordPdf {
 
   static String _t(String s) => arabicForPdf(s);
 
-  PdfColor _colorFor(int? status, bool schoolDay) {
+  PdfColor _colorFor(int? status, bool schoolDay, {bool partial = false}) {
     if (!schoolDay) {
-      return const PdfColor.fromInt(0xFFD9D9D9);
+      return PdfColor.fromInt(StatusHex.asInt(StatusHex.offDay));
+    }
+    if (partial) {
+      return PdfColor.fromInt(StatusHex.asInt(StatusHex.absentPartial));
     }
     switch (status) {
       case AttendanceStatus.present:
-        return const PdfColor.fromInt(0xFFC6EFCE);
+        return PdfColor.fromInt(StatusHex.asInt(StatusHex.present));
       case AttendanceStatus.absent:
-        return const PdfColor.fromInt(0xFFFFC7CE);
+        return PdfColor.fromInt(StatusHex.asInt(StatusHex.absent));
       case AttendanceStatus.leave:
         return const PdfColor.fromInt(0xFFFFEB9C);
       case AttendanceStatus.late:
@@ -73,11 +71,29 @@ class StudentRecordPdf {
     }
   }
 
-  String _statusText(int? status, bool schoolDay) {
-    if (status != null) {
-      return _statusAr[status];
+  /// حروف حصص يوم: تُبنى بترتيب الجدول من المصدر الموحّد ثم تُقلب بصرياً في
+  /// PDF (`arabicForPdf`).
+  static String _dayMarks(List<Lesson> lessons, Map<int, int> statuses) =>
+      lessonCompactMarks(
+        <LessonWindow>[for (final Lesson l in lessons) AppDb.windowOf(l)],
+        statuses,
+      );
+
+  /// نص حالة اليوم: «غياب كامل» أو «غياب جزئي — حصتان» لا «غائب» دائماً.
+  String _statusText(
+    int? status,
+    bool schoolDay,
+    Map<int, int> lessonStatuses,
+    int totalLessons,
+  ) {
+    if (!schoolDay) {
+      return 'عطلة';
     }
-    return schoolDay ? 'لم يسجل' : 'عطلة';
+    return describeDay(
+      status: status,
+      lessonStatuses: lessonStatuses,
+      totalLessons: totalLessons,
+    ).label;
   }
 
   pw.Widget _th(String text) => pw.Container(
@@ -113,6 +129,7 @@ class StudentRecordPdf {
       today: today,
     );
     final StatusTotals t = record.totals;
+    final List<Lesson> lessons = await reports.db.allLessons();
     final pw.Document doc = pw.Document(
       title: 'سجل الطالب ${student.fullName}',
       theme: pw.ThemeData.withFont(base: font, bold: fontBold),
@@ -124,6 +141,8 @@ class StudentRecordPdf {
           _th('التاريخ'),
           _th('اليوم'),
           _th('الحالة'),
+          // عمود الحصص يثبت حالة كل حصة بترتيب الجدول في اليوم نفسه.
+          _th('الحصص'),
           // عمود وقت الوصول يثبت وقت التأخر الفعلي (ساعة ودقيقة) في التقرير.
           _th('وقت الوصول'),
         ],
@@ -131,10 +150,11 @@ class StudentRecordPdf {
     ];
     final Map<int, pw.TableColumnWidth> widths = <int, pw.TableColumnWidth>{
       0: const pw.FixedColumnWidth(30),
-      1: const pw.FixedColumnWidth(80),
-      2: const pw.FixedColumnWidth(95),
-      3: const pw.FlexColumnWidth(1),
-      4: const pw.FixedColumnWidth(60),
+      1: const pw.FixedColumnWidth(72),
+      2: const pw.FixedColumnWidth(80),
+      3: const pw.FixedColumnWidth(70),
+      4: const pw.FlexColumnWidth(1),
+      5: const pw.FixedColumnWidth(52),
     };
     int index = 1;
     final List<List<pw.TableRow>> chunks = <List<pw.TableRow>>[];
@@ -148,9 +168,23 @@ class StudentRecordPdf {
             _td(d.dateKey),
             _td(SchoolTime.weekdayNames[dt.weekday - 1]),
             _td(
-              _statusText(d.status, d.schoolDay),
-              color: _colorFor(d.status, d.schoolDay),
+              _statusText(
+                d.status,
+                d.schoolDay,
+                d.lessonStatuses,
+                lessons.length,
+              ),
+              color: _colorFor(
+                d.status,
+                d.schoolDay,
+                partial: describeDay(
+                  status: d.status,
+                  lessonStatuses: d.lessonStatuses,
+                  totalLessons: lessons.length,
+                ).isPartial,
+              ),
             ),
+            _td(_t(_dayMarks(lessons, d.lessonStatuses))),
             _td(d.arrivalTime ?? ''),
           ],
         ),
@@ -218,12 +252,18 @@ class StudentRecordPdf {
                 ],
               ),
               for (final (String, String) st in <(String, String)>[
-                ('إجمالي الحضور', '${t.present}'),
-                ('إجمالي الغياب', '${t.absent}'),
-                ('إجمالي الإجازات', '${t.leave}'),
-                ('إجمالي التأخير', '${t.late}'),
-                ('أيام مسجلة', '${t.recorded}'),
+                ('إجمالي الحضور (حصص)', '${t.present}'),
+                ('إجمالي الغياب (حصص)', '${t.absent}'),
+                ('إجمالي الإجازات (حصص)', '${t.leave}'),
+                ('إجمالي التأخير (حصص)', '${t.late}'),
+                ('أيام مسجَّلة', '${t.recordedDays}'),
+                ('أيام فيها غياب', '${t.absentDays}'),
                 ('نسبة الحضور %', t.ratePct.toStringAsFixed(1)),
+                for (final Lesson l in lessons)
+                  (
+                    'غياب ${l.name.trim().isEmpty ? 'ح${l.slot}' : l.name}',
+                    '${record.byLesson[l.id]?.absent ?? 0}',
+                  ),
               ])
                 pw.TableRow(
                   children: <pw.Widget>[_td(st.$1), _td(st.$2, bold: true)],

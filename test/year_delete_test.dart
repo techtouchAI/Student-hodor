@@ -7,6 +7,7 @@ import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:student_hodor/data/db.dart';
+import 'package:student_hodor/data/notifications_service.dart';
 import 'package:student_hodor/data/years_service.dart';
 
 /// سنة دراسية كاملة البيانات: صف + طالب (وباجه) + جلسة + حضور + إجازة
@@ -54,11 +55,21 @@ Future<int> _seedYear(AppDb db, String yearName, String start) async {
     yearId: yearId,
     classId: classId,
     studentId: studentId,
+    lessonId: (await db.firstLesson()).id,
     date: date,
     status: AttendanceStatus.present,
     source: AttendanceSource.scan,
     sessionId: sessionId,
     arrivalTime: '07:40',
+  );
+  // تنبيه حد الفصل لهذه السنة (يخصّ السنة والطالب معاً).
+  await db.recordAlertCrossing(
+    yearId: yearId,
+    studentId: studentId,
+    absentDays: 16,
+    recordedDays: 21,
+    thresholdDays: 15,
+    kind: AlertKinds.threshold2,
   );
   await db.into(db.leaves).insert(
         LeavesCompanion(
@@ -125,6 +136,22 @@ void main() {
     // بادجات طلاب السنة المحذوفة اختفت وباج السنة الأخرى باقٍ.
     expect(await _count(db, 'badges'), 1);
 
+    // R3: تنبيهات السنة المحذوفة وحدها اختفت، وتنبيهات السنة الأخرى باقية.
+    expect(
+      await (db.select(db.alertNotifications)
+            ..where((n) => n.yearId.equals(y1)))
+          .get(),
+      isEmpty,
+      reason: 'لا تنبيه يتيم بعد حذف السنة',
+    );
+    expect(
+      await (db.select(db.alertNotifications)
+            ..where((n) => n.yearId.equals(y2)))
+          .get(),
+      hasLength(1),
+      reason: 'تنبيه السنة الأخرى لا يُمسّ',
+    );
+
     // السنة الثانية بكل بياناتها لم تُمس.
     expect(await db.yearById(y2), isNotNull);
     expect(await _count(db, 'academic_years'), 1);
@@ -151,6 +178,7 @@ void main() {
     expect(await _count(db, 'scan_events'), 0);
     expect(await _count(db, 'attendance_rows'), 0);
     expect(await _count(db, 'leaves'), 0);
+    expect(await _count(db, 'alert_notifications'), 0);
     // الحذف مُدقَّق في سجل المراجعة.
     final List<AuditLog> logs = await db.select(db.auditLogs).get();
     expect(

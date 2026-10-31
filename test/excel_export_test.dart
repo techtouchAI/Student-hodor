@@ -57,6 +57,7 @@ Future<(AppDb, AcademicYear, List<ExportScopeClass>)> _seededScope({
       yearId: year.id,
       classId: classId,
       studentId: studentId,
+      lessonId: (await db.firstLesson()).id,
       date: record.$1,
       status: record.$2,
       source: AttendanceSource.manual,
@@ -75,6 +76,7 @@ Future<List<int>> _buildExcel({
   bool includeDaily = true,
   bool includeSummary = true,
   bool includeLeaves = true,
+  bool includeLessonLog = true,
   List<(String, int)> records = const <(String, int)>[
     ('2026-09-02', AttendanceStatus.absent),
   ],
@@ -95,6 +97,7 @@ Future<List<int>> _buildExcel({
       includeDaily: includeDaily,
       includeSummary: includeSummary,
       includeLeaves: includeLeaves,
+      includeLessonLog: includeLessonLog,
     );
     return await builder.build();
   } finally {
@@ -147,6 +150,7 @@ void main() {
       expect(decoded.tables.keys, contains('السادس-أ-أيلول 2026'));
       expect(decoded.tables.keys, contains('ملخص السنة'));
       expect(decoded.tables.keys, contains('الإجازات'));
+      expect(decoded.tables.keys, contains('سجل الحصص'));
       expect(
         decoded.tables.keys,
         isNot(contains('Sheet1')),
@@ -154,8 +158,8 @@ void main() {
             '`Excel.delete` ترفض حذف الورقة الوحيدة، فلا يصح استدعاؤها '
             'قبل إنشاء الكشوف',
       );
-      // ثلاث أوراق حقيقية فقط — أي تبويب رابع يعني ورقة قالب باقية.
-      expect(decoded.tables.length, 3);
+      // أربع أوراق حقيقية فقط — أي تبويب خامس يعني ورقة قالب باقية.
+      expect(decoded.tables.length, 4);
     });
 
     test('تصدير بلا أوراق حقيقية يُبقي ورقة واحدة ولا يُنتج ملفاً تالفاً', () async {
@@ -163,6 +167,7 @@ void main() {
         includeDaily: false,
         includeSummary: false,
         includeLeaves: false,
+        includeLessonLog: false,
       );
       final Excel decoded = Excel.decodeBytes(bytes);
       // ملف xlsx لا يصح بلا ورقة واحدة على الأقل ⇒ «Sheet1» تبقى هنا عمداً.
@@ -182,20 +187,32 @@ void main() {
       // اليوم الأول في العمود C مباشرة (كان D فيبقى C فارغاً).
       expect(daily.cell(CellIndex.indexByString('C3')).value?.toString(), '1');
       expect(daily.cell(CellIndex.indexByString('D3')).value?.toString(), '2');
-      // المجاميع تلحق آخر يوم (31 ⇒ AG) بلا فراغ: AH..AL.
-      expect(daily.cell(CellIndex.indexByString('AH3')).value?.toString(), 'غياب');
+      // المجاميع تلحق آخر يوم (31 ⇒ AG) بلا فراغ: AH..AM.
+      expect(
+        daily.cell(CellIndex.indexByString('AH3')).value?.toString(),
+        'حصص الغياب',
+      );
       expect(
         daily.cell(CellIndex.indexByString('AL3')).value?.toString(),
         'نسبة الحضور',
       );
-      // بيانات الطالب: تسلسل واسم وحالة اليوم الثاني (2026-09-02 = غياب).
+      expect(
+        daily.cell(CellIndex.indexByString('AM3')).value?.toString(),
+        'أيام الغياب',
+      );
+      // بيانات الطالب: تسلسل واسم وحروف حصص اليوم الثاني (2026-09-02):
+      // الحصة الأولى غياب، وباقي الحصص لم تُسجَّل بعد (—).
       expect(daily.cell(CellIndex.indexByString('A4')).value?.toString(), '1');
       expect(
         daily.cell(CellIndex.indexByString('B4')).value?.toString(),
         'علي حسن',
       );
-      expect(daily.cell(CellIndex.indexByString('D4')).value?.toString(), 'غائب');
+      expect(
+        daily.cell(CellIndex.indexByString('D4')).value?.toString(),
+        'غ·—·—·—·—·—',
+      );
       expect(daily.cell(CellIndex.indexByString('AH4')).value?.toString(), '1');
+      expect(daily.cell(CellIndex.indexByString('AM4')).value?.toString(), '1');
     });
 
     test('نسبة الحضور مقربة لمنزلة عشرية واحدة لا كسوراً مطولة', () async {

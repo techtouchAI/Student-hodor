@@ -48,6 +48,7 @@ void main() {
       yearId: 1,
       classId: cls,
       studentId: roster[0].id,
+      lessonId: (await db.firstLesson()).id,
       date: date,
       status: AttendanceStatus.present,
       source: AttendanceSource.scan,
@@ -79,8 +80,8 @@ void main() {
         .getSingleOrNull();
     expect(closedSes?.closedAt, isNotNull);
 
-    final AttendanceRow? a2 = await db.attendanceOf(roster[1].id, date);
-    final AttendanceRow? a3 = await db.attendanceOf(roster[2].id, date);
+    final AttendanceRow? a2 = await db.attendanceOf(roster[1].id, date, (await db.firstLesson()).id);
+    final AttendanceRow? a3 = await db.attendanceOf(roster[2].id, date, (await db.firstLesson()).id);
     expect(a2?.status, AttendanceStatus.leave);
     expect(a3?.status, AttendanceStatus.absent);
     expect(a3?.source, AttendanceSource.autoClose);
@@ -94,7 +95,7 @@ void main() {
           ..where((s) => s.id.equals(session)))
         .getSingleOrNull();
     expect(reopenedSes?.closedAt, isNull);
-    expect(await db.attendanceOf(roster[2].id, date), isNull);
-    expect(await db.attendanceOf(roster[0].id, date), isNotNull);
+    expect(await db.attendanceOf(roster[2].id, date, (await db.firstLesson()).id), isNull);
+    expect(await db.attendanceOf(roster[0].id, date, (await db.firstLesson()).id), isNotNull);
   });
 }

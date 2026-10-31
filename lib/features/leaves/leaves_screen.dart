@@ -7,6 +7,7 @@ import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/lesson.dart';
 import '../../core/school_time.dart';
 import '../../data/db.dart';
 import '../../state/providers.dart';
@@ -36,13 +37,20 @@ class _LeavesState extends ConsumerState<LeavesScreen> {
     _students = db.select(db.students).watch();
   }
 
+  /// وصف نطاق الحصص كما يظهر في القائمة.
+  static String _scopeLabel(Leave l) =>
+      ' • ${leaveScopeLabel(fromSlot: l.fromSlot, toSlot: l.toSlot)}';
+
   Future<void> _remove(Leave l) async {
     final AppDb db = ref.read(dbProvider);
     final bool? ok = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
         title: const Text('حذف إجازة'),
-        content: Text('سيُعاد احتساب أيام ${l.start} → ${l.end} غياباً إن كانت مغلقة.'),
+        content: Text(
+          'سيُعاد احتساب حصص ${l.start} → ${l.end} غياباً إن كانت مغلقة — '
+          'داخل نطاق الإجازة وحده.',
+        ),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -65,6 +73,8 @@ class _LeavesState extends ConsumerState<LeavesScreen> {
       start: l.start,
       end: l.end,
       added: false,
+      fromSlot: l.fromSlot,
+      toSlot: l.toSlot,
     );
     await db.logAudit('leave_delete', 'id=${l.id}');
   }
@@ -119,6 +129,7 @@ class _LeavesState extends ConsumerState<LeavesScreen> {
                         title: Text(names[l.studentId] ?? 'طالب محذوف'),
                         subtitle: Text(
                           '${l.start} → ${l.end} • ${leaveTypeNames[l.type]}'
+                          '${_scopeLabel(l)}'
                           '${l.reason.isEmpty ? '' : ' • ${l.reason}'}',
                         ),
                         trailing: IconButton(
@@ -145,6 +156,7 @@ class _LeavesState extends ConsumerState<LeavesScreen> {
     }
     final List<Student> students =
         await (db.select(db.students)..where((s) => s.yearId.equals(year.id))).get();
+    final List<LessonWindow> lessons = await db.lessonWindows();
     if (students.isEmpty) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -157,6 +169,9 @@ class _LeavesState extends ConsumerState<LeavesScreen> {
     DateTime start = DateTime.now();
     DateTime end = DateTime.now();
     int type = 0;
+    // نطاق الحصص: فارغ = كل حصص اليوم (السلوك القديم).
+    int? fromSlot;
+    int? toSlot;
     final TextEditingController reason = TextEditingController();
     if (!context.mounted) {
       return;
@@ -215,6 +230,66 @@ class _LeavesState extends ConsumerState<LeavesScreen> {
                     }
                   },
                 ),
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: DropdownButtonFormField<int?>(
+                        key: ValueKey<String?>('from-$fromSlot'),
+                        initialValue: fromSlot,
+                        isExpanded: true,
+                        items: <DropdownMenuItem<int?>>[
+                          const DropdownMenuItem<int?>(
+                            value: null,
+                            child: Text('كل الحصص'),
+                          ),
+                          for (final LessonWindow l in lessons)
+                            DropdownMenuItem<int?>(
+                              value: l.slot,
+                              child: Text(l.displayName),
+                            ),
+                        ],
+                        onChanged: (int? v) => setSt(() {
+                          fromSlot = v;
+                          if (v == null) {
+                            toSlot = null;
+                          } else if (toSlot != null && toSlot! < v) {
+                            toSlot = v;
+                          }
+                        }),
+                        decoration: const InputDecoration(labelText: 'من الحصة'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: DropdownButtonFormField<int?>(
+                        key: ValueKey<String?>('to-$toSlot'),
+                        initialValue: toSlot,
+                        isExpanded: true,
+                        items: <DropdownMenuItem<int?>>[
+                          const DropdownMenuItem<int?>(
+                            value: null,
+                            child: Text('آخر اليوم'),
+                          ),
+                          for (final LessonWindow l in lessons)
+                            DropdownMenuItem<int?>(
+                              value: l.slot,
+                              child: Text(l.displayName),
+                            ),
+                        ],
+                        onChanged: fromSlot == null
+                            ? null
+                            : (int? v) => setSt(() {
+                                  toSlot = v;
+                                  if (v != null && fromSlot != null &&
+                                      v < fromSlot!) {
+                                    fromSlot = v;
+                                  }
+                                }),
+                        decoration: const InputDecoration(labelText: 'إلى الحصة'),
+                      ),
+                    ),
+                  ],
+                ),
                 DropdownButtonFormField<int>(
                   key: ValueKey<int>(type),
                   initialValue: type,
@@ -257,6 +332,8 @@ class _LeavesState extends ConsumerState<LeavesScreen> {
             studentId: Value(stu.id),
             start: Value(startKey),
             end: Value(endKey),
+            fromSlot: Value(fromSlot),
+            toSlot: Value(toSlot),
             type: Value(type),
             reason: Value(reason.text.trim()),
             createdAt: Value(DateTime.now().toIso8601String()),
@@ -267,11 +344,13 @@ class _LeavesState extends ConsumerState<LeavesScreen> {
       start: startKey,
       end: endKey,
       added: true,
+      fromSlot: fromSlot,
+      toSlot: toSlot,
     );
     await db.logAudit('leave_add', '${stu.fullName} $startKey');
     if (context.mounted && synced > 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('صُحّحت $synced سجلاً من غياب إلى إجازة')),
+        SnackBar(content: Text('صُحّحت $synced حصة من غياب إلى إجازة')),
       );
     }
   }

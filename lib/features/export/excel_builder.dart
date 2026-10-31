@@ -19,18 +19,23 @@ import 'package:archive/archive.dart';
 import 'package:drift/drift.dart' hide Column;
 import 'package:excel/excel.dart';
 
+import '../../core/attendance_labels.dart';
+import '../../core/lesson.dart';
 import '../../core/school_time.dart';
 import '../../data/db.dart';
 import '../../data/reports_service.dart';
 
 class ExcelColors {
   const ExcelColors._();
-  static const String present = '#C6EFCE';
-  static const String absent = '#FFC7CE';
-  static const String leave = '#FFEB9C';
-  static const String late = '#FCD5B4';
-  static const String offDay = '#D9D9D9';
-  static const String header = '#0D6E5F';
+  static const String present = StatusHex.present;
+  static const String absent = StatusHex.absent;
+
+  /// غياب بعض الحصص: درجة باهتة تميّزه عن الغياب الكامل.
+  static const String absentPartial = StatusHex.absentPartial;
+  static const String leave = StatusHex.leave;
+  static const String late = StatusHex.late;
+  static const String offDay = StatusHex.offDay;
+  static const String header = StatusHex.header;
 }
 
 class ExportScopeClass {
@@ -55,6 +60,7 @@ class ExcelBuilder {
     this.includeSummary = true,
     this.includeLeaves = true,
     this.includeAbsences = false,
+    this.includeLessonLog = true,
   });
 
   final AppDb db;
@@ -73,6 +79,10 @@ class ExcelBuilder {
   /// ورقة «الغيابات فقط»: غيابات كل طالب وحدها بلا حضور ولا إجازات.
   final bool includeAbsences;
 
+  /// ورقة «سجل الحصص»: كل واقعة مسح/تسجيل سطراً مستقلاً بحصته ووقتها —
+  /// التفصيل الكامل الذي تعرضه الشاشات، بلا تجميع.
+  final bool includeLessonLog;
+
   /// سجل طالب واحد (من ملف الطالب): الأشهر والصفوف لا معنى لها هنا —
   /// يُبنى عبر [buildStudentRecord] لا [build].
   ExcelBuilder.studentRecord({
@@ -88,7 +98,8 @@ class ExcelBuilder {
         includeDaily = false,
         includeSummary = false,
         includeLeaves = false,
-        includeAbsences = false;
+        includeAbsences = false,
+        includeLessonLog = false;
 
   static const List<String> _statusAr = <String>[
     'حاضر',
@@ -117,6 +128,10 @@ class ExcelBuilder {
   static const int _presentColumn = _leaveColumn + 1; // AJ
   static const int _lateColumn = _presentColumn + 1; // AK
   static const int _rateColumn = _lateColumn + 1; // AL
+
+  /// عمود «أيام الغياب» — عدّاد مستقل عن «حصص الغياب»: يوم واحد فيه ثلاث
+  /// حصص غياب = يوم واحد لا ثلاثة (أساس عتبات الإنذار).
+  static const int _absentDaysColumn = _rateColumn + 1; // AM
 
   /// صف العنوان المدمج (1)، صف فارغ (2)، صف الترويسة (3)، ثم البيانات من 4.
   static const int _titleRow = 0;
@@ -157,9 +172,12 @@ class ExcelBuilder {
   /// الخلية بسلسلة كسور مزعجة بدل 66.7.
   static double _round1(double v) => (v * 10).roundToDouble() / 10;
 
-  String _colorFor(int? status, bool schoolDay) {
+  String _colorFor(int? status, bool schoolDay, {bool partial = false}) {
     if (!schoolDay) {
       return ExcelColors.offDay;
+    }
+    if (partial) {
+      return ExcelColors.absentPartial;
     }
     switch (status) {
       case AttendanceStatus.present:
@@ -200,12 +218,23 @@ class ExcelBuilder {
     return candidate;
   }
 
+  /// حروف حالات الحصص المضغوطة داخل خلية اليوم: «ح·غ·إ·ح·ح·—».
+  ///
+  /// المصدر `lessonCompactMarks` في `core/attendance_labels.dart` نفسه الذي
+  /// تستخدمه الشاشة وPDF — لا نسخة ثالثة للحروف في التصدير.
+  static String _marksFor(List<Lesson> lessons, Map<int, int> byLessonId) =>
+      lessonCompactMarks(
+        <LessonWindow>[for (final Lesson l in lessons) AppDb.windowOf(l)],
+        byLessonId,
+      );
+
   Future<Uint8List> build() async {
     final Excel excel = Excel.createExcel();
     // ملاحظة: **لا** تُحذف ورقة القالب «Sheet1» هنا. `Excel.delete` ترفض حذف
     // الورقة الوحيدة (`if (_sheetMap.length <= 1) return;`) فتخرج بلا أثر،
     // ويبقى في ملف المستخدم تبويب «Sheet1» فارغ بجانب الكشوف العربية.
     // تُحذف في [_dropTemplateSheet] بعد إنشاء كل الأوراق.
+    final List<Lesson> lessons = await db.allLessons();
     if (includeDaily) {
       for (final MonthKey m in months) {
         for (final ExportScopeClass sc in classes) {
@@ -213,16 +242,23 @@ class ExcelBuilder {
               _sheetName('${sc.cls.grade}-${sc.cls.section}-${m.label}')];
           sheet.isRTL = true;
           _writeHeader(sheet, sc, m);
+          final String monthFrom = SchoolTime.dateKey(m.first);
+          final String monthTo = SchoolTime.dateKey(m.last);
           int row = _firstDataRow;
           for (final Student s in sc.students) {
-            final Map<String, AttendanceRow> byDate = <String, AttendanceRow>{
-              for (final AttendanceRow r in await (db.select(db.attendanceRows)
-                    ..where(
-                      (a) => a.studentId.equals(s.id) & a.yearId.equals(year.id),
-                    ))
-                  .get())
-                r.date: r,
-            };
+            final Map<String, List<AttendanceRow>> byDate =
+                <String, List<AttendanceRow>>{};
+            for (final AttendanceRow r in await (db.select(db.attendanceRows)
+                  ..where(
+                    (a) =>
+                        a.studentId.equals(s.id) &
+                        a.yearId.equals(year.id) &
+                        a.date.isBiggerOrEqualValue(monthFrom) &
+                        a.date.isSmallerOrEqualValue(monthTo),
+                  ))
+                .get()) {
+              byDate.putIfAbsent(r.date, () => <AttendanceRow>[]).add(r);
+            }
             final Data seq = sheet.cell(
               CellIndex.indexByColumnRow(columnIndex: _indexColumn, rowIndex: row),
             );
@@ -246,13 +282,31 @@ class ExcelBuilder {
             int leave = 0;
             int present = 0;
             int late = 0;
+            final Set<String> absentDates = <String>{};
             for (int day = 1; day <= 31; day++) {
               if (!m.isValidDay(day)) {
                 continue;
               }
               final String key = SchoolTime.dateKey(DateTime(m.year, m.month, day));
-              final AttendanceRow? rowAt = byDate[key];
-              final int? status = rowAt?.status;
+              final List<AttendanceRow> dayRows =
+                  byDate[key] ?? const <AttendanceRow>[];
+              final Map<int, int> statuses = <int, int>{
+                for (final AttendanceRow r in dayRows) r.lessonId: r.status,
+              };
+              // متغير محلي: الحقل على كائن قابل للفراغ لا يُرقّى عبر `status`.
+              final int? status = ReportsService.aggregateStatus(statuses.values);
+              int? lateAtLessonId;
+              for (final AttendanceRow r in dayRows) {
+                if (r.status == AttendanceStatus.late && r.arrivalTime != null) {
+                  lateAtLessonId = r.lessonId;
+                  break;
+                }
+              }
+              final String? arrivalAt = lateAtLessonId == null
+                  ? null
+                  : dayRows
+                      .firstWhere((AttendanceRow r) => r.lessonId == lateAtLessonId)
+                      .arrivalTime;
               final bool schoolDay = SchoolTime.isSchoolDay(
                 DateTime(m.year, m.month, day),
                 workWeekdays: workWeekdays,
@@ -264,32 +318,41 @@ class ExcelBuilder {
                   rowIndex: row,
                 ),
               );
-              // خلية التأخر تحمل وقته الفعلي (ساعة ودقيقة) مع التسمية.
-              // متغير محلي: الحقل على كائن قابل للفراغ لا يُرقّى عبر `status`.
-              final String? arrivalAt = rowAt?.arrivalTime;
+              // خلية اليوم تحمل حصصه بالترتيب؛ ويُثبَّت وقت التأخر (ساعة
+              // ودقيقة) بدل حرفه وحده حتى لا تضيع المعلومة في التجميع.
+              final String marks = _marksFor(lessons, statuses);
               cell.value = TextCellValue(
-                status == null
+                statuses.isEmpty
                     ? (schoolDay ? '' : 'عطلة')
                     : (status == AttendanceStatus.late && arrivalAt != null
-                        ? 'متأخر $arrivalAt'
-                        : _statusAr[status]),
+                        ? '$marks ($arrivalAt)'
+                        : marks),
+              );
+              final DayPresence presence = describeDay(
+                status: status,
+                lessonStatuses: statuses,
+                totalLessons: lessons.length,
               );
               cell.cellStyle = CellStyle(
-                backgroundColorHex:
-                    ExcelColor.fromHexString(_colorFor(status, schoolDay)),
+                backgroundColorHex: ExcelColor.fromHexString(
+                  _colorFor(status, schoolDay, partial: presence.isPartial),
+                ),
                 fontFamily: _fontFamily,
-                fontSize: 11,
+                fontSize: 10,
                 horizontalAlign: HorizontalAlign.Center,
               );
-              switch (status) {
-                case AttendanceStatus.absent:
-                  absent++;
-                case AttendanceStatus.leave:
-                  leave++;
-                case AttendanceStatus.present:
-                  present++;
-                case AttendanceStatus.late:
-                  late++;
+              for (final AttendanceRow r in dayRows) {
+                switch (r.status) {
+                  case AttendanceStatus.absent:
+                    absent++;
+                    absentDates.add(r.date);
+                  case AttendanceStatus.leave:
+                    leave++;
+                  case AttendanceStatus.present:
+                    present++;
+                  case AttendanceStatus.late:
+                    late++;
+                }
               }
             }
             final int recorded = present + absent + leave + late;
@@ -301,12 +364,15 @@ class ExcelBuilder {
                 recorded == 0 ? 100 : (present + late) * 100 / recorded;
             _cellAt(sheet, _rateColumn, row).value =
                 DoubleCellValue(_round1(rate));
+            _cellAt(sheet, _absentDaysColumn, row).value =
+                IntCellValue(absentDates.length);
             for (final int col in <int>[
               _absentColumn,
               _leaveColumn,
               _presentColumn,
               _lateColumn,
               _rateColumn,
+              _absentDaysColumn,
             ]) {
               _cellAt(sheet, col, row).cellStyle = CellStyle(
                 fontFamily: _fontFamily,
@@ -320,13 +386,16 @@ class ExcelBuilder {
       }
     }
     if (includeSummary) {
-      await _summarySheet(excel);
+      await _summarySheet(excel, lessons);
     }
     if (includeLeaves) {
       await _leavesSheet(excel);
     }
+    if (includeLessonLog) {
+      await _lessonLogSheet(excel);
+    }
     if (includeAbsences) {
-      await _absencesSheet(excel);
+      await _absencesSheet(excel, lessons);
     }
     _dropTemplateSheet(excel);
     final List<int>? bytes = excel.save();
@@ -353,18 +422,21 @@ class ExcelBuilder {
       holidayKeys: holidayKeys,
       today: today,
     );
+    final List<Lesson> lessons = await db.allLessons();
     _writeTitle(
       sheet,
       '$schoolName — سجل الطالب ${student.fullName} — $classTitle — '
       'السنة ${year.name} — حتى ${record.to} — المدير: $directorName',
-      4,
+      5,
     );
-    // عمود «وقت الوصول» يثبت وقت التأخر الفعلي (ساعة ودقيقة) مع السجل.
+    // عمود «الحصص» يثبت حالة الطالب في كل حصة بترتيب الجدول، وعمود
+    // «وقت الوصول» يثبت وقت التأخر الفعلي.
     const List<String> head = <String>[
       'م',
       'التاريخ',
       'اليوم',
       'الحالة',
+      'الحصص',
       'وقت الوصول',
     ];
     _writeColumnHeaders(sheet, head);
@@ -383,29 +455,42 @@ class ExcelBuilder {
         value: SchoolTime.weekdayNames[dt.weekday - 1],
       );
       final Data cell = _cellAt(sheet, 3, row);
+      final DayPresence day = describeDay(
+        status: status,
+        lessonStatuses: d.lessonStatuses,
+        totalLessons: lessons.length,
+      );
       cell.value = TextCellValue(
-        status == null
-            ? (d.schoolDay ? 'لم يسجل' : 'عطلة')
-            : _statusAr[status],
+        d.schoolDay ? day.label : 'عطلة',
       );
       cell.cellStyle = CellStyle(
-        backgroundColorHex:
-            ExcelColor.fromHexString(_colorFor(status, d.schoolDay)),
+        backgroundColorHex: ExcelColor.fromHexString(
+          _colorFor(status, d.schoolDay, partial: day.isPartial),
+        ),
         fontFamily: _fontFamily,
         fontSize: 11,
         horizontalAlign: HorizontalAlign.Right,
       );
-      _text(sheet, column: 4, row: row, value: d.arrivalTime ?? '');
+      _text(
+        sheet,
+        column: 4,
+        row: row,
+        value: d.lessonStatuses.isEmpty
+            ? ''
+            : _marksFor(lessons, d.lessonStatuses),
+      );
+      _text(sheet, column: 5, row: row, value: d.arrivalTime ?? '');
       row++;
     }
     row++;
     final StatusTotals t = record.totals;
     final List<(String, CellValue)> stats = <(String, CellValue)>[
-      ('إجمالي الحضور', IntCellValue(t.present)),
-      ('إجمالي الغياب', IntCellValue(t.absent)),
-      ('إجمالي الإجازات', IntCellValue(t.leave)),
-      ('إجمالي التأخير', IntCellValue(t.late)),
-      ('أيام مسجلة', IntCellValue(t.recorded)),
+      ('إجمالي الحضور (حصص)', IntCellValue(t.present)),
+      ('إجمالي الغياب (حصص)', IntCellValue(t.absent)),
+      ('إجمالي الإجازات (حصص)', IntCellValue(t.leave)),
+      ('إجمالي التأخير (حصص)', IntCellValue(t.late)),
+      ('أيام مسجَّلة', IntCellValue(t.recordedDays)),
+      ('أيام فيها غياب', IntCellValue(t.absentDays)),
       ('نسبة الحضور %', DoubleCellValue(_round1(t.ratePct))),
     ];
     for (final (String, CellValue) st in stats) {
@@ -413,11 +498,29 @@ class ExcelBuilder {
       _num(sheet, column: 2, row: row, value: st.$2);
       row++;
     }
+    // تفصيل الغياب لكل حصة — يوضّح «أين» يغيب الطالب لا فقط «كم».
+    for (final Lesson l in lessons) {
+      final StatusTotals? lt = record.byLesson[l.id];
+      _text(
+        sheet,
+        column: 1,
+        row: row,
+        value: 'غياب ${AppDb.windowOf(l).displayName}',
+      );
+      _num(
+        sheet,
+        column: 2,
+        row: row,
+        value: IntCellValue(lt?.absent ?? 0),
+      );
+      row++;
+    }
     sheet.setColumnWidth(0, 6.0);
-    sheet.setColumnWidth(1, 16.0);
+    sheet.setColumnWidth(1, 22.0);
     sheet.setColumnWidth(2, 14.0);
     sheet.setColumnWidth(3, 14.0);
-    sheet.setColumnWidth(4, 14.0);
+    sheet.setColumnWidth(4, 26.0);
+    sheet.setColumnWidth(5, 14.0);
     _dropTemplateSheet(excel);
     final List<int>? bytes = excel.save();
     if (bytes == null) {
@@ -439,18 +542,25 @@ class ExcelBuilder {
     }
   }
 
-  Future<void> _summarySheet(Excel excel) async {
+  /// ملخص السنة لكل طالب: مجاميع الحصص + **أيام** الغياب + غياب كل حصة.
+  ///
+  /// العمودان «حصص الغياب» و«أيام الغياب» مقصودان معاً: الأول يقيس حجم
+  /// الغياب التعليمي (3 حصص في يوم = 3)، والثاني أساس عتبة الإنذار القانونية
+  /// (3 حصص في يوم = يوم واحد).
+  Future<void> _summarySheet(Excel excel, List<Lesson> lessons) async {
     final Sheet sheet = excel[_sheetName('ملخص السنة')];
     sheet.isRTL = true;
-    const List<String> head = <String>[
+    final List<String> head = <String>[
       'م',
       'الصف',
       'اسم الطالب',
-      'حضور',
-      'متأخر',
-      'غياب',
-      'إجازة',
+      'حضور (حصة)',
+      'متأخر (حصة)',
+      'غياب (حصة)',
+      'إجازة (حصة)',
+      'أيام الغياب',
       'نسبة الحضور',
+      for (final Lesson l in lessons) 'غياب ح${l.slot}',
     ];
     _writeTitle(
       sheet,
@@ -463,7 +573,14 @@ class ExcelBuilder {
     int index = 1;
     for (final ExportScopeClass sc in classes) {
       for (final Student s in sc.students) {
-        final StatusTotals t = await reports.totalsForStudent(s.id, year.id);
+        final List<AttendanceRow> rows =
+            await reports.rowsOfStudent(s.id, year.id);
+        final StatusTotals t = ReportsService.totalsOfRows(rows);
+        final Map<int, List<AttendanceRow>> byLesson =
+            <int, List<AttendanceRow>>{};
+        for (final AttendanceRow r in rows) {
+          byLesson.putIfAbsent(r.lessonId, () => <AttendanceRow>[]).add(r);
+        }
         _num(
           sheet,
           column: 0,
@@ -481,22 +598,39 @@ class ExcelBuilder {
         _num(sheet, column: 4, row: row, value: IntCellValue(t.late));
         _num(sheet, column: 5, row: row, value: IntCellValue(t.absent));
         _num(sheet, column: 6, row: row, value: IntCellValue(t.leave));
+        _num(sheet, column: 7, row: row, value: IntCellValue(t.absentDays));
         _num(
           sheet,
-          column: 7,
+          column: 8,
           row: row,
           value: DoubleCellValue(_round1(t.ratePct)),
         );
+        for (int i = 0; i < lessons.length; i++) {
+          final List<AttendanceRow> lessonRows =
+              byLesson[lessons[i].id] ?? const <AttendanceRow>[];
+          final int absentInLesson = lessonRows
+              .where((AttendanceRow r) => r.status == AttendanceStatus.absent)
+              .length;
+          _num(
+            sheet,
+            column: 9 + i,
+            row: row,
+            value: IntCellValue(absentInLesson),
+          );
+        }
         row++;
       }
     }
     sheet.setColumnWidth(0, 6.0);
     sheet.setColumnWidth(1, 18.0);
     sheet.setColumnWidth(2, 34.0);
-    for (int column = 3; column <= 6; column++) {
-      sheet.setColumnWidth(column, 10.0);
+    for (int column = 3; column <= 7; column++) {
+      sheet.setColumnWidth(column, 12.0);
     }
-    sheet.setColumnWidth(7, 14.0);
+    sheet.setColumnWidth(8, 14.0);
+    for (int i = 0; i < lessons.length; i++) {
+      sheet.setColumnWidth(9 + i, 11.0);
+    }
   }
 
   Future<void> _leavesSheet(Excel excel) async {
@@ -506,6 +640,7 @@ class ExcelBuilder {
       'الطالب',
       'من',
       'إلى',
+      'الحصص',
       'النوع',
       'السبب',
     ];
@@ -537,25 +672,32 @@ class ExcelBuilder {
         sheet,
         column: 3,
         row: row,
+        value: leaveScopeLabel(fromSlot: l.fromSlot, toSlot: l.toSlot),
+      );
+      _text(
+        sheet,
+        column: 4,
+        row: row,
         value: l.type >= 0 && l.type < types.length
             ? types[l.type]
             : '${l.type}',
       );
-      _text(sheet, column: 4, row: row, value: l.reason);
+      _text(sheet, column: 5, row: row, value: l.reason);
       row++;
     }
     sheet.setColumnWidth(0, 30.0);
     sheet.setColumnWidth(1, 14.0);
     sheet.setColumnWidth(2, 14.0);
-    sheet.setColumnWidth(3, 12.0);
-    sheet.setColumnWidth(4, 30.0);
+    sheet.setColumnWidth(3, 22.0);
+    sheet.setColumnWidth(4, 12.0);
+    sheet.setColumnWidth(5, 30.0);
   }
 
-  /// ورقة الغيابات فقط: كل يوم غياب لكل طالب ضمن النطاق — بلا حضور ولا
-  /// إجازات ولا تأخر. الأشهر المحددة في الشاشة ترشّح الأيام؛ وبلا تحديد
-  /// تُعرض غيابات السنة الدراسية كلها. الصفوف مرتبة بالصف ثم الاسم ثم
-  /// التاريخ، وفي النهاية إجمالي عام.
-  Future<void> _absencesSheet(Excel excel) async {
+  /// ورقة الغيابات فقط: كل **حصة غياب** لكل طالب ضمن النطاق — بلا حضور ولا
+  /// إجازات ولا تأخر. الأشهر المحددة ترشّح الأيام؛ وبلا تحديد تُعرض غيابات
+  /// السنة كلها. الصفوف مرتبة بالصف ثم الاسم ثم التاريخ ثم الحصة، وفي
+  /// النهاية إجمالي الحصص وإجمالي الأيام (لا يتضاعف اليوم بعدد حصصه).
+  Future<void> _absencesSheet(Excel excel, List<Lesson> lessons) async {
     final Sheet sheet = excel[_sheetName('سجل الغيابات')];
     sheet.isRTL = true;
     const List<String> head = <String>[
@@ -564,21 +706,28 @@ class ExcelBuilder {
       'اسم الطالب',
       'تاريخ الغياب',
       'اليوم',
+      'الحصة',
+      'وقت الحصة',
+      'وقت الوصول',
       'طريقة التسجيل',
     ];
     _writeTitle(
       sheet,
-      '$schoolName — سجل غياب الطلاب للسنة ${year.name} '
+      '$schoolName — سجل غياب الطلاب (حصةً حصة) للسنة ${year.name} '
       '— المدير: $directorName',
       head.length - 1,
     );
     _writeColumnHeaders(sheet, head);
+    final Map<int, Lesson> lessonById = <int, Lesson>{
+      for (final Lesson l in lessons) l.id: l,
+    };
     final Set<String> monthKeys = <String>{
       for (final MonthKey m in months) m.key,
     };
     int row = _firstDataRow;
     int index = 1;
-    int total = 0;
+    int totalLessons = 0;
+    final Set<String> absentDays = <String>{};
     for (final ExportScopeClass sc in classes) {
       for (final Student s in sc.students) {
         final List<AttendanceRow> absences = await (db.select(db.attendanceRows)
@@ -590,6 +739,7 @@ class ExcelBuilder {
               )
               ..orderBy(<OrderClauseGenerator<AttendanceRows>>[
                 (AttendanceRows a) => OrderingTerm.asc(a.date),
+                (AttendanceRows a) => OrderingTerm.asc(a.lessonId),
               ]))
             .get();
         for (final AttendanceRow r in absences) {
@@ -599,6 +749,7 @@ class ExcelBuilder {
             continue;
           }
           final DateTime dt = SchoolTime.parseKey(r.date);
+          final Lesson? lesson = lessonById[r.lessonId];
           _num(sheet, column: 0, row: row, value: IntCellValue(index++));
           _text(
             sheet,
@@ -622,20 +773,148 @@ class ExcelBuilder {
             row: row,
             value: SchoolTime.weekdayNames[dt.weekday - 1],
           );
-          _text(sheet, column: 5, row: row, value: sourceLabel(r.source));
+          _text(
+            sheet,
+            column: 5,
+            row: row,
+            value: lesson == null ? '—' : AppDb.windowOf(lesson).displayName,
+          );
+          _text(
+            sheet,
+            column: 6,
+            row: row,
+            value: lesson == null ? '' : '${lesson.start}–${lesson.end}',
+          );
+          _text(sheet, column: 7, row: row, value: r.arrivalTime ?? '');
+          _text(sheet, column: 8, row: row, value: sourceLabel(r.source));
+          absentDays.add(r.date);
           row++;
-          total++;
+          totalLessons++;
         }
       }
     }
-    _text(sheet, column: 2, row: row, value: 'إجمالي أيام الغياب');
-    _num(sheet, column: 3, row: row, value: IntCellValue(total));
+    _text(sheet, column: 2, row: row, value: 'إجمالي حصص الغياب');
+    _num(sheet, column: 3, row: row, value: IntCellValue(totalLessons));
+    _text(sheet, column: 4, row: row, value: 'أيام فيها غياب (مشتركة)');
+    _num(sheet, column: 5, row: row, value: IntCellValue(absentDays.length));
     sheet.setColumnWidth(0, 6.0);
     sheet.setColumnWidth(1, 16.0);
     sheet.setColumnWidth(2, 34.0);
     sheet.setColumnWidth(3, 16.0);
     sheet.setColumnWidth(4, 14.0);
-    sheet.setColumnWidth(5, 16.0);
+    sheet.setColumnWidth(5, 18.0);
+    sheet.setColumnWidth(6, 16.0);
+    sheet.setColumnWidth(7, 14.0);
+    sheet.setColumnWidth(8, 16.0);
+  }
+
+  /// ورقة «سجل الحصص»: كل واقعة سطر مستقل — تفصيل كامل لكل طالب في كل حصة
+  /// (الحالة، وقت الوصول، المصدر) جاهز للترشيح والتحليل في Excel.
+  Future<void> _lessonLogSheet(Excel excel) async {
+    final Sheet sheet = excel[_sheetName('سجل الحصص')];
+    sheet.isRTL = true;
+    const List<String> head = <String>[
+      'م',
+      'الصف',
+      'اسم الطالب',
+      'التاريخ',
+      'اليوم',
+      'الحصة',
+      'وقت الحصة',
+      'الحالة',
+      'وقت الوصول',
+      'المصدر',
+    ];
+    _writeTitle(
+      sheet,
+      '$schoolName — سجل الحصص التفصيلي للسنة ${year.name} '
+      '— المدير: $directorName',
+      head.length - 1,
+    );
+    _writeColumnHeaders(sheet, head);
+    final Set<String> monthKeys = <String>{
+      for (final MonthKey m in months) m.key,
+    };
+    final Map<int, Lesson> lessons = <int, Lesson>{
+      for (final Lesson l in await db.allLessons()) l.id: l,
+    };
+    int row = _firstDataRow;
+    int index = 1;
+    for (final ExportScopeClass sc in classes) {
+      final List<LessonLogRow> log = await reports.lessonLog(
+        yearId: year.id,
+        studentIds: <int>[for (final Student s in sc.students) s.id],
+        monthKeys: monthKeys,
+      );
+      final List<LessonLogRow> sorted = log.toList()
+        ..sort((LessonLogRow a, LessonLogRow b) {
+          final int byStudent = a.student.fullName.compareTo(b.student.fullName);
+          if (byStudent != 0) {
+            return byStudent;
+          }
+          final int byDate = a.row.date.compareTo(b.row.date);
+          return byDate != 0
+              ? byDate
+              : a.lesson.slot.compareTo(b.lesson.slot);
+        });
+      for (final LessonLogRow entry in sorted) {
+        final AttendanceRow r = entry.row;
+        final Lesson lesson = lessons[r.lessonId] ?? entry.lesson;
+        final DateTime dt = SchoolTime.parseKey(r.date);
+        _num(sheet, column: 0, row: row, value: IntCellValue(index++));
+        _text(
+          sheet,
+          column: 1,
+          row: row,
+          value: '${sc.cls.grade} ـ ${sc.cls.section}',
+        );
+        _text(sheet, column: 2, row: row, value: entry.student.fullName);
+        _text(sheet, column: 3, row: row, value: r.date);
+        _text(
+          sheet,
+          column: 4,
+          row: row,
+          value: SchoolTime.weekdayNames[dt.weekday - 1],
+        );
+        _text(
+          sheet,
+          column: 5,
+          row: row,
+          value: lesson.name.trim().isEmpty
+              ? 'ح${lesson.slot}'
+              : lesson.name,
+        );
+        _text(
+          sheet,
+          column: 6,
+          row: row,
+          value: '${lesson.start}–${lesson.end}',
+        );
+        final Data statusCell = _cellAt(sheet, 7, row);
+        statusCell.value = TextCellValue(_statusAr[r.status]);
+        statusCell.cellStyle = CellStyle(
+          backgroundColorHex: ExcelColor.fromHexString(
+            _colorFor(r.status, true),
+          ),
+          fontFamily: _fontFamily,
+          fontSize: 11,
+          horizontalAlign: HorizontalAlign.Center,
+        );
+        _text(sheet, column: 8, row: row, value: r.arrivalTime ?? '');
+        _text(sheet, column: 9, row: row, value: sourceLabel(r.source));
+        row++;
+      }
+    }
+    sheet.setColumnWidth(0, 6.0);
+    sheet.setColumnWidth(1, 16.0);
+    sheet.setColumnWidth(2, 30.0);
+    sheet.setColumnWidth(3, 14.0);
+    sheet.setColumnWidth(4, 12.0);
+    sheet.setColumnWidth(5, 18.0);
+    sheet.setColumnWidth(6, 16.0);
+    sheet.setColumnWidth(7, 12.0);
+    sheet.setColumnWidth(8, 14.0);
+    sheet.setColumnWidth(9, 16.0);
   }
 
   /// تسمية مصدر التسجيل في التصدير (إكسل وPDF) — مصدر حقيقة واحد للصيغتين.
@@ -707,12 +986,19 @@ class ExcelBuilder {
     );
   }
 
+  /// وصف مختصر لترتيب الحصص في خلية اليوم (يُطبع في عنوان الورقة).
+  String _lessonLegend() {
+    // الأسماء قد تطول؛ نكتفي بالأرقام وتعريفها في ورقة سجل الحصص.
+    return 'خلايا اليوم = حروف الحصص بالترتيب — ح: حاضر، غ: غائب، '
+        'إ: إجازة، م: متأخر، —: لم تُسجَّل';
+  }
+
   void _writeHeader(Sheet sheet, ExportScopeClass sc, MonthKey m) {
     _writeTitle(
       sheet,
       '$schoolName — كشف حضور ${sc.cls.grade} ـ ${sc.cls.section} '
-      '— ${m.label} — المدير: $directorName',
-      _rateColumn,
+      '— ${m.label} — الحصص: ${_lessonLegend()} — المدير: $directorName',
+      _absentDaysColumn,
     );
     _cellAt(sheet, _indexColumn, _headerRow).value = TextCellValue('م');
     _cellAt(sheet, _nameColumn, _headerRow).value =
@@ -723,11 +1009,12 @@ class ExcelBuilder {
       c.cellStyle = _headerStyle();
     }
     final List<(int, String)> tails = <(int, String)>[
-      (_absentColumn, 'غياب'),
-      (_leaveColumn, 'إجازة'),
-      (_presentColumn, 'حضور'),
-      (_lateColumn, 'متأخر'),
+      (_absentColumn, 'حصص الغياب'),
+      (_leaveColumn, 'حصص الإجازة'),
+      (_presentColumn, 'حصص الحضور'),
+      (_lateColumn, 'حصص التأخر'),
       (_rateColumn, 'نسبة الحضور'),
+      (_absentDaysColumn, 'أيام الغياب'),
     ];
     for (final (int col, String label) in tails) {
       _cellAt(sheet, col, _headerRow).value = TextCellValue(label);
@@ -740,6 +1027,7 @@ class ExcelBuilder {
       _presentColumn,
       _lateColumn,
       _rateColumn,
+      _absentDaysColumn,
     ]) {
       _cellAt(sheet, col, _headerRow).cellStyle = _headerStyle();
     }
@@ -747,8 +1035,9 @@ class ExcelBuilder {
     sheet.setColumnWidth(_nameColumn, 34.0);
     // أعمدة الأيام والمجاميع بعرض صريح: بدونه تُقصّ كلمات «متأخر/إجازة»
     // في العرض الافتراضي الضيق.
+    // خلية اليوم تحمل حصصه (ح·غ·إ…) فتحتاج عرضاً أوسع من رقم حالة واحدة.
     for (int day = 1; day <= 31; day++) {
-      sheet.setColumnWidth(_dayColumn(day), 11.0);
+      sheet.setColumnWidth(_dayColumn(day), 20.0);
     }
     for (final int col in <int>[
       _absentColumn,
@@ -756,9 +1045,10 @@ class ExcelBuilder {
       _presentColumn,
       _lateColumn,
     ]) {
-      sheet.setColumnWidth(col, 10.0);
+      sheet.setColumnWidth(col, 11.0);
     }
     sheet.setColumnWidth(_rateColumn, 14.0);
+    sheet.setColumnWidth(_absentDaysColumn, 12.0);
   }
 
   /// ترقيع أوراق الـxlsx بعد الحفظ: **فرض الاتجاه من اليمين إلى اليسار**

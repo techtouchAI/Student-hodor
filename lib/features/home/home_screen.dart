@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/error_guard.dart';
+import '../../core/lesson.dart';
 import '../../core/local_notifications.dart';
 import '../../core/nav.dart';
 import '../../core/school_time.dart';
@@ -30,6 +31,7 @@ class _HomeState extends ConsumerState<HomeScreen> {
   late final String _today;
   late final Stream<List<AttendanceRow>> _todayRows;
   late final Stream<List<Session>> _todaySessions;
+  late final Stream<List<Lesson>> _lessons;
 
   @override
   void initState() {
@@ -42,6 +44,7 @@ class _HomeState extends ConsumerState<HomeScreen> {
     _todaySessions = (db.select(db.sessions)
           ..where((s) => s.date.equals(_today)))
         .watch();
+    _lessons = db.watchLessons();
     _classes = (db.select(db.schoolClasses)
           ..orderBy(<OrderClauseGenerator<SchoolClasses>>[
             (SchoolClasses c) => OrderingTerm.asc(c.grade),
@@ -435,6 +438,7 @@ class _HomeState extends ConsumerState<HomeScreen> {
                 rowsStream: _todayRows,
                 sessionsStream: _todaySessions,
                 classesStream: _classes,
+                lessonsStream: _lessons,
               ),
               const SizedBox(height: 8),
               GridView.count(
@@ -515,12 +519,14 @@ class _TodayCard extends StatelessWidget {
     required this.rowsStream,
     required this.sessionsStream,
     required this.classesStream,
+    required this.lessonsStream,
   });
 
   final String today;
   final Stream<List<AttendanceRow>> rowsStream;
   final Stream<List<Session>> sessionsStream;
   final Stream<List<SchoolClass>> classesStream;
+  final Stream<List<Lesson>> lessonsStream;
 
   @override
   Widget build(BuildContext context) => Card(
@@ -530,66 +536,113 @@ class _TodayCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                'جلسات اليوم $today',
+                'الحصة الجارية — $today',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 4),
-              StreamGuard<List<SchoolClass>>(
-                stream: classesStream,
+              StreamGuard<List<Lesson>>(
+                stream: lessonsStream,
                 loading: const Padding(
                   padding: EdgeInsets.all(8),
                   child: LinearProgressIndicator(),
                 ),
-                builder: (BuildContext context, List<SchoolClass> classes) {
-                  if (classes.isEmpty) {
+                builder: (BuildContext context, List<Lesson> lessons) {
+                  // كل صف له جلسة **لكل حصة**؛ البطاقة تعرض الحصة الجارية
+                  // الآن وحدها، وعرض مجموع اليوم كان يخلط حصصاً مختلفة.
+                  final LessonWindow? current = LessonSchedule.suggested(
+                    <LessonWindow>[
+                      for (final Lesson l in lessons) AppDb.windowOf(l),
+                    ],
+                    DateTime.now(),
+                  );
+                  if (current == null) {
                     return const Padding(
                       padding: EdgeInsets.all(8),
-                      child: Text('لا صفوف بعد — أضف صفاً من شاشة الصفوف'),
+                      child: Text('لا جدول حصص — أضفه من الإعدادات'),
                     );
                   }
-                  return StreamGuard<List<Session>>(
-                    stream: sessionsStream,
-                    loading: const Padding(
-                      padding: EdgeInsets.all(8),
-                      child: LinearProgressIndicator(),
-                    ),
-                    builder: (BuildContext context, List<Session> sessions) {
-                      final Map<int, Session> byClass = <int, Session>{
-                        for (final Session s in sessions) s.classId: s,
-                      };
-                      return StreamGuard<List<AttendanceRow>>(
-                        stream: rowsStream,
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Text(
+                          '${current.displayName} · ${current.timeLabel}',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      StreamGuard<List<SchoolClass>>(
+                        stream: classesStream,
                         loading: const Padding(
                           padding: EdgeInsets.all(8),
                           child: LinearProgressIndicator(),
                         ),
-                        builder: (
-                          BuildContext context,
-                          List<AttendanceRow> rows,
-                        ) {
-                          final Map<int, int> counted = <int, int>{};
-                          for (final AttendanceRow r in rows) {
-                            if (r.status == AttendanceStatus.present ||
-                                r.status == AttendanceStatus.late ||
-                                r.status == AttendanceStatus.leave) {
-                              counted[r.classId] =
-                                  (counted[r.classId] ?? 0) + 1;
-                            }
+                        builder:
+                            (BuildContext context, List<SchoolClass> classes) {
+                          if (classes.isEmpty) {
+                            return const Padding(
+                              padding: EdgeInsets.all(8),
+                              child: Text(
+                                'لا صفوف بعد — أضف صفاً من شاشة الصفوف',
+                              ),
+                            );
                           }
-                          return Column(
-                            children: <Widget>[
-                              for (final SchoolClass c in classes)
-                                _ClassDayTile(
-                                  today: today,
-                                  schoolClass: c,
-                                  recorded: counted[c.id] ?? 0,
-                                  session: byClass[c.id],
+                          return StreamGuard<List<Session>>(
+                            stream: sessionsStream,
+                            loading: const Padding(
+                              padding: EdgeInsets.all(8),
+                              child: LinearProgressIndicator(),
+                            ),
+                            builder: (
+                              BuildContext context,
+                              List<Session> sessions,
+                            ) {
+                              final Map<int, Session> byClass = <int, Session>{
+                                for (final Session s in sessions)
+                                  if (s.lessonId == current.id)
+                                    s.classId: s,
+                              };
+                              return StreamGuard<List<AttendanceRow>>(
+                                stream: rowsStream,
+                                loading: const Padding(
+                                  padding: EdgeInsets.all(8),
+                                  child: LinearProgressIndicator(),
                                 ),
-                            ],
+                                builder: (
+                                  BuildContext context,
+                                  List<AttendanceRow> rows,
+                                ) {
+                                  final Map<int, int> counted = <int, int>{};
+                                  for (final AttendanceRow r in rows) {
+                                    if (r.lessonId != current.id) {
+                                      continue;
+                                    }
+                                    if (r.status == AttendanceStatus.present ||
+                                        r.status == AttendanceStatus.late ||
+                                        r.status == AttendanceStatus.leave) {
+                                      counted[r.classId] =
+                                          (counted[r.classId] ?? 0) + 1;
+                                    }
+                                  }
+                                  return Column(
+                                    children: <Widget>[
+                                      for (final SchoolClass c in classes)
+                                        _ClassDayTile(
+                                          today: today,
+                                          schoolClass: c,
+                                          recorded: counted[c.id] ?? 0,
+                                          session: byClass[c.id],
+                                        ),
+                                    ],
+                                  );
+                                },
+                              );
+                            },
                           );
                         },
-                      );
-                    },
+                      ),
+                    ],
                   );
                 },
               ),
@@ -599,7 +652,7 @@ class _TodayCard extends StatelessWidget {
       );
 }
 
-/// صف واحد في بطاقة اليوم بسطر واحد (الاسم + المسجل + الحالة)
+/// صف واحد في بطاقة الحصة الجارية (الاسم + المسجل + الحالة)
 /// + دخول مباشر لكشف يومه.
 class _ClassDayTile extends StatelessWidget {
   const _ClassDayTile({

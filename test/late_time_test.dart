@@ -123,7 +123,7 @@ void main() {
               openedAt: const Value('2026-09-13T07:30:00'),
             ),
           );
-      final Session session = (await db.sessionOf(cls.id, date))!;
+      final Session session = (await db.sessionOf(cls.id, date, (await db.firstLesson()).id))!;
       final ScanService scanner = ScanService(db);
 
       final Badge b1 = (await db.activeBadgeOf(kids[0].id))!;
@@ -137,7 +137,7 @@ void main() {
       expect(lateOut.message, contains('08:20'));
       // المدة من بداية الدوام (08:00) لا من نهاية نافذة السماح.
       expect(lateOut.message, contains('تأخير 20 دقيقة'));
-      final AttendanceRow? a1 = await db.attendanceOf(kids[0].id, date);
+      final AttendanceRow? a1 = await db.attendanceOf(kids[0].id, date, (await db.firstLesson()).id);
       expect(a1?.status, AttendanceStatus.late);
       expect(a1?.arrivalTime, '08:20');
 
@@ -149,7 +149,7 @@ void main() {
       );
       expect(okOut.result, ScanResult.ok);
       expect(okOut.arrivalTime, '08:05');
-      final AttendanceRow? a2 = await db.attendanceOf(kids[1].id, date);
+      final AttendanceRow? a2 = await db.attendanceOf(kids[1].id, date, (await db.firstLesson()).id);
       expect(a2?.status, AttendanceStatus.present);
       expect(a2?.arrivalTime, '08:05');
     });
@@ -177,24 +177,26 @@ void main() {
         yearId: year.id,
         classId: cls.id,
         studentId: kids[0].id,
+        lessonId: (await db.firstLesson()).id,
         date: date,
         status: AttendanceStatus.late,
         source: AttendanceSource.manual,
         arrivalTime: '09:10',
       );
       expect(
-        (await db.attendanceOf(kids[0].id, date))?.arrivalTime,
+        (await db.attendanceOf(kids[0].id, date, (await db.firstLesson()).id))?.arrivalTime,
         '09:10',
       );
       await db.upsertAttendance(
         yearId: year.id,
         classId: cls.id,
         studentId: kids[0].id,
+        lessonId: (await db.firstLesson()).id,
         date: date,
         status: AttendanceStatus.present,
         source: AttendanceSource.manual,
       );
-      final AttendanceRow? r = await db.attendanceOf(kids[0].id, date);
+      final AttendanceRow? r = await db.attendanceOf(kids[0].id, date, (await db.firstLesson()).id);
       expect(r?.status, AttendanceStatus.present);
       expect(r?.arrivalTime, isNull);
     });

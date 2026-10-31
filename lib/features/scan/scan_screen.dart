@@ -30,12 +30,14 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../core/error_guard.dart';
 import '../../core/late_time.dart';
+import '../../core/lesson.dart';
 import '../../core/nav.dart';
 import '../../core/school_time.dart';
 import '../../data/db.dart';
 import '../../data/error_log.dart';
 import '../../data/scan_service.dart';
 import '../../state/providers.dart';
+import '../attendance/lesson_picker.dart';
 
 class ScanScreen extends ConsumerStatefulWidget {
   const ScanScreen({super.key, required this.classRef});
@@ -69,6 +71,10 @@ class _ScanState extends ConsumerState<ScanScreen>
   final List<ScanOutcome> _feed = <ScanOutcome>[];
   ClassRef? _class;
   Session? _session;
+
+  /// جدول الحصص والحصة المفتوحة الآن — كل مسح ينتمي إلى حصة واحدة.
+  List<LessonWindow> _lessons = <LessonWindow>[];
+  LessonWindow? _lesson;
   bool _loading = true;
   String? _notice;
   List<SchoolClass> _options = <SchoolClass>[];
@@ -347,21 +353,37 @@ class _ScanState extends ConsumerState<ScanScreen>
         });
         return;
       }
+      // جدول الحصص مصدر الوقت والاختيار؛ يُزرع تلقائياً إن غاب.
+      final List<LessonWindow> lessons = await db.lessonWindows();
+      final LessonWindow? lesson =
+          LessonSchedule.suggested(lessons, DateTime.now());
+      if (lesson == null) {
+        if (mounted) {
+          setState(() {
+            _class = resolved;
+            _lessons = lessons;
+            _lesson = null;
+            _session = null;
+            _loading = false;
+            _notice = 'لا جدول حصص — أضف الحصص من الإعدادات › جدول الحصص.';
+          });
+        }
+        return;
+      }
       final String date = SchoolTime.dateKey(DateTime.now());
-      Session? session = await db.sessionOf(resolved.id, date);
-      session ??= await db.into(db.sessions).insertReturning(
-            SessionsCompanion(
-              yearId: Value(year.id),
-              classId: Value(resolved.id),
-              date: Value(date),
-              openedAt: Value(DateTime.now().toIso8601String()),
-            ),
-          );
+      final Session session = await db.openLessonSession(
+        yearId: year.id,
+        classId: resolved.id,
+        date: date,
+        lessonId: lesson.id,
+      );
       if (!mounted) {
         return;
       }
       setState(() {
         _class = resolved;
+        _lessons = lessons;
+        _lesson = lesson;
         _session = session;
         _loading = false;
       });
@@ -388,6 +410,55 @@ class _ScanState extends ConsumerState<ScanScreen>
             (SchoolClasses c) => OrderingTerm.asc(c.section),
           ]))
         .get();
+  }
+
+  /// تبديل الحصة: يفتح جلستها (idempotent) ويجعل كل مسح لاحق ينتمي إليها.
+  Future<void> _selectLesson(LessonWindow lesson) async {
+    final ClassRef? c = _class;
+    if (c == null || lesson.id == _lesson?.id) {
+      return;
+    }
+    setState(() {
+      _loading = true;
+      _notice = null;
+    });
+    try {
+      final AppDb db = ref.read(dbProvider);
+      final AcademicYear? year = await db.activeYear();
+      if (year == null) {
+        if (mounted) {
+          setState(() {
+            _loading = false;
+            _notice = 'لا سنة فعّالة — فعّل سنة من شاشة السنوات.';
+          });
+        }
+        return;
+      }
+      final String date = SchoolTime.dateKey(DateTime.now());
+      final Session session = await db.openLessonSession(
+        yearId: year.id,
+        classId: c.id,
+        date: date,
+        lessonId: lesson.id,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _lesson = lesson;
+        _session = session;
+        _loading = false;
+        _feed.clear();
+      });
+    } catch (e, st) {
+      AppErrorLog.instance.record(e, st, where: 'scan:selectLesson');
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _notice = 'تعذر فتح جلسة الحصة: $e';
+        });
+      }
+    }
   }
 
   Future<void> _pickClass() async {
@@ -435,7 +506,7 @@ class _ScanState extends ConsumerState<ScanScreen>
       return;
     }
     if (session.closedAt != null) {
-      _snack('الجلسة مقفلة — أعد فتحها لتسجيل قراءات');
+      _snack('الحصة مقفلة — أعد فتحها لتسجيل قراءات');
       return;
     }
     for (final Barcode b in capture.barcodes) {
@@ -490,11 +561,11 @@ class _ScanState extends ConsumerState<ScanScreen>
       roster = await (db.select(db.students)
             ..where((s) => s.classId.equals(session.classId)))
           .get();
-      status = <int, int>{
-        for (final AttendanceRow r
-            in await db.attendanceForClassDate(session.classId, session.date))
-          r.studentId: r.status,
-      };
+      status = await db.statusesForLesson(
+        classId: session.classId,
+        date: session.date,
+        lessonId: session.lessonId,
+      );
     } catch (e, st) {
       AppErrorLog.instance.record(e, st, where: 'scan:manualLoad');
       _snack('تعذر قراءة القائمة: $e');
@@ -533,6 +604,7 @@ class _ScanState extends ConsumerState<ScanScreen>
         classId: session.classId,
         studentId: pick.id,
         date: session.date,
+        lessonId: session.lessonId,
         status: AttendanceStatus.present,
         source: AttendanceSource.manual,
         sessionId: session.id,
@@ -566,9 +638,10 @@ class _ScanState extends ConsumerState<ScanScreen>
         final bool? ok = await showDialog<bool>(
           context: context,
           builder: (BuildContext context) => AlertDialog(
-            title: const Text('إقفال اليوم'),
+            title: Text('إقفال ${_lesson?.displayName ?? 'الحصة'}'),
             content: Text(
-              'سيُسجل $missing طالباً كغائبين (أو بإجازة إن وجدت). '
+              'سيُسجل $missing طالباً كغائبين في هذه الحصة (أو بإجازة إن '
+              'وجدت). الحصص الأخرى لا تتأثر. '
               'يمكن إعادة الفتح لاحقاً لتصحيح الأخطاء.',
             ),
             actions: <Widget>[
@@ -578,7 +651,7 @@ class _ScanState extends ConsumerState<ScanScreen>
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text('أقفل اليوم'),
+                child: const Text('أقفل الحصة'),
               ),
             ],
           ),
@@ -587,13 +660,16 @@ class _ScanState extends ConsumerState<ScanScreen>
           return;
         }
         final int n = await db.closeSession(session.id);
-        _snack('أُقفل اليوم وولّد $n سجلاً');
+        _snack('أُقفلت الحصة وولّدت $n سجلاً');
       } else {
         await db.reopenSession(session.id);
-        _snack('أُعيد فتح اليوم');
+        _snack('أُعيد فتح الحصة');
       }
-      final Session? refreshed =
-          await db.sessionOf(session.classId, session.date);
+      final Session? refreshed = await db.sessionOf(
+        session.classId,
+        session.date,
+        session.lessonId,
+      );
       if (mounted && refreshed != null) {
         setState(() => _session = refreshed);
       }
@@ -607,7 +683,11 @@ class _ScanState extends ConsumerState<ScanScreen>
     final List<Student> roster = await (db.select(db.students)
           ..where((s) => s.classId.equals(session.classId)))
         .get();
-    final int recorded = await db.recordedCount(session.classId, session.date);
+    final int recorded = await db.recordedCount(
+      session.classId,
+      session.date,
+      session.lessonId,
+    );
     return roster.length - recorded;
   }
 
@@ -642,6 +722,12 @@ class _ScanState extends ConsumerState<ScanScreen>
       // بالتوازي مع قراءة القاعدة، وأي رسالة/عطل طبقة فوق المعاينة.
       body: Column(
         children: <Widget>[
+          if (c != null && _lessons.isNotEmpty)
+            LessonPicker(
+              lessons: _lessons,
+              selectedId: _lesson?.id,
+              onSelect: (LessonWindow l) => unawaited(_selectLesson(l)),
+            ),
           _headerSlot(db, c, session),
           Expanded(
             flex: 5,
@@ -666,7 +752,7 @@ class _ScanState extends ConsumerState<ScanScreen>
                     color: Color(0xAA000000),
                     child: Center(
                       child: Text(
-                        'الجلسة مقفلة — أعد فتحها لتسجيل قراءات',
+                        'الحصة مقفلة — أعد فتحها لتسجيل قراءات',
                         style: TextStyle(color: Colors.white, fontSize: 18),
                         textAlign: TextAlign.center,
                       ),
@@ -691,7 +777,12 @@ class _ScanState extends ConsumerState<ScanScreen>
     if (c == null || session == null) {
       return const SizedBox.shrink();
     }
-    return _Header(session: session, classId: c.id, db: db);
+    return _Header(
+      session: session,
+      classId: c.id,
+      db: db,
+      lesson: _lesson,
+    );
   }
 
   /// زر الفلاش يعكس حالة المصباح الحقيقية (يعمل/مطفأ/غير مدعوم).
@@ -809,7 +900,7 @@ class _ScanState extends ConsumerState<ScanScreen>
                 session?.closedAt == null ? Icons.lock : Icons.lock_open,
               ),
               label: Text(
-                session?.closedAt == null ? 'إقفال اليوم' : 'إعادة فتح',
+                session?.closedAt == null ? 'إقفال الحصة' : 'إعادة فتح',
               ),
             ),
           ],
@@ -910,11 +1001,17 @@ class _NoticeBody extends StatelessWidget {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.session, required this.classId, required this.db});
+  const _Header({
+    required this.session,
+    required this.classId,
+    required this.db,
+    this.lesson,
+  });
 
   final Session? session;
   final int classId;
   final AppDb db;
+  final LessonWindow? lesson;
 
   @override
   Widget build(BuildContext context) {
@@ -924,7 +1021,12 @@ class _Header extends StatelessWidget {
     }
     return StreamGuard<List<AttendanceRow>>(
       stream: (db.select(db.attendanceRows)
-            ..where((a) => a.classId.equals(classId) & a.date.equals(s.date)))
+            ..where(
+              (a) =>
+                  a.classId.equals(classId) &
+                  a.date.equals(s.date) &
+                  a.lessonId.equals(s.lessonId),
+            ))
           .watch(),
       loading: const SizedBox(height: 40),
       builder: (BuildContext context, List<AttendanceRow> rows) {
@@ -947,11 +1049,21 @@ class _Header extends StatelessWidget {
           ),
           builder: (BuildContext context, int total) => Padding(
             padding: const EdgeInsets.all(8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+            child: Column(
               children: <Widget>[
-                Text('التاريخ: ${s.date}'),
-                Text('حضور: $present / $total'),
+                Text(
+                  lesson == null
+                      ? 'التاريخ: ${s.date}'
+                      : '${lesson!.displayName} · ${lesson!.timeLabel}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: <Widget>[
+                    Text('التاريخ: ${s.date}'),
+                    Text('حضور الحصة: $present / $total'),
+                  ],
+                ),
               ],
             ),
           ),

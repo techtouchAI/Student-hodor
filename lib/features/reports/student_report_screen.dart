@@ -30,6 +30,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/attendance_labels.dart';
 import '../../core/error_guard.dart';
 import '../../core/late_time.dart';
+import '../../core/lesson.dart';
 import '../../core/school_time.dart';
 import '../../data/db.dart';
 import '../../data/error_log.dart';
@@ -208,6 +209,7 @@ class _FileData {
     required this.cells,
     required this.leaves,
     required this.journey,
+    required this.lessons,
   });
 
   final String yearName;
@@ -215,6 +217,9 @@ class _FileData {
   final List<DayCell> cells;
   final List<Leave> leaves;
   final List<(AcademicYear, StatusTotals)> journey;
+
+  /// جدول الحصص — لترتيب حالات كل يوم وعرضها باسم حصتها.
+  final List<LessonWindow> lessons;
 }
 
 class _ReportBody extends StatefulWidget {
@@ -231,6 +236,9 @@ class _ReportBodyState extends State<_ReportBody> {
   late int _year;
   late int _month;
   Future<_FileData?>? _load;
+
+  /// جدول الحصص من آخر تحميل — يستهلكه محرر اليوم دون إعادة استعلام.
+  List<LessonWindow> _lessons = <LessonWindow>[];
 
   @override
   void initState() {
@@ -289,27 +297,72 @@ class _ReportBodyState extends State<_ReportBody> {
         .get();
     final List<(AcademicYear, StatusTotals)> journey =
         await reports.studentJourney(student);
+    final List<LessonWindow> lessons = await db.lessonWindows();
+    _lessons = lessons;
     return _FileData(
       yearName: year.name,
       totals: totals,
       cells: cells,
       leaves: leaves,
       journey: journey,
+      lessons: lessons,
     );
   }
 
   void _reload() => setState(() => _load = _loadFile());
 
-  /// تعديل يوم من الشبكة: يعرض التاريخ المحدد ويسمح بتغيير حالته أو
-  /// مسح تسجيله — تسجيل يدوي صريح من المدير.
+  /// تعديل يوم من الشبكة: يختار **الحصة** أولاً (إن كان الجدول أكثر من حصة)
+  /// ثم حالتها وحدها — تصحيح حصة لا يمسّ بقية حصص اليوم.
   Future<void> _editDay(DayCell cell) async {
     final AppDb db = widget.db;
     final Student student = widget.student;
+    final List<LessonWindow> lessons = _lessons;
+    if (lessons.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('لا جدول حصص — أضفه من الإعدادات')),
+      );
+      return;
+    }
+    final LessonWindow? lesson = lessons.length == 1
+        ? lessons.single
+        : await showDialog<LessonWindow>(
+            context: context,
+            builder: (BuildContext context) => SimpleDialog(
+              title: Text('حصة ${SchoolTime.formatFullAr(
+                SchoolTime.parseKey(cell.dateKey),
+              )}'),
+              children: <Widget>[
+                for (final LessonWindow l in lessons)
+                  SimpleDialogOption(
+                    onPressed: () => Navigator.pop(context, l),
+                    child: Row(
+                      children: <Widget>[
+                        Icon(
+                          Icons.circle,
+                          size: 12,
+                          color: statusColor(cell.lessonStatuses[l.id]),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(l.displayName)),
+                        Text(
+                          statusName(cell.lessonStatuses[l.id]),
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          );
+    if (lesson == null || !mounted) {
+      return;
+    }
+    final int? current = cell.lessonStatuses[lesson.id];
     final DateTime d = SchoolTime.parseKey(cell.dateKey);
     final int? picked = await showDialog<int?>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
-        title: Text(SchoolTime.formatFullAr(d)),
+        title: Text('${lesson.displayName} — ${SchoolTime.formatFullAr(d)}'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -317,7 +370,7 @@ class _ReportBodyState extends State<_ReportBody> {
             // سجل التأخر يعرض وقته الفعلي المثبت في القاعدة لا اسمه وحده.
             Text(
               'الحالة الحالية: '
-              '${cell.status == AttendanceStatus.late ? lateInfoLabel(arrivalTime: cell.arrivalTime) : statusName(cell.status)}',
+              '${current == AttendanceStatus.late ? lateInfoLabel(arrivalTime: cell.lessonArrivals[lesson.id], dayStart: lesson.start) : statusName(current)}',
             ),
             if (!cell.isSchoolDay)
               const Text(
@@ -337,7 +390,7 @@ class _ReportBodyState extends State<_ReportBody> {
                 ])
                   ChoiceChip(
                     label: Text(statusName(st)),
-                    selected: cell.status == st,
+                    selected: current == st,
                     onSelected: (_) => Navigator.pop(context, st),
                   ),
               ],
@@ -345,11 +398,11 @@ class _ReportBodyState extends State<_ReportBody> {
           ],
         ),
         actions: <Widget>[
-          if (cell.status != null)
+          if (current != null)
             TextButton(
               onPressed: () => Navigator.pop(context, -1),
               child: const Text(
-                'مسح التسجيل',
+                'مسح تسجيل الحصة',
                 style: TextStyle(color: Colors.red),
               ),
             ),
@@ -364,17 +417,17 @@ class _ReportBodyState extends State<_ReportBody> {
       return;
     }
     if (picked == -1) {
-      await db.deleteAttendance(student.id, cell.dateKey);
+      await db.deleteAttendance(student.id, cell.dateKey, lessonId: lesson.id);
       if (!mounted) {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('مُسح تسجيل اليوم')),
+        SnackBar(content: Text('مُسح تسجيل ${lesson.displayName}')),
       );
       _reload();
       return;
     }
-    if (picked == cell.status) {
+    if (picked == current) {
       return;
     }
     // تأخر يدوي ⇒ اسأل عن وقت الوصول (ساعة ودقيقة) ليُثبّت مع السجل؛
@@ -387,7 +440,7 @@ class _ReportBodyState extends State<_ReportBody> {
       }
     }
     final Session? session =
-        await db.sessionOf(student.classId, cell.dateKey);
+        await db.sessionOf(student.classId, cell.dateKey, lesson.id);
     if (!mounted) {
       return;
     }
@@ -396,6 +449,7 @@ class _ReportBodyState extends State<_ReportBody> {
       classId: student.classId,
       studentId: student.id,
       date: cell.dateKey,
+      lessonId: lesson.id,
       status: picked,
       source: AttendanceSource.manual,
       sessionId: session?.id,
@@ -405,10 +459,10 @@ class _ReportBodyState extends State<_ReportBody> {
       return;
     }
     final String saved = picked == AttendanceStatus.late
-        ? lateInfoLabel(arrivalTime: arrival)
+        ? lateInfoLabel(arrivalTime: arrival, dayStart: lesson.start)
         : statusName(picked);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('حُفظت الحالة: $saved')),
+      SnackBar(content: Text('حُفظت ${lesson.displayName}: $saved')),
     );
     _reload();
   }
@@ -491,12 +545,22 @@ class _ReportBodyState extends State<_ReportBody> {
                 year: _year,
                 month: _month,
                 cells: data.cells,
+                lessons: data.lessons,
                 onPrevious: () => _shiftMonth(-1),
                 onNext: () => _shiftMonth(1),
                 onDayTap: _editDay,
               ),
               const SizedBox(height: 12),
               const _Legend(),
+              const Padding(
+                padding: EdgeInsets.only(top: 6),
+                child: Text(
+                  'اضغط أي يوم لتصحيح حصة بعينها — الحروف داخل المربع هي حالات '
+                  'الحصص بالترتيب.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 11, color: Colors.grey),
+                ),
+              ),
               const SizedBox(height: 12),
               _LeavesCard(leaves: data.leaves),
               const SizedBox(height: 12),
@@ -519,14 +583,24 @@ class _TotalsCard extends StatelessWidget {
   Widget build(BuildContext context) => Card(
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+          child: Column(
             children: <Widget>[
-              _Stat('حضور', totals.present, Colors.green),
-              _Stat('غياب', totals.absent, Colors.red),
-              _Stat('إجازة', totals.leave, Colors.amber),
-              _Stat('متأخر', totals.late, Colors.orange),
-              _Stat('النسبة', totals.ratePct.round(), Colors.teal),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: <Widget>[
+                  _Stat('حضور (حصة)', totals.present, Colors.green),
+                  _Stat('غياب (حصة)', totals.absent, Colors.red),
+                  _Stat('إجازة (حصة)', totals.leave, Colors.amber),
+                  _Stat('متأخر (حصة)', totals.late, Colors.orange),
+                  _Stat('النسبة', totals.ratePct.round(), Colors.teal),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'أيام مسجَّلة: ${totals.recordedDays} • '
+                'أيام فيها غياب: ${totals.absentDays}',
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
             ],
           ),
         ),
@@ -562,6 +636,7 @@ class _MonthGrid extends StatelessWidget {
     required this.year,
     required this.month,
     required this.cells,
+    required this.lessons,
     required this.onPrevious,
     required this.onNext,
     required this.onDayTap,
@@ -570,6 +645,7 @@ class _MonthGrid extends StatelessWidget {
   final int year;
   final int month;
   final List<DayCell> cells;
+  final List<LessonWindow> lessons;
   final VoidCallback onPrevious;
   final VoidCallback onNext;
   final ValueChanged<DayCell> onDayTap;
@@ -606,27 +682,56 @@ class _MonthGrid extends StatelessWidget {
             children: <Widget>[
               for (final DayCell c in cells)
                 Tooltip(
-                  // تلميح اليوم المتأخر يشمل وقته الفعلي المثبت في السجل.
+                  // تلميح اليوم: التاريخ + حالة كل حصة باسمها ووقت التأخر.
                   message: '${c.dateKey}: '
-                      '${c.status == AttendanceStatus.late ? lateInfoLabel(arrivalTime: c.arrivalTime) : statusName(c.status)}',
+                      '${c.status == AttendanceStatus.late ? lateInfoLabel(arrivalTime: c.arrivalTime) : describeDay(status: c.status, lessonStatuses: c.lessonStatuses, totalLessons: lessons.length).label}'
+                      '${c.hasLessons ? '\n${lessonBreakdownText(lessons, c.lessonStatuses)}' : ''}',
                   child: InkWell(
                     borderRadius: BorderRadius.circular(6),
                     onTap: () => onDayTap(c),
                     child: Container(
-                      width: 34,
-                      height: 34,
+                      width: 38,
+                      height: 38,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: c.isSchoolDay
-                            ? statusColor(c.status)
+                            ? dayStatusColor(
+                                status: c.status,
+                                lessonStatuses: c.lessonStatuses,
+                                totalLessons: lessons.length,
+                              )
                             : Colors.grey.shade300,
                         borderRadius: BorderRadius.circular(6),
                       ),
-                      child: Text(
-                        '${SchoolTime.parseKey(c.dateKey).day}',
-                        style: TextStyle(
-                          color: c.isSchoolDay ? Colors.white : Colors.black54,
-                        ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          Text(
+                            '${SchoolTime.parseKey(c.dateKey).day}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: c.isSchoolDay
+                                  ? Colors.white
+                                  : Colors.black54,
+                            ),
+                          ),
+                          if (c.hasLessons)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 2),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  lessonCompactMarks(lessons, c.lessonStatuses),
+                                  style: TextStyle(
+                                    fontSize: 7,
+                                    color: c.isSchoolDay
+                                        ? Colors.white
+                                        : Colors.black54,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ),
@@ -648,7 +753,8 @@ class _Legend extends StatelessWidget {
         alignment: WrapAlignment.center,
         children: <Widget>[
           const _LegendItem(Colors.green, 'حاضر'),
-          const _LegendItem(Colors.red, 'غائب'),
+          const _LegendItem(partialAbsentColor, 'غياب جزئي'),
+          const _LegendItem(Colors.red, 'غياب كامل'),
           const _LegendItem(Colors.amber, 'إجازة'),
           const _LegendItem(Colors.orange, 'متأخر'),
           _LegendItem(Colors.grey.shade300, 'عطلة/ليس دوام'),
@@ -700,7 +806,11 @@ class _LeavesCard extends StatelessWidget {
               const SizedBox(height: 4),
               if (leaves.isEmpty) const Text('لا إجازات'),
               for (final Leave l in leaves)
-                Text('${l.start} → ${l.end} (${l.reason})'),
+                Text(
+                  '${l.start} → ${l.end}'
+                  '${l.fromSlot == null && l.toSlot == null ? ' (كل الحصص)' : ' (الحصص ${l.fromSlot ?? 1}–${l.toSlot ?? 'النهاية'})'}'
+                  '${l.reason.trim().isEmpty ? '' : ' — ${l.reason}'}',
+                ),
             ],
           ),
         ),
@@ -727,8 +837,9 @@ class _JourneyCard extends StatelessWidget {
               if (journey.isEmpty) const Text('لا سجلات سابقة'),
               for (final (AcademicYear y, StatusTotals t) in journey)
                 Text(
-                  '${y.name}: حضور ${t.present + t.late}، غياب ${t.absent}، '
-                  'إجازة ${t.leave} — نسبة ${t.ratePct.toStringAsFixed(1)}%',
+                  '${y.name}: حضور ${t.present + t.late}، غياب ${t.absent} '
+                  '(${t.absentDays} يوماً)، إجازة ${t.leave} — '
+                  'نسبة ${t.ratePct.toStringAsFixed(1)}%',
                 ),
             ],
           ),

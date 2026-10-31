@@ -3,6 +3,11 @@
 > مرجع المراجعة: `review-pr13.md` (R1–R11، T1–T2). هذا الملف يوثّق **ما عُولج**
 > و**بأي دليل**، ويُحدَّث مع أي تعديل لاحق. لا تغيير في المخطط (`schemaVersion`
 > يبقى 6) ولا في صيغة النسخ الاحتياطي (تبقى 3).
+>
+> **تحديث مراجعة القبول (`docs/ACCEPTANCE-REVIEW-ar.md`):** ادّعاء «الاستيراد
+> مكتمل» في الجدول أدناه لم يكن دقيقاً — كشفت مراجعة القبول ثلاثة عيوب حقيقية في
+> الاستيراد وسبقها (تقسيم مقاطع Word، استدلال عمود الاسم، غياب حارس صيغة
+> النسخة) وأُصلحت في `0fe9958` مع اختباراتها.
 
 ---
 
@@ -24,7 +29,7 @@
 | **T1** النسخ الاحتياطي والدمج | ✅ مُغلق | v2 بلا حصص، v3 كاملة، الدمج الحصصي، `_lessonOf`، الدمج مرتين | `test/backup_legacy_test.dart` (5) |
 | **T2** إقفال اليوم | ✅ مُغلق | ست حصص، حالات مختلطة، لا تكرار، لا مسّ للإجازة، ارتداد كامل | `test/close_day_test.dart` |
 | **T3** تكامل الهجرة | ✅ مُغلق | `PRAGMA foreign_key_check` + بقاء `scan_events.session_id` | `test/migration_v6_test.dart` |
-| **استيراد الأسماء** (الملحق أ) | ✅ مُنفَّذ | `lib/core/name_import.dart` + `AppDb.importStudentNames` + شاشة معاينة/تأكيد | `test/name_import_test.dart` (10) — التفاصيل في `docs/NAME-IMPORT-ar.md` |
+| **استيراد الأسماء** (الملحق أ) | ✅ مُنفَّذ + مُصحَّح | `lib/core/name_import.dart` + `AppDb.importStudentNames` + شاشة معاينة/تأكيد؛ وأُصلحت عيوب مراجعة القبول (D1–D4) في `0fe9958` | `test/name_import_test.dart` (15)، `test/import_names_screen_test.dart` (5) — التفاصيل في `docs/NAME-IMPORT-ar.md` و`docs/ACCEPTANCE-REVIEW-ar.md` |
 
 ---
 

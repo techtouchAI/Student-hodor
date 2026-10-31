@@ -639,7 +639,7 @@ String _stripNestedTables(String tableXml) {
   if (gt < 0 || end < 0) {
     return tableXml;
   }
-  final int closing = '</w:tbl>'.length;
+  const int closing = '</w:tbl>'.length;
   final String inner = tableXml.substring(gt + 1, end - closing);
   return _removeInnerTables(inner);
 }

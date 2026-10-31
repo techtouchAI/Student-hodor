@@ -1,7 +1,8 @@
 # تقرير تنفيذ إصلاحات المراجعة (PR #13)
 
-**الالتزام النهائي المُتحقَّق منه:** `b97868c` على فرع
+**التزام الشيفرة النهائي المُتحقَّق منه:** `b97868c` على فرع
 `arena/74dbb144-student-hodor` — كل البوابات خضراء عليه في التشغيل نفسه.
+**وبعده** `7b14d89` (هذا التقرير وملفاته التوثيقية فقط) — أخضر أيضاً.
 
 **ما لم يُفعل بقرار منك:** لم يُدمج طلب السحب، ولم يُنشر إصدار، ولم يُحذف أي
 فرع. المطلوب موافقتك قبل أي منها.
@@ -89,7 +90,10 @@
 
 * verify (Analyze & Test): <https://github.com/techtouchAI/Student-hodor/actions/runs/41147949397>
 * build-apk: <https://github.com/techtouchAI/Student-hodor/actions/runs/41147949394>
-* الالتزام الأخير: **`b97868c`** — «style(import): const في طول وسم إغلاق الجدول»
+* الالتزام الأخير للشيفرة: **`b97868c`** — «style(import): const في طول وسم إغلاق الجدول»
+* تشغيل التوثيق (`7b14d89`): verify
+  <https://github.com/techtouchAI/Student-hodor/actions/runs/41148922183> —
+  build-apk <https://github.com/techtouchAI/Student-hodor/actions/runs/41148922176>
 * طلب السحب: #13 (مفتوح، بلا دمج).
 
 ---

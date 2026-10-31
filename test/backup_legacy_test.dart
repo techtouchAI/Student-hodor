@@ -61,6 +61,21 @@ Uint8List _zipOf(Map<String, Object?> manifest) {
   return Uint8List.fromList(ZipEncoder().encode(archive)!);
 }
 
+/// دليل سلامة المفاتيح الأجنبية بعد عملية على القاعدة: التفعيل على الاتصال
+/// الفعلي + خلوّ `foreign_key_check` (الاثنان معاً، لا أحدهما).
+Future<void> _expectFkClean(AppDb db, String after) async {
+  expect(
+    (await db.customSelect('PRAGMA foreign_keys').getSingle()).data.values.first,
+    1,
+    reason: 'التفعيل مفعّل على الاتصال — $after',
+  );
+  expect(
+    await db.customSelect('PRAGMA foreign_key_check').get(),
+    isEmpty,
+    reason: 'لا صفوف مخالفة — $after',
+  );
+}
+
 List<Map<String, Object?>> _rows(Object? v) =>
     (v as List<Object?>? ?? <Object?>[]).cast<Map<String, Object?>>();
 
@@ -245,6 +260,50 @@ void main() {
     final Leave leave = await dst.select(dst.leaves).getSingle();
     expect(leave.fromSlot, isNull, reason: 'إجازة قديمة = كل الحصص');
     expect(leave.toSlot, isNull);
+
+    await _expectFkClean(dst, 'استعادة نسخة v2 إلى المخطط الحالي');
+  });
+
+  test('نسخة v1 (بلا رقم صيغة وبلا حصص): تُستعاد بسلامة مرجعية', () async {
+    final (db: AppDb src, classId: int classId, kids: List<Student> kids) =
+        await _seed();
+    addTearDown(src.close);
+    final List<LessonWindow> lessons = await src.lessonWindows();
+    await src.upsertAttendance(
+      yearId: 1,
+      classId: classId,
+      studentId: kids[0].id,
+      date: '2026-09-10',
+      lessonId: lessons[0].id,
+      status: AttendanceStatus.present,
+      source: AttendanceSource.manual,
+    );
+
+    // صيغة 1: لا حقل إصدار، ولا حصص، ولا جدول تنبيهات (لم يكن موجوداً).
+    final Map<String, Object?> manifest = await _manifestOf(src);
+    manifest.remove('version');
+    manifest.remove('lessons');
+    manifest.remove('alertNotifications');
+    for (final Map<String, Object?> r in _rows(manifest['sessions'])) {
+      _drop(r, 'lesson_id');
+    }
+    for (final Map<String, Object?> r in _rows(manifest['attendance'])) {
+      _drop(r, 'lesson_id');
+    }
+
+    final AppDb dst = AppDb.forTesting(NativeDatabase.memory());
+    addTearDown(dst.close);
+    await BackupService(dst).restoreFull(_zipOf(manifest));
+
+    expect(await dst.select(dst.students).get(), hasLength(2));
+    final List<AttendanceRow> rows = await dst.select(dst.attendanceRows).get();
+    expect(rows, hasLength(1));
+    expect(
+      rows.single.lessonId,
+      (await dst.firstLesson()).id,
+      reason: 'سطر قديم بلا حصة ⇒ الحصة الأولى',
+    );
+    await _expectFkClean(dst, 'استعادة نسخة v1');
   });
 
   test('نسخة v3: الحصص والإجازات والحضور تعود كما هي', () async {
@@ -325,20 +384,7 @@ void main() {
     expect(leave.toSlot, 5);
     expect(leave.type, 1);
 
-    // الرابط المرجعي سليم بعد الاستعادة: الحصص والأصفة والطلاب والسجلات.
-    expect(
-      (await dst.customSelect('PRAGMA foreign_keys').getSingle())
-          .data
-          .values
-          .first,
-      1,
-      reason: 'المفاتيح الأجنبية مفعّلة على اتصال القاعدة المستعادة',
-    );
-    expect(
-      await dst.customSelect('PRAGMA foreign_key_check').get(),
-      isEmpty,
-      reason: 'لا صف يتيم بعد الاستعادة الكاملة',
-    );
+    await _expectFkClean(dst, 'استعادة نسخة v3 كاملة');
   });
 
   test('الدمج: حصتان في اليوم نفسه تُدمان، ولا تُدمج الحصة نفسها مرتين', () async {
@@ -394,6 +440,7 @@ void main() {
       hasLength(2),
       reason: 'لا تضاعف عند تكرار الدمج',
     );
+    await _expectFkClean(dst, 'دمج نسخة ثم تكرار الدمج');
   });
 
   test('الدمج: حصة غير موجودة تُسقَط على الأولى، وطالب غير موجود يُتخطّى',

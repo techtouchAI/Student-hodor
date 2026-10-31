@@ -1,13 +1,14 @@
-/// مسار الاستيراد على مستوى الشاشة: المعاينة لا تكتب، والإلغاء لا يضيف،
-/// والتأكيد يضيف إلى الصف نفسه بالترتيب — بمنتقٍ محقون بدل منتقي المنصّة.
+/// مسار الاستيراد على مستوى الشاشة الحقيقية داخل تنقّل حقيقي.
 ///
-/// الشاشة تُدفع فوق صفحة مضيفة حقيقية (لا `home:` مباشرة) حتى يعمل
-/// `Navigator.pop` بعد الاستيراد كما يعمل في التطبيق.
+/// الشاشة تُدفع عبر `Navigator.push` من صفحة مضيفة (Host Route)، فـ`pop`
+/// الذي تنفّذه الشاشة بعد النجاح يُنفَّذ فعلاً ويعود المستخدم إلى الصفحة
+/// السابقة — بلا عرض معزول ولا محاكاة للتنقّل. منتقي الملفات محقون،
+/// والمنتقي الافتراضي (المنصّة) يبقى كما هو في التطبيق.
 library;
 
 import 'dart:convert';
 
-import 'package:drift/drift.dart' hide isNull;
+import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -40,6 +41,8 @@ Future<AppDb> _seed(WidgetTester tester) async {
   return db;
 }
 
+/// فصل الشجرة ثم إغلاق القاعدة في تزامن حقيقي (drift/FFI داخل
+/// `testWidgets`)، مع تصريف المؤقّت الصفري الذي يجدوله إلغاء الاشتراك.
 Future<void> _tearDown(WidgetTester tester, AppDb db) async {
   await tester.pumpWidget(const SizedBox());
   await tester.pump(const Duration(milliseconds: 1));
@@ -47,6 +50,8 @@ Future<void> _tearDown(WidgetTester tester, AppDb db) async {
   await tester.pump(const Duration(milliseconds: 1));
 }
 
+/// ضخّ إطارات محدود: لا `pumpAndSettle`، فالشاشة تُظهر مؤشر تقدّم أثناء
+/// القراءة/الكتابة وقد لا تستقر.
 Future<void> _settle(WidgetTester tester) async {
   for (int i = 0; i < 12; i++) {
     await tester.pump(const Duration(milliseconds: 100));
@@ -56,7 +61,13 @@ Future<void> _settle(WidgetTester tester) async {
 NameFilePick _txt(String text) =>
     (name: 'names.txt', bytes: Uint8List.fromList(utf8.encode(text)));
 
-/// صفحة مضيفة تدفع شاشة الاستيراد بالزر — كما تصل إليها من شاشة الطلاب.
+/// زر داخل نافذة التأكيد وحدها — لا يلتبس بزر الشاشة أو بنص آخر.
+Finder _dialogButton(String label) => find.descendant(
+      of: find.byType(AlertDialog),
+      matching: find.text(label),
+    );
+
+/// صفحة مضيفة حقيقية: تدفع شاشة الاستيراد بـ`Navigator.push`.
 class _Host extends StatelessWidget {
   const _Host({required this.picker});
 
@@ -83,7 +94,6 @@ class _Host extends StatelessWidget {
       );
 }
 
-/// يفتح الشاشة من الصفحة المضيفة ويترك المنتقي المحقون يقرّر الملف.
 Future<void> _open(WidgetTester tester, AppDb db, NameFilePicker picker) async {
   tester.view.physicalSize = const Size(1080, 2400);
   tester.view.devicePixelRatio = 1.0;
@@ -94,9 +104,13 @@ Future<void> _open(WidgetTester tester, AppDb db, NameFilePicker picker) async {
       child: MaterialApp(home: _Host(picker: picker)),
     ),
   );
-  await tester.pumpAndSettle();
+  await _settle(tester);
+  expect(find.text('افتح الاستيراد'), findsOneWidget);
   await tester.tap(find.text('افتح الاستيراد'));
-  await tester.pumpAndSettle();
+  await _settle(tester);
+  // الشاشة فُتحت فعلاً عبر المسار: زر الرجوع موجود لأن Navigator.canPop.
+  expect(find.byType(BackButton), findsOneWidget);
+  expect(find.text('اختيار ملف'), findsOneWidget);
 }
 
 Future<void> _pickFile(WidgetTester tester) async {
@@ -138,16 +152,18 @@ void main() {
   );
 
   testWidgets(
-    'إلغاء منتقي الملفات لا يُنتج معاينة ولا يكتب',
+    'إلغاء منتقي الملفات لا يُنتج معاينة ولا يكتب ولا يُسقط الشاشة',
     (WidgetTester tester) async {
       final AppDb db = await _seed(tester);
       try {
         await _open(tester, db, () async => null);
         await _pickFile(tester);
 
+        expect(tester.takeException(), isNull);
         expect(find.text('المعاينة'), findsNothing);
         expect(find.textContaining('اسماً'), findsNothing);
         expect(find.textContaining('تعذر'), findsNothing);
+        expect(find.text('اختيار ملف'), findsOneWidget, reason: 'الشاشة باقية');
         expect(await _countStudents(tester, db), 0);
       } finally {
         await _tearDown(tester, db);
@@ -157,7 +173,7 @@ void main() {
   );
 
   testWidgets(
-    'التراجع في نافذة التأكيد بعد المعاينة لا يضيف طلاباً',
+    'التراجع في نافذة التأكيد لا يضيف طلاباً ويُبقي المعاينة',
     (WidgetTester tester) async {
       final AppDb db = await _seed(tester);
       try {
@@ -166,16 +182,43 @@ void main() {
         await tester.tap(find.text('استيراد 2 اسماً'));
         await _settle(tester);
 
-        expect(find.text('تأكيد الاستيراد'), findsOneWidget);
-        await tester.tap(find.text('تراجع'));
+        expect(find.byType(AlertDialog), findsOneWidget);
+        await tester.tap(_dialogButton('تراجع'));
         await _settle(tester);
 
-        expect(find.text('تأكيد الاستيراد'), findsNothing);
+        expect(find.byType(AlertDialog), findsNothing);
+        expect(find.text('المعاينة'), findsOneWidget);
         expect(
           await _countStudents(tester, db),
           0,
           reason: 'الإلغاء بعد المعاينة لا يكتب شيئاً',
         );
+      } finally {
+        await _tearDown(tester, db);
+      }
+    },
+    timeout: _kTimeout,
+  );
+
+  testWidgets(
+    'زر الرجوع يعيد إلى الشاشة السابقة بعد المعاينة بلا كتابة',
+    (WidgetTester tester) async {
+      final AppDb db = await _seed(tester);
+      try {
+        await _open(tester, db, () async => _txt('أحمد علي\nبشار كريم\n'));
+        await _pickFile(tester);
+        expect(find.text('استيراد 2 اسماً'), findsOneWidget);
+
+        await tester.tap(find.byType(BackButton));
+        await _settle(tester);
+
+        expect(
+          find.text('افتح الاستيراد'),
+          findsOneWidget,
+          reason: 'Navigator.pop أعاد المستخدم إلى الصفحة المضيفة',
+        );
+        expect(find.text('اختيار ملف'), findsNothing);
+        expect(await _countStudents(tester, db), 0);
       } finally {
         await _tearDown(tester, db);
       }
@@ -215,7 +258,7 @@ void main() {
   );
 
   testWidgets(
-    'التأكيد يضيف الأسماء إلى الصف نفسه بالترتيب ويعود للشاشة السابقة',
+    'التأكيد يضيف بالترتيب ويعيد النتيجة إلى المسار السابق',
     (WidgetTester tester) async {
       final AppDb db = await _seed(tester);
       try {
@@ -230,14 +273,19 @@ void main() {
 
         await tester.tap(find.text('استيراد 2 اسماً'));
         await _settle(tester);
-        await tester.tap(find.text('استيراد'));
+        await tester.tap(_dialogButton('استيراد'));
         await _settle(tester);
 
         expect(tester.takeException(), isNull);
         expect(
           find.text('افتح الاستيراد'),
           findsOneWidget,
-          reason: 'تعود إلى الشاشة السابقة بعد نجاح الاستيراد',
+          reason: 'الشاشة أعادت التحكّم إلى المسار السابق عبر pop',
+        );
+        expect(
+          find.textContaining('أُضيف 2 طالباً'),
+          findsOneWidget,
+          reason: 'نتيجة العملية ظاهرة في لقطة الشاشة',
         );
 
         late List<Student> kids;
@@ -254,6 +302,49 @@ void main() {
         );
         expect(<int>[for (final Student s in kids) s.seq], <int>[1, 2]);
         expect(kids.every((Student s) => s.classId == 1), isTrue);
+      } finally {
+        await _tearDown(tester, db);
+      }
+    },
+    timeout: _kTimeout,
+  );
+
+  testWidgets(
+    'ضغط متكرر على زر الاستيراد: نافذة واحدة وكتابة واحدة (لا تكرار)',
+    (WidgetTester tester) async {
+      final AppDb db = await _seed(tester);
+      try {
+        await _open(tester, db, () async => _txt('أحمد علي\nبشار كريم\n'));
+        await _pickFile(tester);
+
+        // إطفاء «تجاهل الموجود»: لو كتبت الشاشة مرتين لأُضيف الاسمان مرتين.
+        await tester.tap(find.byType(SwitchListTile));
+        await _settle(tester);
+        expect(await _countStudents(tester, db), 0, reason: 'إعادة البناء لا تكتب');
+
+        // ضغطتان متتاليتان بلا إطار بينهما: الضغط الثاني يجب ألا يفتح نافذة.
+        await tester.tap(find.text('استيراد 2 اسماً'));
+        await tester.tap(find.text('استيراد 2 اسماً'));
+        await _settle(tester);
+        expect(
+          find.byType(AlertDialog),
+          findsOneWidget,
+          reason: 'حارس التأكيد يمنع فتح نافذتين',
+        );
+        expect(
+          find.textContaining('مع تجاهل الأسماء الموجودة'),
+          findsNothing,
+          reason: 'المفتاح مطفأ فعلاً ⇒ التكرار كان سيُضاعف الأسماء',
+        );
+
+        await tester.tap(_dialogButton('استيراد'));
+        await _settle(tester);
+
+        expect(
+          await _countStudents(tester, db),
+          2,
+          reason: 'كتابة واحدة فقط: لا 4 أسماء ولا استيراد ثانٍ',
+        );
       } finally {
         await _tearDown(tester, db);
       }

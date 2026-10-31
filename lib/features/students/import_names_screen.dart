@@ -48,6 +48,11 @@ class _ImportNamesState extends ConsumerState<ImportNamesScreen> {
   bool _reading = false;
   bool _writing = false;
 
+  /// حارس نافذة التأكيد: ضغط متكرر سريع على زر الاستيراد كان يفتح **نافذتين**،
+  /// فيصبح تأكيدهما معاً قادراً على إدخال الأسماء مرتين حين يكون «تجاهل
+  /// الأسماء الموجودة» مطفأً. الحارس يبقي النافذة واحدة والكتابة واحدة.
+  bool _confirming = false;
+
   /// منتقي المنصّة: قراءة المسار إلى بايتات (بلا أي كتابة في القاعدة).
   Future<NameFilePick?> _pickFromPlatform() async {
     final List<PlatformFile> picked = await FilePicker.pickFiles(
@@ -98,28 +103,7 @@ class _ImportNamesState extends ConsumerState<ImportNamesScreen> {
     if (preview == null || preview.values.isEmpty) {
       return;
     }
-    final int count = preview.values.length;
-    final bool? ok = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) => AlertDialog(
-        title: const Text('تأكيد الاستيراد'),
-        content: Text(
-          'سيُضاف $count اسماً إلى صف «${widget.classTitle}» بالترتيب الوارد '
-          'في الملف${_skipExisting ? '، مع تجاهل الأسماء الموجودة' : ''}.\n\n'
-          'لا يُحذف ولا يُعدَّل أي طالب قائم.',
-        ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('تراجع'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('استيراد'),
-          ),
-        ],
-      ),
-    );
+    final bool? ok = await _confirmWrite(preview.values.length);
     if (ok != true || !mounted) {
       return;
     }
@@ -151,6 +135,39 @@ class _ImportNamesState extends ConsumerState<ImportNamesScreen> {
       if (mounted) {
         setState(() => _writing = false);
       }
+    }
+  }
+
+  /// نافذة تأكيد الاستيراد — نافذة واحدة فقط مهما تكرّر الضغط السريع.
+  Future<bool?> _confirmWrite(int count) async {
+    if (_confirming) {
+      return null;
+    }
+    _confirming = true;
+    try {
+      return await showDialog<bool>(
+        context: context,
+        builder: (BuildContext context) => AlertDialog(
+          title: const Text('تأكيد الاستيراد'),
+          content: Text(
+            'سيُضاف $count اسماً إلى صف «${widget.classTitle}» بالترتيب الوارد '
+            'في الملف${_skipExisting ? '، مع تجاهل الأسماء الموجودة' : ''}.\n\n'
+            'لا يُحذف ولا يُعدَّل أي طالب قائم.',
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('تراجع'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('استيراد'),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      _confirming = false;
     }
   }
 

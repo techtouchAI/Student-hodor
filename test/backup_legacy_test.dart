@@ -109,7 +109,7 @@ void main() {
       BackupService(db).restoreFull(_zipOf(manifest)),
       throwsA(
         isA<FormatException>().having(
-          (FormatException e) => e.message as String,
+          (FormatException e) => e.message,
           'message',
           allOf(
             contains('${BackupService.backupVersion + 1}'),

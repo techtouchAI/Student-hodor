@@ -6,7 +6,7 @@
 
 ── app-release.apk: app-release.apk
    الحجم        : 93,714,386 بايت
-   SHA-256      : d0041548539d60d0e6791f5020525f1e63815ced394d15f5bea1a6d430252e0d
+   SHA-256      : 0468d2534a4d0676decd7cbda60b6de39787c045420353e4d8962a490dc0ce23
    سلامة ZIP    : سليم
    عدد المداخل  : 545
    البنية       : manifest=True resources.arsc=True classes.dex=4
@@ -41,7 +41,7 @@
 
 ── app-arm64-v8a-release.apk: app-arm64-v8a-release.apk
    الحجم        : 35,974,817 بايت
-   SHA-256      : 61fc6cca76677576c06a55b29163d89740deb22ab160e10b23c9d645e357febb
+   SHA-256      : 32c9408dbbcc867f818fb1a7edc8c83635f8ae9baf7c079104ab239d9872ed70
    سلامة ZIP    : سليم
    عدد المداخل  : 531
    البنية       : manifest=True resources.arsc=True classes.dex=4
@@ -61,8 +61,8 @@
        - lib/arm64-v8a/libsurface_util_jni.so (arm64-v8a) محاذاة ELF=16384 16KB✓
 
 ── المنشور سابقاً: student-hodor-1.3.1-8-universal.apk: student-hodor-1.3.1-8-universal.apk
-   الحجم        : 93,714,400 بايت
-   SHA-256      : a2e340ad879fc20f8e4ca6e07d14adfbdd3677b50bf29e9516a4ea051b024211
+   الحجم        : 93,714,386 بايت
+   SHA-256      : d0041548539d60d0e6791f5020525f1e63815ced394d15f5bea1a6d430252e0d
    سلامة ZIP    : سليم
    عدد المداخل  : 545
    البنية       : manifest=True resources.arsc=True classes.dex=4

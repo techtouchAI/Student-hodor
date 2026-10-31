@@ -325,6 +325,28 @@ class BackupService {
     if (data['format'] != 'student-hodor-backup') {
       throw const FormatException('الملف ليس من تنسيق نسخ هذا النظام');
     }
+    // حارس الصيغة: ملف بصيغة أحدث مما يفهمه هذا الإصدار لا يُقرأ «جزئياً».
+    // بلا هذا الحارس تُستعاد نسخة مستقبلية (مخطط مختلف) بلا علم المستخدم،
+    // فتُفقد الحقول التي لا يعرفها هذا الإصدار بصمت.
+    final int version = _versionOf(data['version']);
+    if (version > backupVersion) {
+      throw FormatException(
+        'هذه النسخة بصيغة أحدث ($version) من التي يدعمها هذا الإصدار '
+        '($backupVersion) — حدّث التطبيق قبل استعادتها.',
+      );
+    }
+  }
+
+  /// رقم صيغة البيان؛ النسخ الأقدم من إدراج الحقل تُعدّ صيغة 1.
+  static int _versionOf(Object? raw) {
+    if (raw is int) {
+      return raw;
+    }
+    if (raw is num) {
+      return raw.toInt();
+    }
+    final int? parsed = int.tryParse('${raw ?? ''}'.trim());
+    return parsed ?? 1;
   }
 
   Future<void> _insertAll(

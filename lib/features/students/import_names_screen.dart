@@ -17,15 +17,25 @@ import '../../data/db.dart';
 import '../../data/error_log.dart';
 import '../../state/providers.dart';
 
+/// ملف مختار: اسمه وبايتاته (للفصل عن منتقي المنصّة حتى يُختبر المسار كاملاً).
+typedef NameFilePick = ({String name, Uint8List bytes});
+
+/// منتقي الملفات: الافتراضي منتقي المنصّة، ويُستبدل في الاختبارات فقط.
+typedef NameFilePicker = Future<NameFilePick?> Function();
+
 class ImportNamesScreen extends ConsumerStatefulWidget {
   const ImportNamesScreen({
     super.key,
     required this.classId,
     required this.classTitle,
+    this.picker,
   });
 
   final int classId;
   final String classTitle;
+
+  /// حقن اختياري للاختبار؛ `null` = منتقي المنصّة (السلوك نفسه في التطبيق).
+  final NameFilePicker? picker;
 
   @override
   ConsumerState<ImportNamesScreen> createState() => _ImportNamesState();
@@ -38,28 +48,38 @@ class _ImportNamesState extends ConsumerState<ImportNamesScreen> {
   bool _reading = false;
   bool _writing = false;
 
+  /// منتقي المنصّة: قراءة المسار إلى بايتات (بلا أي كتابة في القاعدة).
+  Future<NameFilePick?> _pickFromPlatform() async {
+    final List<PlatformFile> picked = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const <String>['txt', 'docx', 'doc'],
+    );
+    if (picked.isEmpty) {
+      return null;
+    }
+    final PlatformFile file = picked.single;
+    final String? path = file.path;
+    if (path == null) {
+      return null;
+    }
+    return (name: file.name, bytes: await File(path).readAsBytes());
+  }
+
   Future<void> _pick() async {
     setState(() => _reading = true);
     try {
-      final List<PlatformFile> picked = await FilePicker.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: const <String>['txt', 'docx', 'doc'],
-      );
-      final String? path = picked.isEmpty ? null : picked.single.path;
-      if (path == null) {
-        return;
-      }
-      final Uint8List bytes = await File(path).readAsBytes();
-      if (!mounted) {
-        return;
+      final NameFilePicker pick = widget.picker ?? _pickFromPlatform;
+      final NameFilePick? chosen = await pick();
+      if (chosen == null || !mounted) {
+        return; // إلغاء المستخدم: لا معاينة ولا كتابة.
       }
       final NameImportPreview preview = parseNameFile(
-        fileName: picked.single.name,
-        bytes: bytes,
+        fileName: chosen.name,
+        bytes: chosen.bytes,
       );
       setState(() {
         _preview = preview;
-        _fileName = picked.single.name;
+        _fileName = chosen.name;
       });
     } catch (e, st) {
       AppErrorLog.instance.record(e, st, where: 'students:import');

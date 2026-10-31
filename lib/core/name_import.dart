@@ -384,7 +384,7 @@ NameImportPreview parseDocxNames(Uint8List bytes) {
             NameImportSkip(
               line: line,
               raw: 'جدول ${pick.rows.length} صفاً',
-              reason: 'جدول بلا عمود اسمي',
+              reason: pick.reason ?? 'جدول بلا عمود اسمي',
             ),
           );
         }
@@ -471,12 +471,15 @@ class _Block {
 }
 
 class _TablePick {
-  const _TablePick({required this.rows, required this.column});
+  const _TablePick({required this.rows, required this.column, this.reason});
 
   final List<List<String>> rows;
 
   /// فهرس عمود الاسم (`null` = لا عمود اسمي في هذا الجدول).
   final int? column;
+
+  /// سبب رفض الجدول حين يكون [column] فارغاً.
+  final String? reason;
 }
 
 /// يقرأ `word/document.xml` من حاوية `.docx` بلا مكتبات إضافية.
@@ -587,14 +590,14 @@ int _endOfTag(String xml, String tag, int start) {
 
 /// نص فقرة: مجموع `<w:t>` مع مسافة بين المقاطع.
 String _textOf(String xml) {
+  // وصل المقاطع بلا فاصل مُخترع: Word يقسّم الكلمة الواحدة إلى `w:r` متعددة
+  // (تدقيق إملائي/لغة/تنسيق)، والمسافة الحقيقية موجودة داخل نص المقطع نفسه.
+  // إدراج مسافة هنا كان يحوّل «علي» إلى «عل ي» ويُفسد الاسم المحفوظ.
   final StringBuffer out = StringBuffer();
   for (final RegExpMatch m in _textRun.allMatches(xml)) {
     final String? t = m.group(1);
     if (t == null || t.isEmpty) {
       continue;
-    }
-    if (out.isNotEmpty) {
-      out.write(' ');
     }
     out.write(_unescapeXml(t));
   }
@@ -664,11 +667,37 @@ String _removeInnerTables(String xml) {
   }
 }
 
-/// يستدلّ على عمود الاسم: أعلى نسبة خلايا «تشبه اسماً»، مع تخطّي الترويسة.
+/// كلمات ترويسة تدلّ على عمود الأسماء تحديداً (لا أي عمود نصي).
+const Set<String> _nameHeaderLabels = <String>{
+  'الاسم',
+  'الاسماء',
+  'اسم',
+  'اسم الطالب',
+  'اسم الطالبه',
+  'الاسم الثلاثي',
+  'الاسم الرباعي',
+  'الاسم الكامل',
+  'name',
+  'student name',
+};
+
+/// يستدلّ على عمود الاسم بثلاث قواعد مرتّبة:
+/// 1. ترويسة صريحة («الاسم»، «اسم الطالب»…) ⇒ هي العمود، ولا تخمين بعدها.
+/// 2. جدول بعمود واحد ⇒ يُقبل إن كانت أغلب خلاياه أسماء (جدول بلا ترويسة).
+/// 3. جدول متعدد الأعمدة بلا ترويسة ⇒ يُقبل عمود واحد **واضح** فقط (نسبته
+///    عالية وبقية الأعمدة ليست أسماء)؛ وإلا يُرفض الجدول كله.
+///
+/// القاعدة 3 ضرورة بيانات لا تشدّد: الجداول المدرسية تبدأ غالباً بجدول بيانات
+/// (المدرسة/الصف/العام) وخلاياه نصوص عربية تُشبه الأسماء، فالتخمين الحرّ كان
+/// يُدخل «المدرسة» و«النجاح» طلاباً.
 _TablePick _pickNameColumn(String tableXml) {
   final List<List<String>> rows = _tableRows(tableXml);
   if (rows.isEmpty) {
     return const _TablePick(rows: <List<String>>[], column: null);
+  }
+  final int? headerColumn = _nameHeaderColumn(rows);
+  if (headerColumn != null) {
+    return _TablePick(rows: rows, column: headerColumn);
   }
   int columns = 0;
   for (final List<String> r in rows) {
@@ -676,38 +705,69 @@ _TablePick _pickNameColumn(String tableXml) {
       columns = r.length;
     }
   }
-  int best = -1;
-  int bestScore = 0;
+  if (columns == 1) {
+    final int score = _columnNameScore(rows, 0);
+    return _TablePick(
+      rows: rows,
+      column: score >= 50 ? 0 : null,
+      reason: score >= 50 ? null : 'جدول بلا عمود اسمي',
+    );
+  }
+  final List<int> strong = <int>[];
+  final List<int> anyName = <int>[];
   for (int c = 0; c < columns; c++) {
-    int scored = 0;
-    int total = 0;
-    for (final List<String> r in rows) {
-      if (c >= r.length) {
+    final int score = _columnNameScore(rows, c);
+    if (score >= 70) {
+      strong.add(c);
+    }
+    if (score >= 50) {
+      anyName.add(c);
+    }
+  }
+  if (strong.length == 1 && anyName.length == 1) {
+    return _TablePick(rows: rows, column: strong.single);
+  }
+  return _TablePick(
+    rows: rows,
+    column: null,
+    reason: anyName.isEmpty
+        ? 'جدول بلا عمود اسمي'
+        : 'جدول بأعمدة متشابهة بلا ترويسة اسم',
+  );
+}
+
+/// عمود الترويسة الصريحة، أو `null`.
+int? _nameHeaderColumn(List<List<String>> rows) {
+  for (final List<String> row in rows) {
+    for (int c = 0; c < row.length; c++) {
+      final String key = normalizeName(row[c]).toLowerCase();
+      if (key.isEmpty) {
         continue;
       }
-      final String cell = cleanStudentName(r[c]);
-      if (cell.isEmpty) {
-        continue;
-      }
-      if (isHeaderLabel(cell)) {
-        continue;
-      }
-      total++;
-      if (isImportableName(cell)) {
-        scored++;
+      if (_nameHeaderLabels.contains(key)) {
+        return c;
       }
     }
-    if (total == 0) {
+  }
+  return null;
+}
+
+/// نسبة الخلايا «الاسمية» في عمود (تُستثنى الترويسات والفارغ).
+int _columnNameScore(List<List<String>> rows, int column) {
+  int scored = 0;
+  int total = 0;
+  for (final List<String> r in rows) {
+    if (column >= r.length) {
       continue;
     }
-    final int score = (scored * 100) ~/ total;
-    if (score > bestScore) {
-      bestScore = score;
-      best = c;
+    final String cell = cleanStudentName(r[column]);
+    if (cell.isEmpty || isHeaderLabel(cell)) {
+      continue;
+    }
+    total++;
+    if (isImportableName(cell)) {
+      scored++;
     }
   }
-  if (best < 0 || bestScore < 50) {
-    return _TablePick(rows: rows, column: null);
-  }
-  return _TablePick(rows: rows, column: best);
+  return total == 0 ? 0 : (scored * 100) ~/ total;
 }

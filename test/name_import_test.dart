@@ -19,6 +19,12 @@ Uint8List _utf16le(String s) => Uint8List.fromList(<int>[
       for (final int unit in s.codeUnits) ...<int>[unit & 0xFF, unit >> 8],
     ]);
 
+Uint8List _utf16be(String s) => Uint8List.fromList(<int>[
+      0xFE,
+      0xFF,
+      for (final int unit in s.codeUnits) ...<int>[unit >> 8, unit & 0xFF],
+    ]);
+
 /// «محمد علي» بترميز Windows-1256 (كما يكتبها Notepad العربي القديم).
 final Uint8List _cp1256 = Uint8List.fromList(<int>[
   0xE3, 0xCD, 0xE3, 0xCF, 0x20, 0xDA, 0xE1, 0xED, //
@@ -210,6 +216,112 @@ void main() {
     expect(second.added, 0);
     expect(second.skippedExisting, 2);
     expect((await db.select(db.students).get()), hasLength(3));
+  });
+
+
+  test('UTF-16BE بعلامة ترتيب يُقرأ بلا رموز مشوّهة', () {
+    final NameImportPreview p = parseNameFile(
+      fileName: 'u16be.txt',
+      bytes: _utf16be('علي حسن\nمحمد جاسم'),
+    );
+    expect(p.values, <String>['علي حسن', 'محمد جاسم']);
+  });
+
+  test('Word: الكلمة المقسومة على مقاطع تشغيل لا تُفصل بمسافة مُخترعة', () {
+    final String xml = '<w:document><w:body>'
+        '<w:p>'
+        '<w:r><w:t>محمد</w:t></w:r>'
+        '<w:r><w:t xml:space="preserve"> علي</w:t></w:r>'
+        '</w:p>'
+        '<w:p>'
+        '<w:r><w:t>عل</w:t></w:r>'
+        '<w:r><w:t>ي</w:t></w:r>'
+        '<w:r><w:t xml:space="preserve"> حسن</w:t></w:r>'
+        '</w:p>'
+        '</w:body></w:document>';
+    final NameImportPreview p =
+        parseNameFile(fileName: 'runs.docx', bytes: _docx(xml));
+    expect(
+      p.values,
+      <String>['محمد علي', 'علي حسن'],
+      reason: 'النص يُعاد كما في الملف، بلا مسافة بين المقاطع',
+    );
+  });
+
+  test('Word: جداول متعددة — جدول بيانات لا يُقرأ أسماءً، وجدول الأسماء يُقرأ',
+      () {
+    final String xml = '<w:document><w:body>'
+        '<w:tbl>'
+        '${_row(<String>['المدرسة', 'النجاح'])}'
+        '${_row(<String>['الصف', 'السادس'])}'
+        '</w:tbl>'
+        '<w:tbl>'
+        '${_row(<String>['ت', 'الاسم'])}'
+        '${_row(<String>['1', 'علي حسن كريم'])}'
+        '${_row(<String>['2', 'محمد جاسم'])}'
+        '</w:tbl>'
+        '</w:body></w:document>';
+    final NameImportPreview p =
+        parseNameFile(fileName: 'two_tables.docx', bytes: _docx(xml));
+
+    expect(p.values, <String>['علي حسن كريم', 'محمد جاسم']);
+    expect(
+      p.values,
+      isNot(contains('المدرسة')),
+      reason: 'جدول البيانات المدرسي ليس قائمة أسماء',
+    );
+    expect(
+      p.skipped.map((NameImportSkip s) => s.reason),
+      contains('جدول بأعمدة متشابهة بلا ترويسة اسم'),
+    );
+  });
+
+  test('التشابه: الهمزات والتشكيل مكرر، واختلاف حرف ليس مكرراً', () {
+    final NameImportPreview p = parseTextNames(
+      'أحمد علي\n'
+      'احمد علي\n'
+      'أحمَد علي\n'
+      'علي حسن\n'
+      'علي حسين\n',
+    );
+    expect(
+      p.values,
+      <String>['أحمد علي', 'علي حسن', 'علي حسين'],
+      reason: '«حسن» و«حسين» اسمان مختلفان لا مكرر',
+    );
+    expect(
+      p.skipped.where((NameImportSkip s) => s.reason == 'مكرر داخل الملف'),
+      hasLength(2),
+    );
+  });
+
+  test('فشل في منتصف الاستيراد يردّ كل شيء (لا اسم نصف مستورد)', () async {
+    final ({AppDb db, int yearId, int classId}) seed = await _seed();
+    final AppDb db = seed.db;
+    addTearDown(db.close);
+
+    await expectLater(
+      db.transaction<void>(() async {
+        await db.importStudentNames(
+          yearId: seed.yearId,
+          classId: seed.classId,
+          names: <String>['أحمد علي', 'بشار كريم'],
+        );
+        throw StateError('boom');
+      }),
+      throwsA(isA<StateError>()),
+    );
+
+    expect(
+      await db.select(db.students).get(),
+      isEmpty,
+      reason: 'الكتابة داخل معاملة المستدعي تُرتدّ كاملة',
+    );
+    expect(await db.select(db.badges).get(), isEmpty);
+    final List<AuditLog> logs = await (db.select(db.auditLogs)
+          ..where((AuditLogs a) => a.action.equals('students_import')))
+        .get();
+    expect(logs, isEmpty, reason: 'سجل التدقيق ارتدّ مع المعاملة');
   });
 
   test('الاستيراد إلى صف آخر لا يمسّ صفاً غيره', () async {

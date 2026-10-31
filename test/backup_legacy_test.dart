@@ -97,6 +97,61 @@ void _drop(Map<String, Object?> row, String key) {
 }
 
 void main() {
+
+  test('نسخة بصيغة أحدث من التطبيق تُرفض قبل أي مسح أو استعادة', () async {
+    final ({AppDb db, int classId, List<Student> kids}) seed = await _seed();
+    final AppDb db = seed.db;
+    addTearDown(db.close);
+    final Map<String, Object?> manifest = await _manifestOf(db);
+    manifest['version'] = BackupService.backupVersion + 1;
+
+    await expectLater(
+      BackupService(db).restoreFull(_zipOf(manifest)),
+      throwsA(
+        isA<FormatException>().having(
+          (FormatException e) => '${e.message}',
+          'message',
+          allOf(
+            contains('${BackupService.backupVersion + 1}'),
+            contains('حدّث التطبيق'),
+          ),
+        ),
+      ),
+      reason: 'الصيغة المستقبلية تُرفض برسالة صريحة، لا باستعادة جزئية صامتة',
+    );
+
+    // لم يُحذف شيء: القاعدة كما كانت قبل المحاولة.
+    expect(await db.select(db.students).get(), hasLength(2));
+    expect(await db.select(db.schoolClasses).get(), hasLength(1));
+    expect(await db.activeYear(), isNotNull);
+  });
+
+  test('نسخة بلا رقم صيغة (صيغة 1) تُقبل وتُستعاد كاملة', () async {
+    final ({AppDb db, int classId, List<Student> kids}) seed = await _seed();
+    final Map<String, Object?> manifest = await _manifestOf(seed.db);
+    await seed.db.close();
+    manifest.remove('version');
+
+    final AppDb dst = AppDb.forTesting(NativeDatabase.memory());
+    addTearDown(dst.close);
+    await BackupService(dst).restoreFull(_zipOf(manifest));
+    expect(await dst.select(dst.students).get(), hasLength(2));
+  });
+
+  test('الدمج يرفض أيضاً نسخة بصيغة أحدث', () async {
+    final ({AppDb db, int classId, List<Student> kids}) seed = await _seed();
+    final AppDb db = seed.db;
+    addTearDown(db.close);
+    final Map<String, Object?> manifest = await _manifestOf(db);
+    manifest['version'] = BackupService.backupVersion + 1;
+
+    await expectLater(
+      BackupService(db).mergeImport(_zipOf(manifest)),
+      throwsA(isA<FormatException>()),
+    );
+    expect(await db.select(db.students).get(), hasLength(2));
+  });
+
   test('نسخة v2 بلا حصص: زرع افتراضي وإسناد كل سطر إلى الحصة الأولى', () async {
     final (db: AppDb src, classId: int classId, kids: List<Student> kids) =
         await _seed();

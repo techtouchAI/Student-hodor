@@ -228,7 +228,7 @@ void main() {
   });
 
   test('Word: الكلمة المقسومة على مقاطع تشغيل لا تُفصل بمسافة مُخترعة', () {
-    final String xml = '<w:document><w:body>'
+    const String xml = '<w:document><w:body>'
         '<w:p>'
         '<w:r><w:t>محمد</w:t></w:r>'
         '<w:r><w:t xml:space="preserve"> علي</w:t></w:r>'

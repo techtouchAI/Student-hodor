@@ -8,7 +8,7 @@ library;
 import 'dart:convert';
 
 import 'package:archive/archive.dart';
-import 'package:drift/drift.dart' hide isNull;
+import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:student_hodor/core/lesson.dart';
@@ -109,7 +109,7 @@ void main() {
       BackupService(db).restoreFull(_zipOf(manifest)),
       throwsA(
         isA<FormatException>().having(
-          (FormatException e) => '${e.message}',
+          (FormatException e) => e.message as String,
           'message',
           allOf(
             contains('${BackupService.backupVersion + 1}'),

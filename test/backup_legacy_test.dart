@@ -1,8 +1,9 @@
-/// T1: توافق النسخ الاحتياطية والدمج مع بُعد الحصص.
+/// توافق النسخ الاحتياطية مع بُعد الحصص بعد إلغاء الدمج.
 ///
-/// يغطي ما كان بلا اختبار: نسخة **v2** بلا جدول حصص، ونسخة v3 بالحصص
-/// والإجازات، والدمج (حصتان في اليوم نفسه، ومنع التكرار، وإسقاط الحصة
-/// المفقودة على الأولى، وتجاهل الأسطر التي تشير إلى طالب غير موجود).
+/// يغطي: رفض صيغة أحدث دون أي تغيير، نسخة **v1/v2** بلا جدول حصص (الترحيل
+/// الرسمي إلى الحصة الأولى)، نسخة v3 بالحصص والإجازات، حفظ حصتين في اليوم
+/// نفسه، منع التضاعف عند تكرار الاستعادة، ورفض **المرجع المجهول** في النسخ
+/// الحديثة قبل أي كتابة (لا إسناد صامت إلى الحصة الأولى).
 library;
 
 import 'dart:convert';
@@ -153,18 +154,48 @@ void main() {
     expect(await dst.select(dst.students).get(), hasLength(2));
   });
 
-  test('الدمج يرفض أيضاً نسخة بصيغة أحدث', () async {
+  test('رفض نسخة بصيغة أحدث لا يغيّر أي صف ولا أي إعداد', () async {
     final ({AppDb db, int classId, List<Student> kids}) seed = await _seed();
     final AppDb db = seed.db;
     addTearDown(db.close);
+    final List<Lesson> lessonsBefore = await db.allLessons();
+    await db.setSetting('school_name', 'قبل المحاولة');
+    await db.upsertAttendance(
+      yearId: 1,
+      classId: seed.classId,
+      studentId: seed.kids[0].id,
+      date: '2026-09-07',
+      lessonId: lessonsBefore.first.id,
+      status: AttendanceStatus.present,
+      source: AttendanceSource.scan,
+    );
+    final Map<String, String> settingsBefore = await db.allSettings();
+    final List<Map<String, Object?>> attendanceBefore = <Map<String, Object?>>[
+      for (final AttendanceRow r in await db.select(db.attendanceRows).get())
+        r.toJson(),
+    ];
+
     final Map<String, Object?> manifest = await _manifestOf(db);
     manifest['version'] = BackupService.backupVersion + 1;
 
     await expectLater(
-      BackupService(db).mergeImport(_zipOf(manifest)),
+      BackupService(db).restoreFull(_zipOf(manifest)),
       throwsA(isA<FormatException>()),
     );
-    expect(await db.select(db.students).get(), hasLength(2));
+
+    expect(
+      <String>[for (final Lesson l in await db.allLessons()) l.name],
+      <String>[for (final Lesson l in lessonsBefore) l.name],
+    );
+    expect(await db.allSettings(), settingsBefore);
+    expect(
+      <Map<String, Object?>>[
+        for (final AttendanceRow r in await db.select(db.attendanceRows).get())
+          r.toJson(),
+      ],
+      attendanceBefore,
+    );
+    await _expectFkClean(db, 'بعد رفض نسخة بصيغة أحدث');
   });
 
   test('نسخة v2 بلا حصص: زرع افتراضي وإسناد كل سطر إلى الحصة الأولى', () async {
@@ -387,7 +418,7 @@ void main() {
     await _expectFkClean(dst, 'استعادة نسخة v3 كاملة');
   });
 
-  test('الدمج: حصتان في اليوم نفسه تُدمان، ولا تُدمج الحصة نفسها مرتين', () async {
+  test('الاستعادة الكاملة تحفظ حصتين في اليوم نفسه، وتكرارها لا يضاعف', () async {
     final (db: AppDb src, classId: int classId, kids: List<Student> kids) =
         await _seed();
     addTearDown(src.close);
@@ -405,51 +436,43 @@ void main() {
       yearId: 1,
       classId: classId,
       studentId: kids[0].id,
-      date: '2026-09-12',
+      date: '2026-09-10',
       lessonId: lessons[2].id,
       status: AttendanceStatus.absent,
       source: AttendanceSource.manual,
     );
-    final Map<String, Object?> manifest = await _manifestOf(src);
+    final Uint8List zip = await BackupService(src).exportBytes();
 
-    final (db: AppDb dst, classId: int dstClass, kids: List<Student> dstKids) =
-        await _seed();
+    final ({AppDb db, int classId, List<Student> kids}) target = await _seed();
+    final AppDb dst = target.db;
     addTearDown(dst.close);
-    expect(dstClass, classId, reason: 'نفس المعرّفات لأن البناء واحد');
+    await BackupService(dst).restoreFull(zip);
 
-    final Map<String, int> first = await BackupService(dst).mergeImport(
-      _zipOf(manifest),
-    );
-    expect(first['attendance'], 2, reason: 'حصتان مختلفتان تُدمان كلتاهما');
-    expect(first['sessions'], 0);
-    final List<AttendanceRow> after = await dst.select(dst.attendanceRows).get();
-    expect(after, hasLength(2));
+    final List<AttendanceRow> after =
+        await dst.select(dst.attendanceRows).get();
+    expect(after, hasLength(2), reason: 'حصتان في اليوم نفسه تبقى سجلين');
     expect(
       <int>{for (final AttendanceRow r in after) r.lessonId},
       <int>{lessons[0].id, lessons[2].id},
+      reason: 'كل سجل يبقى في حصته الصحيحة',
     );
-    expect(dstKids, isNotEmpty);
 
-    // الدمج الثاني: لا سطر جديد (نفس المفتاح student+date+lesson).
-    final Map<String, int> second = await BackupService(dst).mergeImport(
-      _zipOf(manifest),
-    );
-    expect(second['attendance'], 0);
+    // استعادة الحاوية نفسها مرة أخرى: استبدال لا إضافة ⇒ العدد نفسه.
+    await BackupService(dst).restoreFull(zip);
     expect(
       await dst.select(dst.attendanceRows).get(),
       hasLength(2),
-      reason: 'لا تضاعف عند تكرار الدمج',
+      reason: 'الاستعادة استبدال، فلا تضاعف عند تكرارها',
     );
-    await _expectFkClean(dst, 'دمج نسخة ثم تكرار الدمج');
+    await _expectFkClean(dst, 'استعادة ثم تكرار الاستعادة');
   });
 
-  test('الدمج: حصة غير موجودة تُسقَط على الأولى، وطالب غير موجود يُتخطّى',
+  test('المرجع المجهول في نسخة حديثة يُرفض قبل أي كتابة ولا يُسند إلى الأولى',
       () async {
     final (db: AppDb src, classId: int classId, kids: List<Student> kids) =
         await _seed();
     addTearDown(src.close);
     final List<LessonWindow> lessons = await src.lessonWindows();
-    // سطر مرجعي حقيقي نحتفظ بشكله ثم نحرّف معرّفاته.
     await src.upsertAttendance(
       yearId: 1,
       classId: classId,
@@ -464,56 +487,66 @@ void main() {
     final Map<String, Object?> shape =
         (await src.select(src.attendanceRows).get()).first.toJson();
 
-    // سطران يدويان: أحدهما لحصة غير موجودة (٩٩٩) والآخر لطالب غير موجود.
-    final Map<String, Object?> orphanLesson = _with(shape, <String, Object?>{
-      'id': 9001,
-      'lesson_id': 999,
-      'date': '2026-09-14',
-    });
-    final Map<String, Object?> orphanStudent =
-        _with(orphanLesson, <String, Object?>{
-      'id': 9002,
-      'lesson_id': lessons[1].id,
-      'student_id': 999,
-      'date': '2026-09-15',
-    });
+    // سطر إضافي يشير إلى حصة غير موجودة (999): خلل سلامة لا «سطر قديم».
     manifest['attendance'] = <Map<String, Object?>>[
-      orphanLesson,
-      orphanStudent,
+      shape,
+      _with(shape, <String, Object?>{
+        'id': 9001,
+        'lesson_id': 999,
+        'date': '2026-09-14',
+      }),
     ];
-    manifest['sessions'] = <Map<String, Object?>>[];
-    manifest['scanEvents'] = <Map<String, Object?>>[];
 
     final ({AppDb db, int classId, List<Student> kids}) target = await _seed();
     final AppDb dst = target.db;
     addTearDown(dst.close);
-    final Map<String, int> counts = await BackupService(dst).mergeImport(
-      _zipOf(manifest),
+    await dst.setSetting('school_name', 'بيانات يجب أن تبقى');
+    await dst.upsertAttendance(
+      yearId: 1,
+      classId: target.classId,
+      studentId: target.kids[0].id,
+      date: '2026-09-05',
+      lessonId: (await dst.firstLesson()).id,
+      status: AttendanceStatus.present,
+      source: AttendanceSource.scan,
     );
-    final List<AttendanceRow> rows = await dst.select(dst.attendanceRows).get();
-    final String seen = <String>[
-      for (final AttendanceRow r in rows)
-        'student=${r.studentId} lesson=${r.lessonId} date=${r.date}',
-    ].join(' | ');
+    final List<Map<String, Object?>> attendanceBefore =
+        <Map<String, Object?>>[
+      for (final AttendanceRow r in await dst.select(dst.attendanceRows).get())
+        r.toJson(),
+    ];
+    final Uint8List bytes = _zipOf(manifest);
+
+    // الفحص نفسه (ما تعرضه الواجهة قبل التأكيد) يرفض ولا يكتب.
+    await expectLater(
+      BackupService(dst).inspect(bytes),
+      throwsA(
+        isA<BackupValidationException>().having(
+          (BackupValidationException e) => e.message,
+          'message',
+          allOf(contains('999'), contains('الحصة الأولى')),
+        ),
+      ),
+    );
+    await expectLater(
+      BackupService(dst).restoreFull(bytes),
+      throwsA(isA<BackupValidationException>()),
+    );
+
+    // لا حذف ولا إسناد صامت: السجلات القائمة والإعدادات كما كانت.
     expect(
-      counts['attendance'],
-      1,
-      reason: 'السطر الصالح وحده يُدرج — counts=$counts rows=[$seen]',
+      <Map<String, Object?>>[
+        for (final AttendanceRow r in await dst.select(dst.attendanceRows).get())
+          r.toJson(),
+      ],
+      attendanceBefore,
     );
-    expect(
-      counts['skipped'],
-      1,
-      reason: 'سطر الطالب المفقود يُتخطّى ويُعدّ — counts=$counts',
-    );
-    expect(rows, hasLength(1), reason: 'الصفوف بعد الدمج: [$seen]');
-    expect(
-      rows.single.lessonId,
-      (await dst.firstLesson()).id,
-      reason: 'حصة غير موجودة ⇒ الحصة الأولى',
-    );
+    expect(await dst.setting('school_name'), 'بيانات يجب أن تبقى');
+    expect(await dst.select(dst.students).get(), hasLength(2));
+    await _expectFkClean(dst, 'بعد رفض مرجع حصة مجهول');
   });
 
-  test('الدمج: أحداث المسح لا تتضاعف عند تكرار الدمج', () async {
+  test('تكرار الاستعادة لا يضاعف أحداث المسح', () async {
     final (db: AppDb src, classId: int classId, kids: List<Student> kids) =
         await _seed();
     addTearDown(src.close);
@@ -532,19 +565,19 @@ void main() {
             at: const Value('2026-09-16T08:01:00'),
           ),
         );
-    final Map<String, Object?> manifest = await _manifestOf(src);
+    final Uint8List zip = await BackupService(src).exportBytes();
 
     final ({AppDb db, int classId, List<Student> kids}) target = await _seed();
     final AppDb dst = target.db;
     addTearDown(dst.close);
-    final Map<String, int> first = await BackupService(dst).mergeImport(
-      _zipOf(manifest),
-    );
-    expect(first['scanEvents'], 1);
-    final Map<String, int> second = await BackupService(dst).mergeImport(
-      _zipOf(manifest),
-    );
-    expect(second['scanEvents'], 0);
+    await BackupService(dst).restoreFull(zip);
     expect(await dst.select(dst.scanEvents).get(), hasLength(1));
+    await BackupService(dst).restoreFull(zip);
+    expect(
+      await dst.select(dst.scanEvents).get(),
+      hasLength(1),
+      reason: 'الاستبدال يعيد كتابة السجل مرة واحدة لا يراكمه',
+    );
+    await _expectFkClean(dst, 'تكرار استعادة أحداث المسح');
   });
 }

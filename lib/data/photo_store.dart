@@ -59,6 +59,23 @@ class PhotoStore {
     return dst.path;
   }
 
+  /// مسارات ملفات الصور الموجودة حالياً في المخزن.
+  ///
+  /// **لا ينشئ المجلد** (بخلاف [_dir]): تُستدعى قبل الاستعادة لمعرفة ما كان
+  /// موجوداً، وغياب المجلد يعني «لا صور سابقة». تفشل بصمت الشرط هنا ممنوع:
+  /// الاستثناء يصعد ليُعطّل تنظيف الاستعادة الفاشلة بدل حذف صور قائمة.
+  static Future<Set<String>> existingPaths() async {
+    final Directory base = await getApplicationDocumentsDirectory();
+    final Directory photos = Directory(p.join(base.path, 'photos'));
+    if (!photos.existsSync()) {
+      return <String>{};
+    }
+    return <String>{
+      for (final FileSystemEntity e in photos.listSync(followLinks: false))
+        if (e is File) e.path,
+    };
+  }
+
   static Future<void> deleteIfExists(String? path) async {
     if (path == null || path.isEmpty) {
       return;

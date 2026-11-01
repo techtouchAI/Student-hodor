@@ -1,5 +1,11 @@
 name: build-apk
 
+# سياسة النشر (مصدرها هذا الملف وحده):
+# - الدفع إلى `main` (أي دمج طلب سحب معتمد) = التحقق والبناء **والنشر** إلى
+#   وسم `latest-apk` بعد بوابة التوقيع/التوافق.
+# - الدفع إلى `arena/**` وطلبات السحب والتشغيل اليدوي = التحقق والبناء
+#   والبوابة فقط. لا نشر، ولا إنشاء/استبدال Release أو Tag، ولا رفع للحزمة
+#   إلى المستخدمين. المخرج الوحيد المتاح للفحص اليدوي هو مخرجات التشغيل نفسه.
 on:
   push:
     branches: [main, "arena/**"]
@@ -8,7 +14,9 @@ on:
 
 concurrency:
   group: build-${{ github.ref }}
-  cancel-in-progress: true
+  # نشر `main` لا يُلغى في منتصفه: الإلغاء أثناء استبدال الوسم يترك حالة
+  # غير معروفة للمستخدم. فروع العمل تبقى قابلة للإلغاء (توفير وقت فقط).
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: write
@@ -58,8 +66,25 @@ jobs:
     name: Build APK
     needs: verify
     runs-on: ubuntu-latest
+    env:
+      # **مصدر الحقيقة الوحيد لقرار النشر.** `true` فقط عند دفع إلى `main`.
+      # لا يعتمد على اسم الفرع النصي ولا على `event_name` وحده: طلب سحب من
+      # `main` نفسه أو تشغيل يدوي يجب أن يبقى بلا نشر.
+      PUBLISH_RELEASE: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Resolve publish policy
+        # يُسجَّل القرار في كل تشغيل ليكون قابلاً للتدقيق من السجل وحده.
+        run: |
+          echo "الحدث: ${{ github.event_name }}"
+          echo "المرجع: ${{ github.ref }} (نوع: ${{ github.ref_type }})"
+          echo "PUBLISH_RELEASE=${PUBLISH_RELEASE:-false}"
+          if [ "${PUBLISH_RELEASE:-false}" = "true" ]; then
+            echo "النتيجة: بناء إصدار ونشر إلى وسم latest-apk بعد البوابة."
+          else
+            echo "النتيجة: بناء وتحقق فقط — لا نشر ولا استبدال للإصدار."
+          fi
 
       - uses: subosito/flutter-action@v2
         with:
@@ -123,8 +148,9 @@ jobs:
       - name: Fetch previously published APK for the update gate
         # تُحمَّل الحزمة المنشورة حالياً لتُقارَن بالجديدة: استمرار مفتاح
         # التوقيع، تزايد versionCode، وعدم ارتفاع minSdk — أي خرق يعني
-        # «تحديث لا يُثبَّت» في الميدان.
-        if: github.event_name != 'pull_request'
+        # «تحديث لا يُثبَّت» في الميدان. تُحمَّل فقط في تشغيل النشر: بناء
+        # فرع عمل لا يُقارَن بالمنشور لأنه ليس مرشحاً للنشر.
+        if: env.PUBLISH_RELEASE == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -145,10 +171,13 @@ jobs:
         run: |
           set -o pipefail
           cd build/app/outputs/flutter-apk
-          PREV=""; [ -f "$GITHUB_WORKSPACE/previous/app-release.apk" ] && PREV="--previous $GITHUB_WORKSPACE/previous/app-release.apk"
-          for f in "$GITHUB_WORKSPACE"/previous/*universal.apk; do
-            [ -f "$f" ] && PREV="--previous $f"
-          done
+          PREV=""
+          if [ "${PUBLISH_RELEASE:-false}" = "true" ]; then
+            [ -f "$GITHUB_WORKSPACE/previous/app-release.apk" ] && PREV="--previous $GITHUB_WORKSPACE/previous/app-release.apk"
+            for f in "$GITHUB_WORKSPACE"/previous/*universal.apk; do
+              [ -f "$f" ] && PREV="--previous $f"
+            done
+          fi
           python3 "$GITHUB_WORKSPACE/tools/verify_apk.py" gate \
             --current app-release.apk app-arm64-v8a-release.apk \
             $PREV \
@@ -185,9 +214,11 @@ jobs:
           cat SHA256SUMS.txt
 
       - name: Publish APKs to GitHub Release
-        # النشر للمحادثة push فقط: تشغيل PR المكرر كان يتسابق مع تشغيل الدفع
-        # على حذف/إنشاء وسم latest-apk نفسه فيفشل أحدهما ويبقى المسودة.
-        if: github.event_name != 'pull_request'
+        # النشر عند الدفع إلى `main` فقط (دمج معتمد). تشغيلات فروع العمل
+        # وطلبات السحب والتشغيل اليدوي لا تنشئ ولا تستبدل أي Release أو Tag:
+        # كانت سابقاً `!= 'pull_request'` فجعلت كل دفع إلى `arena/**` ينشر
+        # حزمة قيد المراجعة إلى المستخدمين.
+        if: env.PUBLISH_RELEASE == 'true'
         timeout-minutes: 15
         env:
           GH_TOKEN: ${{ github.token }}
@@ -252,7 +283,7 @@ jobs:
       - name: Commit release gate report
         # سجلّ مراجعة: تقرير البوابة يُحفظ مع كل بناء ناجح أيضاً (لا عند الفشل
         # فقط) ليكون مرجعاً زمنياً لحالة الحزمة عند كل إصدار.
-        if: success() && github.event_name != 'pull_request'
+        if: success() && env.PUBLISH_RELEASE == 'true'
         run: |
           git config user.name "ci-bot"
           git config user.email "ci@users.noreply.github.com"

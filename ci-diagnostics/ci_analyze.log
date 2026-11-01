@@ -1,5 +1,2 @@
 Analyzing Student-hodor...                                      
-
-warning • Unnecessary cast. Try removing the cast • test/backup_legacy_test.dart:112:34 • unnecessary_cast
-
-1 issue found. (ran in 18.5s)
+No issues found! (ran in 17.7s)

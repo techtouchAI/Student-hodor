@@ -1,5 +1,8 @@
 /// الإعدادات: مدرسة/مدير/أيام الدوام/هجري/حدود الإنذار/نافذة التأخر/PIN/
-/// عطل/تنبيهات (صلاحية وشبكة)/نسخ ودمج.
+/// عطل/تنبيهات (صلاحية وشبكة)/نسخ احتياطي واستعادة كاملة.
+///
+/// الاستعادة **استبدال** لا دمج: تُفحص النسخة أولاً، ثم يُطلب تأكيد صريح، ثم
+/// تُحفظ نسخة أمان من البيانات الحالية، ثم تُستبدل البيانات في معاملة واحدة.
 library;
 
 import 'dart:async';
@@ -9,6 +12,7 @@ import 'package:drift/drift.dart' hide Column;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/local_notifications.dart';
@@ -45,6 +49,11 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
   String _permLabel = '…';
   bool _loaded = false;
   String? _loadError;
+
+  /// عملية استعادة جارية (اختيار ملف/تأكيد/استبدال). حارس واحد يمنع:
+  /// نقرة مكرّرة، نافذتي تأكيد، استعادتين متزامنتين، والخروج من الشاشة أثناء
+  /// الاستبدال (`PopScope` أدناه).
+  bool _restoring = false;
 
   @override
   void initState() {
@@ -219,6 +228,9 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _backup() async {
+    if (_restoring) {
+      return; // لا نسخ متزامن مع استعادة تعيد كتابة القاعدة.
+    }
     try {
       final String path = await BackupService(ref.read(dbProvider)).exportFile();
       await SharePlus.instance.share(
@@ -232,71 +244,199 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  Future<void> _restoreOrMerge(bool merge) async {
+  /// استعادة كاملة: بيانات النسخة تحلّ محل بيانات التطبيق كلها (لا دمج).
+  ///
+  /// التسلسل الإلزامي:
+  /// 1. اختيار الملف (إلغاء المنتقي لا يغيّر شيئاً).
+  /// 2. فحص الصيغة والبنية والمراجع **بلا أي كتابة** ([BackupService.inspect]).
+  /// 3. تأكيد صريح يعرض معلومات النسخة وتحذير الاستبدال.
+  /// 4. نسخة أمان من البيانات الحالية (فشلها يُلغي الاستعادة).
+  /// 5. استبدال ذرّي + فحص سلامة المراجع داخل المعاملة.
+  /// 6. تحديث المزوّدات وحقول الشاشة، ثم رسالة نجاح/فشل دقيقة.
+  Future<void> _restore() async {
+    if (_restoring) {
+      return;
+    }
+    setState(() => _restoring = true);
     try {
       final List<PlatformFile> picked = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: const <String>['zip', 'json'],
       );
-      final String? path = picked.isEmpty ? null : picked.single.path;
+      final PlatformFile? file = picked.isEmpty ? null : picked.single;
+      final String? path = file?.path;
       if (path == null) {
-        return;
+        return; // إلغاء منتقي الملفات: لم يُقرأ شيء ولم يُكتب شيء.
       }
+      final String fileName =
+          (file != null && file.name.isNotEmpty) ? file.name : p.basename(path);
       final Uint8List bytes = await File(path).readAsBytes();
       final AppDb db = ref.read(dbProvider);
       final BackupService svc = BackupService(db);
-      if (merge) {
-        final Map<String, int> counts = await svc.mergeImport(bytes);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'دمج: جلسات ${counts['sessions']}، حضور ${counts['attendance']}'
-                '${(counts['skipped'] ?? 0) > 0 ? '، تُخطّي ${counts['skipped']} سطراً لطالب/صف غير موجود' : ''}',
-              ),
-            ),
-          );
-        }
-      } else {
-        if (!mounted) {
-          return;
-        }
-        final bool? ok = await showDialog<bool>(
-          context: context,
-          builder: (BuildContext context) => AlertDialog(
-            title: const Text('استرجاع كامل'),
-            content: const Text('سيستبدل كل البيانات والصور والسجل بمحتوى الملف. متابعة؟'),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('تراجع'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('استرجاع'),
-              ),
-            ],
-          ),
-        );
-        if (ok != true) {
-          return;
-        }
-        await svc.restoreFull(bytes);
-        ref.invalidate(settingsProvider);
-        ref.invalidate(effectiveSettingsProvider);
-        ref.invalidate(currentYearProvider);
-        if (mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(const SnackBar(content: Text('تم الاسترجاع')));
-        }
+
+      // لا تأكيد على ملف لم يُفحص: التحقق أولاً ثم الموافقة.
+      final BackupInfo info = await svc.inspect(bytes);
+      if (!mounted) {
+        return;
       }
-    } catch (e) {
+      final bool confirmed = await _confirmRestore(info, fileName);
+      if (!confirmed) {
+        return; // إلغاء صريح: لا كتابة ولا حذف.
+      }
+
+      final String safetyCopy =
+          await svc.exportSafetyCopy(reason: 'قبل الاستعادة');
+      await svc.restoreFull(bytes);
+
+      // لا بيانات قديمة في المزوّدات أو حقول الشاشة بعد الاستبدال.
+      ref.invalidate(settingsProvider);
+      ref.invalidate(effectiveSettingsProvider);
+      ref.invalidate(currentYearProvider);
+      ref.invalidate(yearEndedProvider);
+      await _load();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('الملف غير صالح أو تعذرت القراءة: $e')),
+          SnackBar(
+            content: Text(
+              'تمت استعادة النسخة واستبدال البيانات. '
+              'نسخة أمان من بياناتك السابقة: ${p.basename(safetyCopy)}',
+            ),
+          ),
         );
       }
+    } catch (e, st) {
+      AppErrorLog.instance.record(e, st, where: 'settings:restore');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_restoreError(e))),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _restoring = false);
+      }
     }
+  }
+
+  /// نافذة تأكيد الاستبدال: معلومات النسخة + تحذير صريح + تسميات لا تلتبس.
+  ///
+  /// `barrierDismissible: false` و`PopScope(canPop: false)` يمنعان إغلاقها
+  /// بالرجوع أو بالنقر خارجها، و`answered` يمنع تنفيذ نقرتين متتاليتين على
+  /// الزر نفسه (النقرة الثانية كانت ستُغلق شاشة الإعدادات نفسها).
+  Future<bool> _confirmRestore(BackupInfo info, String fileName) async {
+    bool answered = false;
+    final bool? result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext ctx) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          title: const Text('استعادة كاملة — استبدال البيانات الحالية'),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text('الملف: $fileName'),
+                if (info.createdAt != null)
+                  Text('تاريخ النسخة: ${_stamp(info.createdAt!)}'),
+                Text('إصدار الصيغة: ${info.version}'),
+                Text('محتوى النسخة: ${_restoreContents(info)}'),
+                if (info.legacyLessons) ...<Widget>[
+                  const SizedBox(height: 8),
+                  const Text(
+                    'ملاحظة: نسخة قديمة بلا جدول حصص؛ ستُزرع الحصص الافتراضية '
+                    'وتُسند سجلاتها القديمة إلى الحصة الأولى (تعريف الترحيل).',
+                  ),
+                ],
+                const SizedBox(height: 12),
+                const Text(
+                  'ستُستبدل بياناتك الحالية بالكامل: الطلاب والصفوف والسنوات '
+                  'والحضور والإجازات والتنبيهات والإعدادات وجدول الحصص والصور.',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'ليست إضافة ولا دمجاً: أي بيانات حالية غير موجودة في النسخة '
+                  'ستُفقد.',
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  '«إلغاء» يترك بياناتك الحالية كما هي دون أي تغيير. وقبل '
+                  'الاستبدال تُحفظ نسخة أمان من بياناتك الحالية تلقائياً.',
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                if (answered) {
+                  return;
+                }
+                answered = true;
+                Navigator.pop(ctx, false);
+              },
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(ctx).colorScheme.error,
+                foregroundColor: Theme.of(ctx).colorScheme.onError,
+              ),
+              onPressed: () {
+                if (answered) {
+                  return;
+                }
+                answered = true;
+                Navigator.pop(ctx, true);
+              },
+              child: const Text('استعادة النسخة واستبدال البيانات الحالية'),
+            ),
+          ],
+        ),
+      ),
+    );
+    return result ?? false;
+  }
+
+  /// رسالة فشل دقيقة بحسب نوع الخطأ؛ وتذكّر دائماً أن البيانات لم تُمسّ إن
+  /// كان الفشل قبل الاستبدال أو أثناءه (المعاملة تتراجع).
+  static String _restoreError(Object e) {
+    if (e is FormatException) {
+      return 'الملف غير صالح — ${e.message}';
+    }
+    if (e is BackupValidationException) {
+      return 'لا يمكن استعادة هذه النسخة: ${e.message}';
+    }
+    if (e is BackupApplyException) {
+      return e.message;
+    }
+    return 'تعذرت الاستعادة — بياناتك الحالية كما هي. ($e)';
+  }
+
+  /// «yyyy-MM-dd HH:mm» لوقت النسخة.
+  static String _stamp(DateTime t) {
+    String two(int v) => v.toString().padLeft(2, '0');
+    return '${SchoolTime.dateKey(t)} ${two(t.hour)}:${two(t.minute)}';
+  }
+
+  /// ملخص مختصر لما تحمله النسخة (من التحقق نفسه لا من تخمين).
+  static String _restoreContents(BackupInfo info) {
+    final Map<String, int> c = info.counts;
+    final List<String> parts = <String>[
+      'طلاب ${c['students'] ?? 0}',
+      'صفوف ${c['classes'] ?? 0}',
+      'سنوات ${c['years'] ?? 0}',
+      'سجلات حضور ${c['attendance'] ?? 0}',
+      'جلسات ${c['sessions'] ?? 0}',
+      'إجازات ${c['leaves'] ?? 0}',
+      'حصص ${c['lessons'] ?? 0}',
+    ];
+    if (info.photoCount > 0) {
+      parts.add('صور ${info.photoCount}');
+    }
+    return parts.join('، ');
   }
 
   @override
@@ -321,16 +461,26 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
         ),
       );
     }
-    return Scaffold(
+    // أثناء الاستعادة لا يُسمح بالرجوع: العملية الحساسة تكتب القاعدة كاملة.
+    final Widget page = Scaffold(
       appBar: AppBar(
         title: const Text('الإعدادات'),
         actions: <Widget>[
-          IconButton(icon: const Icon(Icons.save), onPressed: _save),
+          IconButton(
+            icon: const Icon(Icons.save),
+            onPressed: _restoring ? null : _save,
+          ),
         ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: <Widget>[
+          if (_restoring) ...<Widget>[
+            const LinearProgressIndicator(),
+            const SizedBox(height: 8),
+            const Text('جارٍ تنفيذ الاستعادة… لا تغلق التطبيق.'),
+            const SizedBox(height: 8),
+          ],
           TextField(controller: _school, decoration: const InputDecoration(labelText: 'اسم المدرسة')),
           const SizedBox(height: 8),
           TextField(controller: _director, decoration: const InputDecoration(labelText: 'اسم المدير')),
@@ -482,17 +632,16 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.backup),
             title: const Text('نسخ احتياطي ومشاركة'),
-            onTap: _backup,
+            subtitle: const Text('حاوية كاملة: البيانات والإعدادات والصور'),
+            onTap: _restoring ? null : _backup,
           ),
           ListTile(
             leading: const Icon(Icons.restore),
-            title: const Text('استرجاع كامل من ملف'),
-            onTap: () => _restoreOrMerge(false),
-          ),
-          ListTile(
-            leading: const Icon(Icons.merge),
-            title: const Text('دمج جلسات جهاز آخر'),
-            onTap: () => _restoreOrMerge(true),
+            title: const Text('استعادة كاملة من ملف'),
+            subtitle: const Text(
+              'تستبدل بيانات التطبيق كاملةً ببيانات النسخة — لا دمج',
+            ),
+            onTap: _restoring ? null : _restore,
           ),
           const Divider(),
           ListTile(
@@ -506,6 +655,7 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
         ],
       ),
     );
+    return PopScope(canPop: !_restoring, child: page);
   }
 }
 

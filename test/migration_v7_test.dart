@@ -76,7 +76,7 @@ void main() {
     expect(tables, hasLength(1), reason: 'الجدول الجديد أُنشئ');
 
     expect(await db.select(db.closureTasks).get(), isEmpty,
-        reason: 'الهجرة لا تزرع مهام — الجدولة تُبنى عند التشغيل');
+        reason: 'الهجرة لا تزرع مهام — الجدولة تُبنى عند التشغيل',);
 
     // ---------- (3) البيانات القديمة تبقى ----------
     expect((await db.select(db.students).get()).single.id, student);

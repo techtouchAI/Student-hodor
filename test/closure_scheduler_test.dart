@@ -61,7 +61,7 @@ void main() {
     final int cls = await seedYearAndClass();
     // عطلة في 2026-09-16 (أربعاء) وتعديل أيام الدوام لإبعاد 2026-09-17 (خميس).
     await db.into(db.holidays).insert(
-      const HolidaysCompanion(date: const Value('2026-09-16'), title: const Value('عطلة')),
+      const HolidaysCompanion(date: Value('2026-09-16'), title: Value('عطلة')),
     );
     await db.setSetting('work_weekdays', '7,1,2');
 
@@ -240,10 +240,10 @@ void main() {
     final scheduler = ClosureScheduler(db);
 
     final int first = await scheduler.recoverDue(
-        now: DateTime(2026, 9, 16, 9, 0,);
+        now: DateTime(2026, 9, 16, 9, 0),);
     expect(first, 1, reason: 'التنفيذ الأول');
     final int second = await scheduler.recoverDue(
-        now: DateTime(2026, 9, 16, 10, 0,);
+        now: DateTime(2026, 9, 16, 10, 0),);
     expect(second, 0, reason: 'لا تنفيذ مكرر');
 
     final List<AttendanceRow> rows = await db.select(db.attendanceRows).get();

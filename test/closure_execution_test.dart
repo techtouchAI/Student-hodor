@@ -246,7 +246,7 @@ void main() {
   test('يوم عطلة: لا مهمة ولا غياب من الجدولة', () async {
     await setup();
     await db.into(db.holidays).insert(
-      const HolidaysCompanion(date: const Value(date), title: const Value('عطلة')),
+      const HolidaysCompanion(date: Value(date), title: Value('عطلة')),
     );
     final DateTime now = DateTime(2026, 9, 16, 7, 0);
     final int armed = await ClosureScheduler(db).refreshSchedule(now: now);

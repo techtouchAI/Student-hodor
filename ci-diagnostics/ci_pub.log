@@ -2,8 +2,8 @@ Resolving dependencies...
 Downloading packages...
 + _fe_analyzer_shared 103.0.0 (111.0.0 available)
 + analyzer 13.3.0 (14.7.0 available)
-+ android_file_picker 2.1.2
-+ archive 3.6.1 (4.5.2 available)
++ android_file_picker 2.2.1
++ archive 3.6.1 (4.7.1 available)
 + args 2.7.0
 + async 2.13.1
 + barcode 2.2.9
@@ -14,34 +14,34 @@ Downloading packages...
 + build_daemon 4.1.7
 + build_runner 2.16.1 (2.17.1 available)
 + built_collection 5.1.2 (6.0.0 available)
-+ built_value 8.13.0
++ built_value 8.13.1
 + characters 1.4.1
 + charcode 1.4.0
 + checked_yaml 2.0.4
-+ cli_util 0.5.2 (0.6.0 available)
++ cli_util 0.5.2 (0.6.1 available)
 + clock 1.1.3
-+ code_assets 2.1.0
++ code_assets 2.2.0
 + collection 1.19.1
 + convert 3.1.2
 + cross_file 0.3.5+5 (0.4.0 available)
 + crypto 3.0.8
 + dart_style 3.1.14
-+ dbus 0.7.15 (0.8.0 available)
++ dbus 0.7.15 (0.8.1 available)
 + device_info_plus 13.3.0
 + device_info_plus_platform_interface 8.1.0
-+ drift 2.35.0 (2.35.3 available)
-+ drift_dev 2.35.0 (2.35.2 available)
++ drift 2.35.0 (2.35.4 available)
++ drift_dev 2.35.0 (2.35.3 available)
 + equatable 2.1.0 (3.0.0 available)
 + excel 4.0.6
 + fake_async 1.3.3
 + ffi 2.2.0
 + ffi_leak_tracker 0.1.2
 + file 7.0.1
-+ file_picker 13.1.0 (13.3.0 available)
-+ file_picker_darwin 2.4.0
-+ file_picker_linux 2.0.0 (2.0.2 available)
-+ file_picker_platform_interface 4.2.0
-+ file_picker_web 4.2.0
++ file_picker 13.1.0 (13.4.1 available)
++ file_picker_darwin 2.5.2
++ file_picker_linux 2.0.5
++ file_picker_platform_interface 4.3.0
++ file_picker_web 4.2.2
 + file_selector_linux 0.9.4+1
 + file_selector_macos 0.9.5+2
 + file_selector_platform_interface 2.7.0
@@ -49,50 +49,51 @@ Downloading packages...
 + fixnum 1.1.1
 + flutter 0.0.0 from sdk flutter
 + flutter_lints 4.0.0 (6.0.0 available)
-+ flutter_local_notifications 22.3.1 (22.3.3 available)
-+ flutter_local_notifications_linux 8.0.2
-+ flutter_local_notifications_platform_interface 12.2.0
-+ flutter_local_notifications_web 1.0.0
-+ flutter_local_notifications_windows 3.1.1
++ flutter_local_notifications 22.3.1 (23.0.4 available)
++ flutter_local_notifications_linux 8.0.2 (9.0.0 available)
++ flutter_local_notifications_platform_interface 12.2.0 (13.0.0 available)
++ flutter_local_notifications_web 1.0.0 (2.0.0 available)
++ flutter_local_notifications_windows 3.1.1 (4.0.1 available)
 + flutter_localizations 0.0.0 from sdk flutter
 + flutter_plugin_android_lifecycle 2.0.35
-+ flutter_riverpod 2.6.1 (3.4.3 available)
++ flutter_riverpod 2.6.1 (3.5.0 available)
 + flutter_test 0.0.0 from sdk flutter
 + flutter_web_plugins 0.0.0 from sdk flutter
 + glob 2.2.0
-+ go_router 14.8.1 (18.1.2 available)
++ go_router 14.8.1 (18.1.4 available)
 + graphs 2.3.2
 + hooks 2.2.0
 + http 1.6.0
 + http_multi_server 3.2.3
 + http_parser 4.1.2
-+ image 4.3.0 (4.12.0 available)
++ image 4.3.0 (4.13.1 available)
 + image_picker 1.2.3 (1.2.4 available)
 + image_picker_android 0.8.13+25
 + image_picker_for_web 3.1.1
-+ image_picker_ios 0.8.13+14
++ image_picker_ios 0.8.13+16
 + image_picker_linux 0.2.2
 + image_picker_macos 0.2.2+1
 + image_picker_platform_interface 2.11.2
 + image_picker_windows 0.2.2
 + intl 0.20.3
 + io 1.1.0
-+ jni 1.1.1
-+ jni_flutter 1.0.4+1
++ jni 1.2.1
++ jni_flutter 1.1.0
 + jni_util 1.0.0
 + json_annotation 4.12.0
 + leak_tracker 11.0.2
 + leak_tracker_flutter_testing 3.0.10
 + leak_tracker_testing 3.0.2
 + lints 4.0.0 (6.1.0 available)
++ listen 1.0.1
 + logging 1.3.0
 + matcher 0.12.20
 + material_color_utilities 0.13.0 (0.13.1 available)
 + meta 1.19.0
 + mime 2.1.0
-+ mobile_scanner 5.2.3 (7.4.3 available)
-+ native_toolchain_c 0.19.5
-+ objective_c 9.6.2
++ mobile_scanner 5.2.3 (7.5.0 available)
++ native_toolchain_c 0.19.6
++ objective_c 9.6.4
 + package_config 3.0.0
 + package_info_plus 10.2.2
 + package_info_plus_platform_interface 4.1.0
@@ -117,7 +118,7 @@ Downloading packages...
 + qr 3.0.2 (4.0.1 available)
 + recase 4.1.0
 + record_use 1.1.1
-+ riverpod 2.6.1 (3.4.3 available)
++ riverpod 2.6.1 (3.5.0 available)
 + share_plus 13.3.0 (13.3.1 available)
 + share_plus_platform_interface 7.2.0
 + shelf 1.4.3
@@ -125,7 +126,7 @@ Downloading packages...
 + sky_engine 0.0.0 from sdk flutter
 + source_gen 4.2.4 (4.3.1 available)
 + source_span 1.10.2
-+ sqlite3 3.8.0
++ sqlite3 3.9.2
 + sqlite3_flutter_libs 0.5.42 (0.6.0+eol available)
 + sqlparser 0.45.1
 + stack_trace 1.12.2
@@ -134,7 +135,7 @@ Downloading packages...
 + stream_transform 2.1.2
 + string_scanner 1.4.1
 + term_glyph 1.2.2
-+ test_api 0.7.12 (0.7.15 available)
++ test_api 0.7.14 (0.7.15 available)
 + timezone 0.11.2
 + typed_data 1.4.0
 + url_launcher_linux 3.2.3
@@ -154,12 +155,12 @@ Downloading packages...
 + web_socket_channel 3.0.3
 + win32 6.4.0
 + win32_registry 3.0.3
-+ windows_file_picker 2.0.1
++ windows_file_picker 2.0.2
 + xdg_directories 1.1.0
 + xml 6.6.1 (7.1.0 available)
 + yaml 3.1.4
 + yaml_edit 2.2.4
-Changed 159 dependencies!
-34 packages have newer versions incompatible with dependency constraints.
+Changed 160 dependencies!
+37 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
 Upgrading analysis_options.yaml to exclude build and platform directories.

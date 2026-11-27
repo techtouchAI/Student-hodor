@@ -250,12 +250,16 @@ void main() {
     );
     final DateTime now = DateTime(2026, 9, 16, 7, 0);
     final int armed = await ClosureScheduler(db).refreshSchedule(now: now);
-    expect(await db.pendingClosureTasks(), isEmpty);
+    // يوم العطلة نفسه: لا مهام معلقة، ولا غياب يُولَّد عند الاسترداد.
+    expect(await db.pendingClosureTasksForDate(date), isEmpty);
     expect(
         await ClosureScheduler(db)
             .recoverDue(now: now.add(const Duration(hours: 3))),
         0,);
-    expect(armed, 0);
+    // الغد (يوم دوام) يُرتَّب مسبقاً كي تصل التنبيهات بعد العطلة، ولا
+    // تتأثر مهامه بيوم العطلة.
+    expect(armed, greaterThan(0));
+    expect(await db.pendingClosureTasksForDate('2026-09-17'), isNotEmpty);
   });
 
   test('المسح بعد الإقفال يسجل حضوراً ولا يغيّر مهمة الإقفال', () async {

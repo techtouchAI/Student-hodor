@@ -16,7 +16,7 @@ void main() {
     addTearDown(db.close);
   });
 
-  Future<int> _seedYearAndClass({bool active = true}) async {
+  Future<int> seedYearAndClass({bool active = true}) async {
     final int year = await db.into(db.academicYears).insert(
           AcademicYearsCompanion(
             name: Value(active ? '2026-2027' : 'قديمة'),
@@ -37,7 +37,7 @@ void main() {
 
   test('refreshSchedule يبني مهمة لكل (صف، حصة) لليوم والغد بمواعيد نهاية الحصة',
       () async {
-    final int cls = await _seedYearAndClass();
+    final int cls = await seedYearAndClass();
     final DateTime now = DateTime(2026, 9, 16, 7, 0); // أربعاء (يوم دوام)
     final scheduler = ClosureScheduler(db);
 
@@ -45,23 +45,23 @@ void main() {
     final List<ClosureTask> today = await db.pendingClosureTasksForDate('2026-09-16');
 
     expect(today, hasLength(LessonSchedule.defaults.length),
-        reason: 'حصة واحدة لكل حصة في الجدول');
+        reason: 'حصة واحدة لكل حصة في الجدول',);
     for (final ClosureTask t in today) {
       expect(t.classId, cls);
       final Lesson? l = await db.lessonById(t.lessonId);
       expect(t.targetAt,
           '2026-09-16T${l!.end}:00',
-          reason: 'موعد الإقفال = نهاية الحصة الفعلية');
+          reason: 'موعد الإقفال = نهاية الحصة الفعلية',);
     }
     expect(armed, LessonSchedule.defaults.length * 2,
-        reason: 'التنبيهات المرتبة = اليوم والغد');
+        reason: 'التنبيهات المرتبة = اليوم والغد',);
   });
 
   test('لا مهام ليوم عطلة أو غير دوام، والمهمات المعلقة له تُحذف', () async {
-    final int cls = await _seedYearAndClass();
+    final int cls = await seedYearAndClass();
     // عطلة في 2026-09-16 (أربعاء) وتعديل أيام الدوام لإبعاد 2026-09-17 (خميس).
     await db.into(db.holidays).insert(
-      HolidaysCompanion(date: const Value('2026-09-16'), title: const Value('عطلة')),
+      const HolidaysCompanion(date: const Value('2026-09-16'), title: const Value('عطلة')),
     );
     await db.setSetting('work_weekdays', '7,1,2');
 
@@ -70,9 +70,9 @@ void main() {
     await scheduler.refreshSchedule(now: now);
 
     expect(await db.pendingClosureTasksForDate('2026-09-16'), isEmpty,
-        reason: 'يوم عطلة: لا مهام');
+        reason: 'يوم عطلة: لا مهام',);
     expect(await db.pendingClosureTasksForDate('2026-09-17'), isEmpty,
-        reason: 'يوم غير دوام: لا مهام');
+        reason: 'يوم غير دوام: لا مهام',);
 
     // مهمة معلقة سابقة لليوم العطلة تُحذف (لا تنفيذ لها).
     final Lesson first = await db.firstLesson();
@@ -85,32 +85,32 @@ void main() {
     );
     await scheduler.refreshSchedule(now: now);
     expect(await db.pendingClosureTasksForDate('2026-09-16'), isEmpty,
-        reason: 'المهمات المعلقة ليوم العطلة تُحذف في إعادة البناء');
+        reason: 'المهمات المعلقة ليوم العطلة تُحذف في إعادة البناء',);
   });
 
   test('لا تُنفَّذ مهام لمواعيد مستقبلية، ولا تُبنى مهام لما بعد الغد', () async {
-    final int cls = await _seedYearAndClass();
+    await seedYearAndClass();
     final DateTime now = DateTime(2026, 9, 16, 7, 0);
     final scheduler = ClosureScheduler(db);
     await scheduler.refreshSchedule(now: now);
 
     for (final ClosureTask t in await db.pendingClosureTasks()) {
-      expect(t.date, inInclusiveOf(<String>['2026-09-16', '2026-09-17']),
-          reason: 'الجدول يغطي اليوم والغد فقط');
+      expect(t.date, isIn(<String>['2026-09-16', '2026-09-17']),
+          reason: 'الجدول يغطي اليوم والغد فقط',);
     }
     final ClosureExecution early = await scheduler.executeTask(
       (await db.pendingClosureTasks()).first.id,
       now: DateTime(2026, 9, 16, 7, 0),
     );
     expect(early.status, ClosureExecutionStatus.notDue,
-        reason: 'قبل الموعد لا تنفيذ مبكر');
+        reason: 'قبل الموعد لا تنفيذ مبكر',);
     expect(early.isExecuted, isFalse);
     expect(await db.pendingClosureTasks(), isNotEmpty,
-        reason: 'المهمة تبقى معلقة');
+        reason: 'المهمة تبقى معلقة',);
   });
 
   test('refreshSchedule متكرر لا يخلق مهام مكررة (التفرّد)', () async {
-    final int cls = await _seedYearAndClass();
+    await seedYearAndClass();
     final DateTime now = DateTime(2026, 9, 16, 7, 0);
     final scheduler = ClosureScheduler(db);
     await scheduler.refreshSchedule(now: now);
@@ -118,24 +118,24 @@ void main() {
 
     expect(await db.pendingClosureTasks(),
         hasLength(LessonSchedule.defaults.length * 2),
-        reason: 'الإعادة تُحدّث لا تُكرّر');
+        reason: 'الإعادة تُحدّث لا تُكرّر',);
   });
 
   test('تعديل الجدول يلغي المهمات المعلقة ويعيد بناءها من الحصص الجديدة',
       () async {
-    final int cls = await _seedYearAndClass();
+    await seedYearAndClass();
     final DateTime now = DateTime(2026, 9, 16, 7, 0);
     final scheduler = ClosureScheduler(db);
     await scheduler.refreshSchedule(now: now);
 
     // جدول جديد بحصتين تنتهي الأولى عند 09:00.
     await db.saveLessons(<LessonWindow>[
-      LessonWindow(id: 1, slot: 1, name: 'الحصة الأولى', start: '08:00', end: '09:00'),
-      LessonWindow(id: 2, slot: 2, name: 'الحصة الثانية', start: '09:05', end: '09:50'),
+      const LessonWindow(id: 1, slot: 1, name: 'الحصة الأولى', start: '08:00', end: '09:00'),
+      const LessonWindow(id: 2, slot: 2, name: 'الحصة الثانية', start: '09:05', end: '09:50'),
     ]);
     final int removed = await scheduler.cancelPendingAndRefresh(now: now);
     expect(removed, 4,
-        reason: 'المهمات المتبقية (حصتين × يومَين) تُحذف؛ ما حذفه حفظ الجدول سبق');
+        reason: 'المهمات المتبقية (حصتين × يومَين) تُحذف؛ ما حذفه حفظ الجدول سبق',);
     final List<ClosureTask> tasks = await db.pendingClosureTasks();
     expect(tasks, hasLength(4), reason: 'حصتين × يومَين');
     final List<String> targets = <String>[
@@ -147,7 +147,7 @@ void main() {
 
   test('حذف حصة تحذف مهام إقفالها آلياً ثم يُعاد بناء الجدولة من الباقية',
       () async {
-    final int cls = await _seedYearAndClass();
+    await seedYearAndClass();
     final DateTime now = DateTime(2026, 9, 16, 7, 0);
     final scheduler = ClosureScheduler(db);
     await scheduler.refreshSchedule(now: now);
@@ -155,7 +155,7 @@ void main() {
     // تحرير الجدول بحذف الحصص الأخرى: مهامها تُحذف معها (سجل جدولة،
     // لا سجل حضور) ولا يحبس الحذف بسببها.
     await db.saveLessons(<LessonWindow>[
-      LessonWindow(id: 1, slot: 1, name: 'الحصة الأولى', start: '08:00', end: '08:45'),
+      const LessonWindow(id: 1, slot: 1, name: 'الحصة الأولى', start: '08:00', end: '08:45'),
     ]);
     await scheduler.refreshSchedule(now: now);
 
@@ -171,7 +171,7 @@ void main() {
   });
 
   test('لا جدولة بلا سنة فعّالة، والمهمات المعلقة لليوم تُحذف', () async {
-    final _ = await _seedYearAndClass(active: false);
+    final _ = await seedYearAndClass(active: false);
     final DateTime now = DateTime(2026, 9, 16, 7, 0);
     final scheduler = ClosureScheduler(db);
     final int armed = await scheduler.refreshSchedule(now: now);
@@ -181,15 +181,15 @@ void main() {
 
   test('recoverDue يُنفّذ المهمات المتأخّرة بعد إعادة التشغيل أو تغير الساعة',
       () async {
-    final int cls = await _seedYearAndClass();
+    final int cls = await seedYearAndClass();
     // طالب واحد ليُولّد الإقفال غياباً له (نتيجة «أُغلقت»).
     await db.into(db.students).insert(
       StudentsCompanion(
-        yearId: Value(1),
+        yearId: const Value(1),
         classId: Value(cls),
         fullName: const Value('طالب'),
         personKey: const Value('p1'),
-        seq: Value(1),
+        seq: const Value(1),
         createdAt: const Value('2026-09-01T08:00:00'),
       ),
     );
@@ -205,7 +205,7 @@ void main() {
     final scheduler = ClosureScheduler(db);
     expect(
         await scheduler.recoverDue(now: DateTime(2026, 9, 16, 8, 0)), 0,
-        reason: 'قبل الموعد لا تنفيذ');
+        reason: 'قبل الموعد لا تنفيذ',);
 
     final int executed =
         await scheduler.recoverDue(now: DateTime(2026, 9, 16, 9, 0));
@@ -216,12 +216,12 @@ void main() {
   });
 
   test('تنفيذ المهمة مرتين لا يُولّد غياباً مكرراً (ذرّية)', () async {
-    final int cls = await _seedYearAndClass();
+    final int cls = await seedYearAndClass();
     final Lesson lesson = await db.firstLesson();
     for (int i = 1; i <= 2; i++) {
       await db.into(db.students).insert(
         StudentsCompanion(
-          yearId: Value(1),
+          yearId: const Value(1),
           classId: Value(cls),
           fullName: Value('طالب $i'),
           personKey: Value('p$i'),
@@ -239,22 +239,22 @@ void main() {
     );
     final scheduler = ClosureScheduler(db);
 
-    final ClosureExecution first = await scheduler.recoverDue(
-        now: DateTime(2026, 9, 16, 9, 0));
+    final int first = await scheduler.recoverDue(
+        now: DateTime(2026, 9, 16, 9, 0,);
     expect(first, 1, reason: 'التنفيذ الأول');
-    final ClosureExecution second = await scheduler.recoverDue(
-        now: DateTime(2026, 9, 16, 10, 0));
+    final int second = await scheduler.recoverDue(
+        now: DateTime(2026, 9, 16, 10, 0,);
     expect(second, 0, reason: 'لا تنفيذ مكرر');
 
     final List<AttendanceRow> rows = await db.select(db.attendanceRows).get();
     expect(rows, hasLength(2), reason: 'غياب واحد لكل طالب لا أكثر');
     expect(rows.every((AttendanceRow r) => r.status == AttendanceStatus.absent),
-        isTrue);
+        isTrue,);
   });
 
   test('جلسة أُغلقت يدوياً قبل الموعد: الإقفال التلقائي لا يضيف غياباً',
       () async {
-    final int cls = await _seedYearAndClass();
+    final int cls = await seedYearAndClass();
     final Lesson lesson = await db.firstLesson();
     final Session session = await db.openLessonSession(
       yearId: 1,
@@ -274,7 +274,7 @@ void main() {
     final scheduler = ClosureScheduler(db);
     expect(
         await scheduler.recoverDue(now: DateTime(2026, 9, 16, 9, 0)), 1,
-        reason: 'تُسجّل المهمة كمنفّذة');
+        reason: 'تُسجّل المهمة كمنفّذة',);
     final List<AttendanceRow> rows = await db.select(db.attendanceRows).get();
     expect(rows, isEmpty, reason: 'لا غياب من إقفال تلقائي سبقته إقفال يدوي');
     final ClosureTask? t = await db.closureTaskOf(cls, '2026-09-16', lesson.id);
@@ -282,7 +282,7 @@ void main() {
   });
 
   test('مهمة فشلت تُعاد محاولتها في الاسترداد التالي', () async {
-    final int cls = await _seedYearAndClass();
+    final int cls = await seedYearAndClass();
     final Lesson lesson = await db.firstLesson();
     await db.upsertClosureTask(
       yearId: 1,
@@ -294,7 +294,7 @@ void main() {
     final List<ClosureTask> pending = await db.pendingClosureTasks();
     await db.markClosureTaskFailed(pending.first.id, error: 'اختبار');
 
-    final ClosureTask failed = await db.closureTaskOf(cls, '2026-09-16', lesson.id);
+    final ClosureTask? failed = await db.closureTaskOf(cls, '2026-09-16', lesson.id);
     expect(failed?.state, ClosureTaskState.failed);
     expect(failed?.attempts, 1);
 
@@ -306,7 +306,7 @@ void main() {
     final ClosureTask? retried =
         await db.closureTaskOf(cls, '2026-09-16', lesson.id);
     expect(retried?.state, ClosureTaskState.pending,
-        reason: 'تُعاد محاولتها في إعادة البناء');
+        reason: 'تُعاد محاولتها في إعادة البناء',);
     expect(await scheduler.recoverDue(now: DateTime(2026, 9, 16, 9, 0)), 1);
     final ClosureTask? done =
         await db.closureTaskOf(cls, '2026-09-16', lesson.id);
@@ -314,7 +314,7 @@ void main() {
   });
 
   test('تنفيذ مهمة أُنفّذت لا يُعاد (التفرّد يمنع التعارض)', () async {
-    final int cls = await _seedYearAndClass();
+    final int cls = await seedYearAndClass();
     final Lesson lesson = await db.firstLesson();
     await db.upsertClosureTask(
       yearId: 1,
@@ -337,7 +337,7 @@ void main() {
   });
 
   test('مهمة منفّذة لا تُمسّ حتى لو تغيّر موعد الحصة (سجل انتهاء)', () async {
-    final int cls = await _seedYearAndClass();
+    final int cls = await seedYearAndClass();
     final Lesson lesson = await db.firstLesson();
     await db.upsertClosureTask(
       yearId: 1,
@@ -445,7 +445,7 @@ void main() {
 
   test('مهمات اليوم المتأخّرة تُبنى وتُسترد عند التشغيل، ولا تُعاد بعد التنفيذ',
       () async {
-    final int cls = await _seedYearAndClass();
+    await seedYearAndClass();
     // «الآن» بعد نهاية آخر حصة من اليوم: تُبنى مهام اليوم (مواعيد ماضية)
     // والغد، ويسترد التشغيل المهمات المتأخّرة.
     final DateTime now = DateTime(2026, 9, 16, 23, 0);
@@ -457,13 +457,13 @@ void main() {
     // تشغيل على غرار الإقلاع: استرداد ثم إعادة بناء.
     await scheduler.startup(now: now);
     expect(await db.pendingClosureTasksForDate('2026-09-16'), isEmpty,
-        reason: 'متأخّرة نُفّذت');
+        reason: 'متأخّرة نُفّذت',);
     expect(await db.pendingClosureTasksForDate('2026-09-17'), isNotEmpty,
-        reason: 'مهام الغد لا تُنفّذ مبكراً');
+        reason: 'مهام الغد لا تُنفّذ مبكراً',);
     // إعادة بناء أخرى لا تُعيد مهام اليوم المنفّذة.
     await scheduler.refreshSchedule(now: now);
     expect(await db.closureTasksOf('2026-09-16'),
-        every((ClosureTask t) => t.state == ClosureTaskState.executed),
-        reason: 'المهمات المنفّذة سجل انتهاء ولا تُعاد');
+        everyElement((ClosureTask t) => t.state == ClosureTaskState.executed),
+        reason: 'المهمات المنفّذة سجل انتهاء ولا تُعاد',);
   });
 }

@@ -26,6 +26,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:drift/drift.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../core/late_time.dart';
@@ -250,7 +251,7 @@ class ClosureScheduler {
         await (db.select(db.closureTasks)..where((t) => t.id.equals(taskId)))
             .getSingleOrNull();
     if (task == null || task.state != ClosureTaskState.pending) {
-      return const ClosureExecution(
+      return ClosureExecution(
         taskId: taskId,
         status: ClosureExecutionStatus.skipped,
         message: 'المهمة نُفذت مسبقاً أو أُزيلت — لا تنفيذ مكرر',
@@ -259,7 +260,7 @@ class ClosureScheduler {
     final DateTime at = now ?? DateTime.now();
     final DateTime? target = _parseTarget(task.targetAt);
     if (target != null && at.isBefore(target)) {
-      return const ClosureExecution(
+      return ClosureExecution(
         taskId: taskId,
         status: ClosureExecutionStatus.notDue,
         message: 'موعد الإقفال لم يحن بعد',

@@ -1748,7 +1748,7 @@ class AppDb extends _$AppDb {
         .write(
       ClosureTasksCompanion(
         targetAt: Value(targetAt),
-        state: Value(ClosureTaskState.pending),
+        state: const Value(ClosureTaskState.pending),
       ),
     );
   }
@@ -1761,7 +1761,7 @@ class AppDb extends _$AppDb {
   }) =>
       (update(closureTasks)..where((t) => t.id.equals(id))).write(
         ClosureTasksCompanion(
-          state: Value(ClosureTaskState.executed),
+          state: const Value(ClosureTaskState.executed),
           executedAt: Value(executedAt),
           result: Value(result),
         ),
@@ -1777,7 +1777,7 @@ class AppDb extends _$AppDb {
             .getSingleOrNull();
     await (update(closureTasks)..where((t) => t.id.equals(id))).write(
       ClosureTasksCompanion(
-        state: Value(ClosureTaskState.failed),
+        state: const Value(ClosureTaskState.failed),
         result: Value(error),
         attempts: Value((task?.attempts ?? 0) + 1),
       ),

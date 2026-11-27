@@ -16,7 +16,7 @@ void main() {
   });
 
   /// سنة فعّالة + صف واحد + سبعة طلاب.
-  Future<({int cls, List<Student> roster, Lesson lesson})> _setup() async {
+  Future<({int cls, List<Student> roster, Lesson lesson})> setup() async {
     final int year = await db.into(db.academicYears).insert(
           const AcademicYearsCompanion(
             name: Value('2026-2027'),
@@ -52,7 +52,7 @@ void main() {
     return (cls: cls, roster: roster, lesson: await db.firstLesson());
   }
 
-  Future<void> _arm(int classId, Lesson lesson) async {
+  Future<void> arm(int classId, Lesson lesson) async {
     await db.upsertClosureTask(
       yearId: 1,
       classId: classId,
@@ -62,13 +62,13 @@ void main() {
     );
   }
 
-  Future<Map<int, int>> _statusByStudent() async => <int, int>{
+  Future<Map<int, int>> studentStatuses() async => <int, int>{
         for (final AttendanceRow r in await db.select(db.attendanceRows).get())
           r.studentId: r.status,
       };
 
   test('إقفال تلقائي يولّد غياباً لمن لم يسجل ويُبقي الحضور والتأخير', () async {
-    final s = await _setup();
+    final s = await setup();
     await db.upsertAttendance(
       yearId: 1,
       classId: s.cls,
@@ -87,67 +87,67 @@ void main() {
       status: AttendanceStatus.late,
       source: AttendanceSource.scan,
     );
-    await _arm(s.cls, s.lesson);
+    await arm(s.cls, s.lesson);
 
     final int executed = await ClosureScheduler(db)
         .recoverDue(now: DateTime(2026, 9, 16, 9, 0));
     expect(executed, 1);
 
-    final statusByStudent = await _statusByStudent();
+    final statusByStudent = await studentStatuses();
     expect(statusByStudent, hasLength(7));
     expect(statusByStudent[s.roster[0].id], AttendanceStatus.present,
-        reason: 'الحاضر يبقى حاضراً');
+        reason: 'الحاضر يبقى حاضراً',);
     expect(statusByStudent[s.roster[1].id], AttendanceStatus.late,
-        reason: 'المتأخر يبقى متأخراً ولا يُحوَّل غائباً');
+        reason: 'المتأخر يبقى متأخراً ولا يُحوَّل غائباً',);
     for (int i = 2; i < 7; i++) {
       expect(statusByStudent[s.roster[i].id], AttendanceStatus.absent,
-          reason: 'من لم يسجل يُحتسب غائباً');
+          reason: 'من لم يسجل يُحتسب غائباً',);
     }
   });
 
   test('الإجازة تمنع الغياب (يوم كامل وجزئي لحصة أخرى)', () async {
-    final s = await _setup();
+    final s = await setup();
     // طالب 3: إجازة يوم كامل.
     await db.into(db.leaves).insert(
       LeavesCompanion.insert(
-        yearId: const Value(1),
-        studentId: Value(s.roster[2].id),
-        start: Value(date),
-        end: Value(date),
-        type: const Value(0),
-        createdAt: const Value('2026-09-15T08:00:00'),
+        yearId: 1,
+        studentId: s.roster[2].id,
+        start: date,
+        end: date,
+        type: 0,
+        createdAt: '2026-09-15T08:00:00',
       ),
     );
     // طالب 4: إجازة جزئية للحصة الثانية فقط — لا تشمل الحصة الأولى.
     await db.into(db.leaves).insert(
       LeavesCompanion.insert(
-        yearId: const Value(1),
-        studentId: Value(s.roster[3].id),
-        start: Value(date),
-        end: Value(date),
-        fromSlot: const Value(2),
-        toSlot: const Value(2),
-        type: const Value(1),
-        createdAt: const Value('2026-09-15T08:00:00'),
+        yearId: 1,
+        studentId: s.roster[3].id,
+        start: date,
+        end: date,
+        fromSlot: const Value<int?>(2),
+        toSlot: const Value<int?>(2),
+        type: 1,
+        createdAt: '2026-09-15T08:00:00',
       ),
     );
-    await _arm(s.cls, s.lesson);
+    await arm(s.cls, s.lesson);
 
     final int executed = await ClosureScheduler(db)
         .recoverDue(now: DateTime(2026, 9, 16, 9, 0));
     expect(executed, 1);
 
-    final statusByStudent = await _statusByStudent();
+    final statusByStudent = await studentStatuses();
     expect(statusByStudent[s.roster[2].id], AttendanceStatus.leave,
-        reason: 'إجازة يوم كامل ⇒ إجازة لا غياب');
+        reason: 'إجازة يوم كامل ⇒ إجازة لا غياب',);
     expect(statusByStudent[s.roster[3].id], AttendanceStatus.absent,
-        reason: 'الإجازة الجزئية لحصة أخرى لا تُغطّي هذه الحصة');
+        reason: 'الإجازة الجزئية لحصة أخرى لا تُغطّي هذه الحصة',);
   });
 
   test('إجازة أُضيفت بعد الإقفال تُحوّل الغياب لإجازة ولا تُحذف السجل',
       () async {
-    final s = await _setup();
-    await _arm(s.cls, s.lesson);
+    final s = await setup();
+    await arm(s.cls, s.lesson);
     await ClosureScheduler(db).recoverDue(now: DateTime(2026, 9, 16, 9, 0));
 
     final AttendanceRow? row = await (db.select(db.attendanceRows)
@@ -167,24 +167,24 @@ void main() {
             ..where((r) => r.studentId.equals(s.roster[2].id)))
         .getSingle();
     expect(after.status, AttendanceStatus.leave,
-        reason: 'الغياب يتحول لإجازة في مكانه');
+        reason: 'الغياب يتحول لإجازة في مكانه',);
     expect(await db.select(db.attendanceRows).get(), hasLength(7),
-        reason: 'لا سجل غياب مكرر');
+        reason: 'لا سجل غياب مكرر',);
   });
 
   test('حذف الإجازة بعد الإقفال يعيد الغياب (إعادة احتساب)', () async {
-    final s = await _setup();
+    final s = await setup();
     await db.into(db.leaves).insert(
       LeavesCompanion.insert(
-        yearId: const Value(1),
-        studentId: Value(s.roster[2].id),
-        start: Value(date),
-        end: Value(date),
-        type: const Value(0),
-        createdAt: const Value('2026-09-15T08:00:00'),
+        yearId: 1,
+        studentId: s.roster[2].id,
+        start: date,
+        end: date,
+        type: 0,
+        createdAt: '2026-09-15T08:00:00',
       ),
     );
-    await _arm(s.cls, s.lesson);
+    await arm(s.cls, s.lesson);
     await ClosureScheduler(db).recoverDue(now: DateTime(2026, 9, 16, 9, 0));
 
     await db.delete(db.leaves).go();
@@ -199,11 +199,11 @@ void main() {
             ..where((r) => r.studentId.equals(s.roster[2].id)))
         .getSingle();
     expect(after.status, AttendanceStatus.absent,
-        reason: 'بدون إجازة يعود الغياب');
+        reason: 'بدون إجازة يعود الغياب',);
   });
 
   test('إعادة فتح الحصة ثم مهمة إقفال لا تُولّد غياباً مكرراً', () async {
-    final s = await _setup();
+    final s = await setup();
     await db.upsertAttendance(
       yearId: 1,
       classId: s.cls,
@@ -213,7 +213,7 @@ void main() {
       status: AttendanceStatus.present,
       source: AttendanceSource.scan,
     );
-    await _arm(s.cls, s.lesson);
+    await arm(s.cls, s.lesson);
     await ClosureScheduler(db).recoverDue(now: DateTime(2026, 9, 16, 9, 0));
 
     // إعادة فتح: الجلسة تُفتح مجدّداً، والمهمة تبقى سجل انتهاء.
@@ -228,12 +228,12 @@ void main() {
     // إعادة الفتح تحذف السجلات المولّدة تلقائياً (source=autoClose) وتبقي
     // الحضور المسجل بالمسح.
     expect(await db.select(db.attendanceRows).get(), hasLength(1),
-        reason: 'الغيابات المولّدة تُحذف، والحضور المسجل يبقى');
+        reason: 'الغيابات المولّدة تُحذف، والحضور المسجل يبقى',);
   });
 
   test('الإقفال التلقائي يسجّل في سجل التدقيق', () async {
-    final s = await _setup();
-    await _arm(s.cls, s.lesson);
+    final s = await setup();
+    await arm(s.cls, s.lesson);
     await ClosureScheduler(db).recoverDue(now: DateTime(2026, 9, 16, 9, 0));
 
     final List<AuditLog> logs = await db.select(db.auditLogs).get();
@@ -244,9 +244,9 @@ void main() {
   });
 
   test('يوم عطلة: لا مهمة ولا غياب من الجدولة', () async {
-    final s = await _setup();
+    await setup();
     await db.into(db.holidays).insert(
-      HolidaysCompanion(date: const Value(date), title: const Value('عطلة')),
+      const HolidaysCompanion(date: const Value(date), title: const Value('عطلة')),
     );
     final DateTime now = DateTime(2026, 9, 16, 7, 0);
     final int armed = await ClosureScheduler(db).refreshSchedule(now: now);
@@ -254,13 +254,13 @@ void main() {
     expect(
         await ClosureScheduler(db)
             .recoverDue(now: now.add(const Duration(hours: 3))),
-        0);
+        0,);
     expect(armed, 0);
   });
 
   test('المسح بعد الإقفال يسجل حضوراً ولا يغيّر مهمة الإقفال', () async {
-    final s = await _setup();
-    await _arm(s.cls, s.lesson);
+    final s = await setup();
+    await arm(s.cls, s.lesson);
     await ClosureScheduler(db).recoverDue(now: DateTime(2026, 9, 16, 9, 0));
 
     // مسح طالب لم يسجل: يظهر كحاضر، ولا يُؤثّر على مهمة الإقفال.

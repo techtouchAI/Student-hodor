@@ -190,6 +190,9 @@ class _LessonsScreenState extends ConsumerState<LessonsScreen> {
       } catch (e, st) {
         AppErrorLog.instance.record(e, st, where: 'lessons:closureRefresh');
       }
+      if (!mounted) {
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('حُفظ جدول الحصص')),
       );

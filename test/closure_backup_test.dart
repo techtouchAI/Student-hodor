@@ -17,7 +17,7 @@ void main() {
     addTearDown(db.close);
   });
 
-  Future<({int year, int cls, int lesson})> _seed() async {
+  Future<({int year, int cls, int lesson})> seed() async {
     final int year = await db.into(db.academicYears).insert(
           const AcademicYearsCompanion(
             name: Value('2026-2027'),
@@ -33,19 +33,19 @@ void main() {
         section: const Value('أ'),
       ),
     );
-    return (year: year, cls: cls, lesson: await db.firstLesson());
+    return (year: year, cls: cls, lesson: (await db.firstLesson()).id);
   }
 
-  Future<Map<String, Object?>> _manifestOf(Uint8List zip) async {
+  Future<Map<String, Object?>> manifestOf(Uint8List zip) async {
     final Archive archive = ZipDecoder().decodeBytes(zip);
     final ArchiveFile file = archive.files.firstWhere(
       (ArchiveFile f) => f.name == BackupService.manifestName,
     );
-    return jsonDecode(utf8.decode(file.content)) as Map<String, Object?>;
+    return jsonDecode(utf8.decode(file.content as List<int>)) as Map<String, Object?>;
   }
 
   test('البيان يشمل مهمات الإقفال ويُحصيها', () async {
-    final s = await _seed();
+    final s = await seed();
     await db.upsertClosureTask(
       yearId: s.year,
       classId: s.cls,
@@ -58,12 +58,12 @@ void main() {
     final BackupInfo info = await BackupService(db).inspect(zip);
     expect(info.counts['closure_tasks'], 1);
 
-    final Map<String, Object?> manifest = await _manifestOf(zip);
+    final Map<String, Object?> manifest = await manifestOf(zip);
     expect((manifest['closureTasks'] as List).single['date'], '2026-09-16');
   });
 
   test('استعادة نسخة جديدة تُعيد مهمات الإقفال كما هي', () async {
-    final s = await _seed();
+    final s = await seed();
     await db.upsertClosureTask(
       yearId: s.year,
       classId: s.cls,
@@ -88,7 +88,7 @@ void main() {
 
   test('استعادة بيان قديم (بلا قسم مهمات الإقفال) لا تُعطّل الاستعادة',
       () async {
-    final s = await _seed();
+    final s = await seed();
     await db.upsertClosureTask(
       yearId: s.year,
       classId: s.cls,
@@ -97,7 +97,7 @@ void main() {
       targetAt: '2026-09-16T08:45:00',
     );
     final Uint8List zip = await BackupService(db).exportBytes();
-    final Map<String, Object?> manifest = await _manifestOf(zip);
+    final Map<String, Object?> manifest = await manifestOf(zip);
 
     // بيان كما كان قبل الإصدار 4: بلا `closureTasks`.
     manifest.remove('closureTasks');
@@ -111,8 +111,8 @@ void main() {
     await BackupService(restored).restoreFull(legacy);
 
     expect(await restored.select(restored.closureTasks).get(), isEmpty,
-        reason: 'لا مهمات في بيان قديم — تُبنى من الحصص عند التشغيل');
+        reason: 'لا مهمات في بيان قديم — تُبنى من الحصص عند التشغيل',);
     expect(await restored.allLessons(), isNotEmpty,
-        reason: 'باقي الأقسام تستعاد');
+        reason: 'باقي الأقسام تستعاد',);
   });
 }

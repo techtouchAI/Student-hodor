@@ -51,7 +51,7 @@ void main() {
         classId: Value(cls),
         fullName: const Value('طالب'),
         personKey: const Value('p1'),
-        seq: Value(1),
+        seq: const Value(1),
         createdAt: const Value('2026-09-01T08:00:00'),
       ),
     );

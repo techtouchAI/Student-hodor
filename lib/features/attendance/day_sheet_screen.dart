@@ -694,7 +694,7 @@ class _SummaryBar extends StatelessWidget {
               loading: const SizedBox(height: 68),
               builder: (BuildContext context, Session? ses) =>
                   StreamGuard<List<ClosureTask>>(
-                stream: taskStream ?? const Stream.value(<ClosureTask>[]),
+                stream: taskStream ?? Stream.value(<ClosureTask>[]),
                 loading: const SizedBox(height: 68),
                 builder: (BuildContext context, List<ClosureTask> tasks) {
                   final ClosureTask? task =

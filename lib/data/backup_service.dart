@@ -135,6 +135,7 @@ class _RestorePlan {
     required this.holidays,
     required this.alerts,
     required this.auditLogs,
+    required this.closureTasks,
     required this.settings,
   });
 
@@ -153,6 +154,7 @@ class _RestorePlan {
   final List<Holiday> holidays;
   final List<AlertNotification> alerts;
   final List<AuditLog> auditLogs;
+  final List<ClosureTask> closureTasks;
   final Map<String, String> settings;
 
   Map<String, int> get counts => <String, int>{
@@ -168,6 +170,7 @@ class _RestorePlan {
         'holidays': holidays.length,
         'alerts': alerts.length,
         'audit_logs': auditLogs.length,
+        'closure_tasks': closureTasks.length,
       };
 }
 
@@ -185,7 +188,9 @@ class BackupService {
 
   static const String manifestName = 'backup.json';
   static const String photosPrefix = 'photos/';
-  static const int backupVersion = 3;
+  // 4: أُضيف جدول مهمات الإقفال التلقائي إلى البيان. رفع الرقم يحمي
+  // النسخ الأحدث من أن تُستعاد بصمت بواسطة إصدار أقدم لا يعرف الجدول.
+  static const int backupVersion = 4;
 
   /// حارس تنفيذ واحد لكل قاعدة بيانات: نافذة تأكيد مزدوجة أو نقرة مكرّرة لا
   /// تُشغّل استعادتين متداخلتين على القاعدة نفسها.
@@ -208,6 +213,7 @@ class BackupService {
         'lessons': _rows(await db.select(db.lessons).get()),
         'alertNotifications': _rows(await db.select(db.alertNotifications).get()),
         'auditLogs': _rows(await db.select(db.auditLogs).get()),
+        'closureTasks': _rows(await db.select(db.closureTasks).get()),
       };
 
   List<Map<String, Object?>> _rows(List<DataClass> rows) =>
@@ -631,6 +637,10 @@ class BackupService {
     final List<Map<String, Object?>> alertRows =
         _rowsOf(data, 'alertNotifications');
     final List<Map<String, Object?>> auditRows = _rowsOf(data, 'auditLogs');
+    // مهمات الإقفال التلقائي: نسخة قديمة لا تحملها ⇒ لا مهمات (تُبنى من
+    // الحصص الفعلية عند التشغيل).
+    final List<Map<String, Object?>> closureTaskRows =
+        _rowsOf(data, 'closureTasks');
     final Map<String, String> settings = _settingsOf(data);
 
     // جدول حصص موجود ⇒ نسخة حديثة تُفحص مراجعها بصرامة. غيابه ⇒ نسخة قديمة
@@ -739,6 +749,11 @@ class BackupService {
       'سجل التدقيق',
       (Map<String, dynamic> r) => AuditLog.fromJson(r),
     );
+    final List<ClosureTask> closureTasks = _parseRows(
+      closureTaskRows,
+      'مهمات الإقفال',
+      (Map<String, dynamic> r) => ClosureTask.fromJson(r),
+    );
 
     // معرّفات مكرّرة تعني ملفاً تالفاً: تُرفض هنا برسالة واضحة بدل فشل قيد
     // القاعدة في منتصف الاستعادة.
@@ -763,6 +778,10 @@ class BackupService {
       'التنبيهات',
     );
     _requireUniqueIds(<int>[for (final AuditLog l in auditLogs) l.id], 'التدقيق');
+    _requireUniqueIds(
+      <int>[for (final ClosureTask t in closureTasks) t.id],
+      'مهمات الإقفال',
+    );
 
     final Set<int> yearIds = <int>{for (final AcademicYear y in years) y.id};
     final Set<int> classIds = <int>{for (final SchoolClass c in classes) c.id};
@@ -855,6 +874,19 @@ class BackupService {
         'التنبيه ${n.id} يشير إلى طالب غير موجود (${n.studentId}).',
       );
     }
+    for (final ClosureTask t in closureTasks) {
+      _requireRef(
+        t.yearId,
+        yearIds,
+        'مهمة الإقفال ${t.id} تشير إلى سنة غير موجودة (${t.yearId}).',
+      );
+      _requireRef(
+        t.classId,
+        classIds,
+        'مهمة الإقفال ${t.id} تشير إلى صف غير موجود (${t.classId}).',
+      );
+      _requireKnownLesson(t.lessonId, lessonIds, 'مهمة الإقفال ${t.id}');
+    }
 
     return _RestorePlan(
       version: version,
@@ -872,6 +904,7 @@ class BackupService {
       holidays: holidays,
       alerts: alerts,
       auditLogs: auditLogs,
+      closureTasks: closureTasks,
       settings: settings,
     );
   }
@@ -1048,6 +1081,7 @@ class BackupService {
     await db.delete(db.academicYears).go();
     await db.delete(db.holidays).go();
     // الحصص آخر ما يُحذف (السجلات تشير إليها) وأول ما يُدرَج.
+    await db.delete(db.closureTasks).go();
     await db.delete(db.lessons).go();
     await db.delete(db.auditLogs).go();
     await db.delete(db.settings).go();
@@ -1106,6 +1140,9 @@ class BackupService {
     }
     for (final ScanEvent e in plan.scanEvents) {
       await db.into(db.scanEvents).insert(e.toCompanion(false));
+    }
+    for (final ClosureTask t in plan.closureTasks) {
+      await db.into(db.closureTasks).insert(t.toCompanion(false));
     }
     for (final Leave l in plan.leaves) {
       await db.into(db.leaves).insert(l.toCompanion(false));

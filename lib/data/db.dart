@@ -42,6 +42,18 @@ class AttendanceSource {
   static const int autoClose = 2;
 }
 
+/// حالات مهمة الإقفال التلقائي (جدول `closure_tasks`): المصدر الوحيد
+/// لحالة كل مهمة، فلا تعتمد الجدولة على ذاكرة التطبيق.
+class ClosureTaskState {
+  const ClosureTaskState._();
+  /// لم تُنفَّذ بعد: موعدها قد حان أو لم يحن، والتطبيق يُجدّدها/يستردها.
+  static const int pending = 0;
+  /// نُفذت: أُقفلت الحصة (تلقائياً أو كان مغلقاً مسبقاً يدوياً).
+  static const int executed = 1;
+  /// فشل التنفيذ: يُسجَّل سبب الفشل ويُعاد الاسترداد في المحاولة التالية.
+  static const int failed = 2;
+}
+
 /// حذف حصة لها سجلات تاريخية: مرفوض برسالة مفهومة للمستخدم.
 class LessonInUseException implements Exception {
   const LessonInUseException({required this.slot, required this.records});
@@ -232,6 +244,37 @@ class ScanEvents extends Table {
   TextColumn get at => text()();
 }
 
+/// مهمة إقفال تلقائي واحدة: (صف، تاريخ، حصة) ⇒ موعد إقفال متوقع + حالة.
+///
+/// موعد الإقفال المستهدف هو **نهاية الحصة** (`HH:mm` من جدول الحصص الفعلي)
+/// لليوم المحلي، ويُخزّن `yyyy-MM-ddTHH:mm:ss` (قارن نصياً = قارن زمنياً).
+/// القيد الفريد (صف، تاريخ، حصة) يمنع مهمة مكررة، والجلسة نفسها لا تُقفَل
+/// مرتين لأن [AppDb.closeSession] ذرّية ومعارفة بالتكرار. الحالة مصدرها هذا
+/// الجدول لا ذاكرة التطبيق، فاستعادة الهاتف أو استعادة نسخة احتياطية لا
+/// تضيّع المهام.
+class ClosureTasks extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get yearId =>
+      integer().references(AcademicYears, #id, onDelete: KeyAction.cascade)();
+  IntColumn get classId =>
+      integer().references(SchoolClasses, #id, onDelete: KeyAction.cascade)();
+  TextColumn get date => text()();
+  IntColumn get lessonId => integer().references(Lessons, #id)();
+  /// وقت الإقفال المستهدف بالتوقيت المحلي: `yyyy-MM-ddTHH:mm:ss`.
+  TextColumn get targetAt => text()();
+  /// [ClosureTaskState] (0 معلق، 1 مُنفَّذ، 2 فشل).
+  IntColumn get state => integer().withDefault(const Constant(0))();
+  /// وقت التنفيذ الفعلي (ISO) — `null` ما لم تُنفَّذ.
+  TextColumn get executedAt => text().nullable()();
+  /// نتيجة التنفيذ («closed» / «already_closed») أو سبب الفشل.
+  TextColumn get result => text().nullable()();
+  IntColumn get attempts => integer().withDefault(const Constant(0))();
+  @override
+  List<Set<Column<Object>>> get uniqueKeys => <Set<Column<Object>>>[
+        <Column<Object>>{classId, date, lessonId},
+      ];
+}
+
 class Leaves extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get yearId =>
@@ -312,6 +355,7 @@ class AlertNotifications extends Table {
     AuditLogs,
     AlertNotifications,
     Lessons,
+    ClosureTasks,
   ],
 )
 class AppDb extends _$AppDb {
@@ -319,12 +363,12 @@ class AppDb extends _$AppDb {
 
   AppDb.forTesting(super.e);
 
-  /// الإصدار 6: الحصص (`lessons`) والحضور لكل حصة.
+  /// الإصدار 7: مهمات الإقفال التلقائي (`closure_tasks`).
   ///
   /// 1. جدول حصص، 2. تنبيهات حد الفصل، 3. هاتف الطالب، 4. وقت الوصول،
-  /// 5. تنبيهات النظام، 6. الحضور بالحصة.
+  /// 5. تنبيهات النظام، 6. الحضور بالحصة، 7. جدولة الإقفال التلقائي.
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -351,6 +395,11 @@ class AppDb extends _$AppDb {
           }
           if (from < 6) {
             await _migrateToLessons(m);
+          }
+          if (from < 7) {
+            // جدول مهمات الإقفال التلقائي: لا يعتمد على أي بيانات سابقة،
+            // والجدولة تُعاد بنائه من جدول الحصص الفعلي عند تشغيل التطبيق.
+            await m.createTable(closureTasks);
           }
         },
         // بعد الهجرات وقبل أي استعلام: المفاتيح الأجنبية مفعّلة فعلياً (كانت
@@ -424,6 +473,14 @@ class AppDb extends _$AppDb {
     await customStatement(
       'CREATE INDEX IF NOT EXISTS idx_students_year_class '
       'ON students (year_id, class_id)',
+    );
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_closure_due '
+      'ON closure_tasks (state, target_at)',
+    );
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_closure_class_date '
+      'ON closure_tasks (class_id, date, lesson_id)',
     );
   }
 
@@ -657,6 +714,9 @@ class AppDb extends _$AppDb {
         if (used > 0) {
           throw LessonInUseException(slot: l.slot, records: used);
         }
+        // مهمات الإقفال سجل جدولة (لا حضور): تُحذف مع حصتها — سجل
+        // التدقيق يحتفظ بحدث الإقفال، ولا يبقى مفتاح أجنبي معلّق.
+        await (delete(closureTasks)..where((t) => t.lessonId.equals(l.id))).go();
         await (delete(lessons)..where((x) => x.id.equals(l.id))).go();
       }
     });
@@ -736,6 +796,8 @@ class AppDb extends _$AppDb {
   }
 
   /// عدد السجلات التاريخية المرتبطة بحصة (جلسات + حضور) — حارس الحذف.
+  /// مهمات الإقفال سجل جدولة لا سجل حضور، فتُحذف مع حصتها في
+  /// [saveLessons]، ولا تُحصي هنا كي لا تمنع تحرير الجدول.
   Future<int> _lessonUsage(int lessonId) async {
     final TypedResult sessionsRow = await (selectOnly(sessions)
           ..addColumns(<Expression<int>>[countAll()])
@@ -1626,6 +1688,110 @@ class AppDb extends _$AppDb {
       )
           .watch()
           .map<void>((_) {});
+
+  // ---------- الإقفال التلقائي ----------
+
+  /// مهمة إقفال واحدة (صف، تاريخ، حصة) — لاستعلامات الواجهة.
+  Future<ClosureTask?> closureTaskOf(int classId, String date, int lessonId) =>
+      (select(closureTasks)
+            ..where(
+              (t) =>
+                  t.classId.equals(classId) &
+                  t.date.equals(date) &
+                  t.lessonId.equals(lessonId),
+            ))
+          .getSingleOrNull();
+
+  /// كل مهمات تاريخ واحد — لاستعلامات الواجهة والجدولة.
+  Future<List<ClosureTask>> closureTasksOf(String date) =>
+      (select(closureTasks)..where((t) => t.date.equals(date))).get();
+
+  /// كل المهمات المعلقة (لم تُنفَّذ بعد) — الاسترداد يختار ما تأخر منها.
+  Future<List<ClosureTask>> pendingClosureTasks() =>
+      (select(closureTasks)..where((t) => t.state.equals(0))).get();
+
+  /// المهمات المعلقة لتاريخ واحد — ما تُجدّد أساليبه في كل تشغيل.
+  Future<List<ClosureTask>> pendingClosureTasksForDate(String date) =>
+      (select(closureTasks)
+            ..where((t) => t.state.equals(0) & t.date.equals(date)))
+          .get();
+
+  /// إنشاء مهمة أو تحديث موعدها: التفرّد (صف، تاريخ، حصة) يمنع التكرار.
+  ///
+  /// المهمة المُنفَّذة تُترك كما هي (سجل تاريخي)، والمعلقة يُحدَّث موعدها،
+  /// والفاشلة تُعاد إلى «معلقة» حين يتغيّر الموعد كي تعاد محاولتها.
+  Future<void> upsertClosureTask({
+    required int yearId,
+    required int classId,
+    required String date,
+    required int lessonId,
+    required String targetAt,
+  }) async {
+    final ClosureTask? existing =
+        await closureTaskOf(classId, date, lessonId);
+    if (existing == null) {
+      await into(closureTasks).insert(
+        ClosureTasksCompanion(
+          yearId: Value(yearId),
+          classId: Value(classId),
+          date: Value(date),
+          lessonId: Value(lessonId),
+          targetAt: Value(targetAt),
+        ),
+      );
+      return;
+    }
+    if (existing.state == ClosureTaskState.executed) {
+      return; // سجل انتهاء: لا تُمسّ تاريخه حتى لو تغيّر موعد الحصة.
+    }
+    await (update(closureTasks)..where((t) => t.id.equals(existing.id)))
+        .write(
+      ClosureTasksCompanion(
+        targetAt: Value(targetAt),
+        state: Value(ClosureTaskState.pending),
+      ),
+    );
+  }
+
+  /// تسجيل تنفيذ المهمة بنجاح.
+  Future<void> markClosureTaskExecuted(
+    int id, {
+    required String executedAt,
+    required String result,
+  }) =>
+      (update(closureTasks)..where((t) => t.id.equals(id))).write(
+        ClosureTasksCompanion(
+          state: Value(ClosureTaskState.executed),
+          executedAt: Value(executedAt),
+          result: Value(result),
+        ),
+      );
+
+  /// تسجيل فشل المهمة مع سبب الفشل وعداد المحاولات — الاسترداد يعيدها.
+  Future<void> markClosureTaskFailed(
+    int id, {
+    required String error,
+  }) async {
+    final ClosureTask? task =
+        await (select(closureTasks)..where((t) => t.id.equals(id)))
+            .getSingleOrNull();
+    await (update(closureTasks)..where((t) => t.id.equals(id))).write(
+      ClosureTasksCompanion(
+        state: Value(ClosureTaskState.failed),
+        result: Value(error),
+        attempts: Value((task?.attempts ?? 0) + 1),
+      ),
+    );
+  }
+
+  /// حذف المهمات المعلقة لتاريخ (إلغاء جدولة يوم) — التنفيذ التاريخي يبقى.
+  Future<int> deletePendingClosureTasksForDate(String date) =>
+      (delete(closureTasks)..where((t) => t.date.equals(date) & t.state.equals(0)))
+          .go();
+
+  /// حذف كل المهمات المعلقة (تغيير الجدول/السنة/استعادة نسخة) — التاريخ يبقى.
+  Future<int> deleteAllPendingClosureTasks() =>
+      (delete(closureTasks)..where((t) => t.state.equals(0))).go();
 
   // ---------- تدقيق ----------
 

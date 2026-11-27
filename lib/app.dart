@@ -13,6 +13,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'core/closure_bootstrap.dart';
 import 'core/error_guard.dart';
 import 'core/nav.dart';
 import 'features/about/about_screen.dart';
@@ -184,7 +185,9 @@ class StudentHodorApp extends ConsumerWidget {
         builder: (BuildContext context, Widget? child) => Directionality(
           textDirection: TextDirection.rtl,
           child: NotificationsWatcher(
-            child: child ?? const SizedBox.shrink(),
+            child: ClosureBootstrap(
+              child: child ?? const SizedBox.shrink(),
+            ),
           ),
         ),
         routerConfig: router ?? ref.read(appRouterProvider),

@@ -18,6 +18,7 @@ import '../../core/late_time.dart';
 import '../../core/lesson.dart';
 import '../../core/nav.dart';
 import '../../core/school_time.dart';
+import '../../data/closure_scheduler.dart';
 import '../../data/db.dart';
 import '../../data/error_log.dart';
 import '../../state/providers.dart';
@@ -46,6 +47,10 @@ class _DaySheetState extends ConsumerState<DaySheetScreen> {
   Stream<List<Student>>? _students;
   Stream<List<AttendanceRow>>? _rows;
   Stream<Session?>? _session;
+  /// مهمة الإقفال التلقائي للحصة المعروضة — مصدر حالة الدوام.
+  Stream<List<ClosureTask>>? _closureTasks;
+  /// دقائق السماح بعد بداية الحصة (من الإعدادات) — لحالة «مهلة الحضور».
+  int _lateAfter = 15;
   bool _resolving = true;
   String? _resolveError;
   List<SchoolClass> _options = <SchoolClass>[];
@@ -103,6 +108,7 @@ class _DaySheetState extends ConsumerState<DaySheetScreen> {
       final List<LessonWindow> lessons = await db.lessonWindows();
       final LessonWindow? lesson =
           LessonSchedule.suggested(lessons, DateTime.now());
+      final Map<String, String> settings = await db.effectiveSettings();
       if (!mounted) {
         return;
       }
@@ -110,6 +116,7 @@ class _DaySheetState extends ConsumerState<DaySheetScreen> {
         _class = resolved;
         _lessons = lessons;
         _lesson = lesson;
+        _lateAfter = int.tryParse(settings['late_after_minutes'] ?? '15') ?? 15;
         _bindStreams(db, resolved, lesson);
         _resolving = false;
       });
@@ -136,6 +143,7 @@ class _DaySheetState extends ConsumerState<DaySheetScreen> {
     if (l == null) {
       _rows = null;
       _session = null;
+      _closureTasks = null;
       return;
     }
     _rows = (db.select(db.attendanceRows)
@@ -147,6 +155,14 @@ class _DaySheetState extends ConsumerState<DaySheetScreen> {
           ))
         .watch();
     _session = db.watchSession(c.id, _date, l.id);
+    _closureTasks = (db.select(db.closureTasks)
+          ..where(
+            (t) =>
+                t.classId.equals(c.id) &
+                t.date.equals(_date) &
+                t.lessonId.equals(l.id),
+          ))
+        .watch();
   }
 
   /// تبديل الحصة المعروضة: يغيّر السجلات والجلسة معاً (لا يعيد بناء الشاشة).
@@ -537,6 +553,9 @@ class _DaySheetState extends ConsumerState<DaySheetScreen> {
           sessionStream: sessionStream,
           studentsStream: studentsStream,
           rowsStream: rowsStream,
+          taskStream: _closureTasks,
+          lesson: _lesson,
+          lateAfter: _lateAfter,
           onToggleClose: (Session? ses) async {
             if (ses == null) {
               _snack('لم تُفتح جلسة لهذه الحصة بعد — افتحها من شاشة المسح');
@@ -622,18 +641,26 @@ class _DaySheetState extends ConsumerState<DaySheetScreen> {
   }
 }
 
-/// شريط الملخّص: مسجل/الكل + حالة الجلسة + زر الإقفال/إعادة الفتح.
+/// شريط الملخّص: حالة الدوام (تلقائي/يدوي/مهلة الحضور) + عدّاد الحالات
+/// + زر الإقفال/إعادة الفتح. حالة الدوام مصدرها الجلسة ومهمة الإقفال
+/// التلقائي، لا التخمين.
 class _SummaryBar extends StatelessWidget {
   const _SummaryBar({
     required this.sessionStream,
     required this.studentsStream,
     required this.rowsStream,
+    required this.taskStream,
+    required this.lesson,
+    required this.lateAfter,
     required this.onToggleClose,
   });
 
   final Stream<Session?> sessionStream;
   final Stream<List<Student>> studentsStream;
   final Stream<List<AttendanceRow>> rowsStream;
+  final Stream<List<ClosureTask>>? taskStream;
+  final LessonWindow? lesson;
+  final int lateAfter;
   final void Function(Session? session) onToggleClose;
 
   @override
@@ -646,40 +673,74 @@ class _SummaryBar extends StatelessWidget {
           loading: const SizedBox(height: 68),
           builder: (BuildContext context, List<AttendanceRow> rows) {
             final int total = students.length;
-            final int recorded = rows
-                .where(
-                  (AttendanceRow r) =>
-                      r.status == AttendanceStatus.present ||
-                      r.status == AttendanceStatus.late ||
-                      r.status == AttendanceStatus.leave,
-                )
-                .length;
+            int present = 0;
+            int late = 0;
+            int absent = 0;
+            int leave = 0;
+            for (final AttendanceRow r in rows) {
+              if (r.status == AttendanceStatus.present) {
+                present++;
+              } else if (r.status == AttendanceStatus.late) {
+                late++;
+              } else if (r.status == AttendanceStatus.absent) {
+                absent++;
+              } else if (r.status == AttendanceStatus.leave) {
+                leave++;
+              }
+            }
+            final int recorded = present + late + leave;
             return StreamGuard<Session?>(
               stream: sessionStream,
               loading: const SizedBox(height: 68),
-              builder: (BuildContext context, Session? ses) {
-                final bool closed = ses?.closedAt != null;
-                return Card(
-                  margin: const EdgeInsets.all(8),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: <Widget>[
-                        Text('مسجل: $recorded / $total'),
-                        Text(ses == null ? 'لا جلسة' : (closed ? 'مقفلة' : 'مفتوحة')),
-                        Flexible(
-                          child: FilledButton.icon(
-                            onPressed: () => onToggleClose(ses),
-                            icon: Icon(closed ? Icons.lock_open : Icons.lock),
-                            label: Text(closed ? 'إعادة فتح' : 'إقفال الحصة'),
+              builder: (BuildContext context, Session? ses) =>
+                  StreamGuard<List<ClosureTask>>(
+                stream: taskStream ?? const Stream.value(<ClosureTask>[]),
+                loading: const SizedBox(height: 68),
+                builder: (BuildContext context, List<ClosureTask> tasks) {
+                  final ClosureTask? task =
+                      tasks.isEmpty ? null : tasks.first;
+                  final String status = ClosureScheduler.closureStatusLabel(
+                    lesson: lesson,
+                    now: DateTime.now(),
+                    closedAtIso: ses?.closedAt,
+                    taskState: task?.state,
+                    taskResult: task?.result,
+                    lateAfterMinutes: lateAfter,
+                  );
+                  final bool closed = ses?.closedAt != null;
+                  return Card(
+                    margin: const EdgeInsets.all(8),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: <Widget>[
+                          Text('مسجل: $recorded / $total'),
+                          Expanded(
+                            child: Text(
+                              status,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 13),
+                            ),
                           ),
-                        ),
-                      ],
+                          Text(
+                            'حاضر $present • متأخر $late • غائب $absent • إجازة $leave',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                          Flexible(
+                            child: FilledButton.icon(
+                              onPressed: () => onToggleClose(ses),
+                              icon: Icon(closed ? Icons.lock_open : Icons.lock),
+                              label: Text(closed ? 'إعادة فتح' : 'إقفال الحصة'),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             );
           },
         ),

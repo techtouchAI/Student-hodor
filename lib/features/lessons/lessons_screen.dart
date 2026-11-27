@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/error_guard.dart';
 import '../../core/late_time.dart';
 import '../../core/lesson.dart';
+import '../../data/closure_scheduler.dart';
 import '../../data/db.dart';
 import '../../data/error_log.dart';
 import '../../state/providers.dart';
@@ -181,6 +182,13 @@ class _LessonsScreenState extends ConsumerState<LessonsScreen> {
       await ref.read(dbProvider).saveLessons(windows);
       if (!mounted) {
         return;
+      }
+      // تغيير الجدول يطال موعد الإقفال التلقائي: تُبنى الجدولة من
+      // الحصص الفعلية (لا تُترك مواعيد قديمة).
+      try {
+        await ClosureScheduler(ref.read(dbProvider)).cancelPendingAndRefresh();
+      } catch (e, st) {
+        AppErrorLog.instance.record(e, st, where: 'lessons:closureRefresh');
       }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('حُفظ جدول الحصص')),

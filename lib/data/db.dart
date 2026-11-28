@@ -1621,6 +1621,19 @@ class AppDb extends _$AppDb {
     return false;
   }
 
+  /// إزالة تنبيه زال سببه (مثلاً: إجازة غطّت أيام الغياب فنزل الطالب تحت
+  /// الحد). إن عاد الطالب فبلغ الحد لاحقاً وُلد تنبيه جديد بإشعار جديد.
+  Future<void> dismissAlert(
+    AlertNotification alert, {
+    required String reason,
+  }) async {
+    await (delete(alertNotifications)..where((n) => n.id.equals(alert.id))).go();
+    await logAudit(
+      'alert_dismissed',
+      'student=${alert.studentId} kind=${alert.kind} reason=$reason',
+    );
+  }
+
   /// قائمة الشاشة: غير المقروء أولاً ثم الأحدث.
   Stream<List<AlertNotification>> watchAlerts(int yearId) =>
       (select(alertNotifications)

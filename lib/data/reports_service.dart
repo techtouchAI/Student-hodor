@@ -500,6 +500,11 @@ class ReportsService {
     return out;
   }
 
+  /// هل بلغت مجاميع طالب حدّ الإنذار؟ — القاعدة الوحيدة لكل من [alerts]
+  /// وإزالة تنبيه حد الفصل بعد الإجازات، فلا يتباعد المساران أبداً.
+  static bool reachesThreshold(StatusTotals t, double thresholdDays) =>
+      t.recorded > 0 && t.absentDays >= thresholdDays;
+
   /// طلاب تجاوزوا **أيام** غيابهم حدّ الإنذار.
   ///
   /// العتبة عدد أيام (لا نسبة مئوية ولا حصص): طالب غاب يوماً واحداً لا يُنذَر
@@ -517,7 +522,7 @@ class ReportsService {
     final List<(Student, StatusTotals)> out = <(Student, StatusTotals)>[];
     for (final Student s in students) {
       final StatusTotals t = totals[s.id] ?? const StatusTotals();
-      if (t.recorded > 0 && t.absentDays >= thresholdDays) {
+      if (reachesThreshold(t, thresholdDays)) {
         out.add((s, t));
       }
     }

@@ -10,6 +10,10 @@
 ///   الاحتساب التالي، ولا يُعاد أبدًا بعد النجاح.
 /// - [sync] يعيد معرّفات تنبيهات السنة الفعّالة الحالية حتى يلغي المستدعي
 ///   إشعارات النظام التي حُذفت سطورها (حذف الطالب).
+/// - **الإجازة تُسقط التنبيه**: تعديل إجازات طالب (إضافة/تعديل/حذف) يعيد
+///   تقييم تنبيهه فورًا عبر [dismissResolvedAlerts]؛ إن لم يعد عند الحد
+///   (غطّت الإجازة أيام الغياب المؤدية للفصل) يُزال التنبيه وإشعار النظام.
+///   التصحيحات الأخرى (غير الإجازة) تُبقي التنبيه سجلًّا تاريخيًّا كما هو.
 library;
 
 import 'dart:convert';
@@ -100,6 +104,49 @@ class NotificationsService {
       if (shown) {
         await db.markAlertSystemShown(n.id);
       }
+    }
+  }
+
+  /// يعيد تقييم تنبيه حد الفصل لطلاب تغيّرت إجازاتهم: من لم يعد عند الحد
+  /// (بنفس قاعدة [ReportsService.reachesThreshold]) يُزال تنبيهه.
+  ///
+  /// يعمل داخل معاملة المستدعي (لا يلمس طبقة المنصة) ويعيد التنبيهات
+  /// المُزالة حتى يلغي المستدعي إشعاراتها بعد الالتزام عبر
+  /// [cancelSystemAlerts]. العتبة المطفأة (≤ 0) لا تُزيل شيئًا: الميزة
+  /// معطّلة ولا احتساب يُبنى عليه.
+  Future<List<AlertNotification>> dismissResolvedAlerts({
+    required int yearId,
+    required Iterable<int> studentIds,
+  }) async {
+    final double threshold = _threshold2(await db.effectiveSettings());
+    if (threshold <= 0) {
+      return <AlertNotification>[];
+    }
+    final ReportsService reports = ReportsService(db);
+    final List<AlertNotification> dismissed = <AlertNotification>[];
+    for (final int studentId in studentIds.toSet()) {
+      final AlertNotification? alert =
+          await db.alertOf(yearId, studentId, AlertKinds.threshold2);
+      if (alert == null) {
+        continue;
+      }
+      final StatusTotals totals =
+          await reports.totalsForStudent(studentId, yearId);
+      if (ReportsService.reachesThreshold(totals, threshold)) {
+        continue;
+      }
+      await db.dismissAlert(alert, reason: 'leave');
+      dismissed.add(alert);
+    }
+    return dismissed;
+  }
+
+  /// يلغي إشعارات النظام لتنبيهات أُزيلت (يمرّ بصمت إن لم تكن الطبقة جاهزة).
+  static Future<void> cancelSystemAlerts(
+    Iterable<AlertNotification> alerts,
+  ) async {
+    for (final AlertNotification n in alerts) {
+      await LocalNotifications.cancel(n.id);
     }
   }
 

@@ -1,6 +1,7 @@
-/// إدارة الإجازات: إضافة/حذف مع نوع وسبب، تنعكس أصفر في التقارير وتلغي
-/// سجلات الغياب داخل نطاق الإجازة (تلقائياً كانت أو يدوية) — وحذفها
-/// يعيد الغياب الملغى ما لم تغطّه إجازة أخرى.
+/// إدارة الإجازات: إضافة/تعديل/حذف مع نوع وسبب، تنعكس أصفر في التقارير
+/// وتلغي سجلات الغياب داخل نطاق الإجازة (تلقائياً كانت أو يدوية) — وحذفها
+/// أو تضييقها يعيد الغياب الملغى ما لم تغطّه إجازة أخرى. وإن نزل الطالب
+/// بالإجازة تحت حد الفصل أُزيل تنبيهه (راجع `LeavesService`).
 library;
 
 import 'package:drift/drift.dart' hide Column;
@@ -8,11 +9,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/lesson.dart';
-import '../../core/school_time.dart';
 import '../../data/db.dart';
+import '../../data/leaves_service.dart';
 import '../../state/providers.dart';
+import 'leave_editor_dialog.dart';
 
-const List<String> leaveTypeNames = <String>['مرضية', 'عرضية', 'طارئة'];
+export '../../data/leaves_service.dart' show leaveTypeNames;
 
 class LeavesScreen extends ConsumerStatefulWidget {
   const LeavesScreen({super.key});
@@ -41,8 +43,11 @@ class _LeavesState extends ConsumerState<LeavesScreen> {
   static String _scopeLabel(Leave l) =>
       ' • ${leaveScopeLabel(fromSlot: l.fromSlot, toSlot: l.toSlot)}';
 
+  /// اسم نوع الإجازة مع حماية من قيمة خارج المدى (نسخة قديمة/تالفة).
+  static String _typeLabel(int type) =>
+      type >= 0 && type < leaveTypeNames.length ? leaveTypeNames[type] : '—';
+
   Future<void> _remove(Leave l) async {
-    final AppDb db = ref.read(dbProvider);
     final bool? ok = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
@@ -67,16 +72,7 @@ class _LeavesState extends ConsumerState<LeavesScreen> {
     if (ok != true) {
       return;
     }
-    await (db.delete(db.leaves)..where((x) => x.id.equals(l.id))).go();
-    await db.syncLeaveToAttendance(
-      studentId: l.studentId,
-      start: l.start,
-      end: l.end,
-      added: false,
-      fromSlot: l.fromSlot,
-      toSlot: l.toSlot,
-    );
-    await db.logAudit('leave_delete', 'id=${l.id}');
+    await LeavesService(ref.read(dbProvider)).delete(l);
   }
 
   @override
@@ -85,7 +81,7 @@ class _LeavesState extends ConsumerState<LeavesScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('الإجازات')),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _add(context, ref),
+        onPressed: _add,
         icon: const Icon(Icons.add),
         label: const Text('إجازة'),
       ),
@@ -128,13 +124,25 @@ class _LeavesState extends ConsumerState<LeavesScreen> {
                         ),
                         title: Text(names[l.studentId] ?? 'طالب محذوف'),
                         subtitle: Text(
-                          '${l.start} → ${l.end} • ${leaveTypeNames[l.type]}'
+                          '${l.start} → ${l.end} • ${_typeLabel(l.type)}'
                           '${_scopeLabel(l)}'
                           '${l.reason.isEmpty ? '' : ' • ${l.reason}'}',
                         ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete),
-                          onPressed: () => _remove(l),
+                        onTap: () => _edit(l),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            IconButton(
+                              tooltip: 'تعديل',
+                              icon: const Icon(Icons.edit),
+                              onPressed: () => _edit(l),
+                            ),
+                            IconButton(
+                              tooltip: 'حذف',
+                              icon: const Icon(Icons.delete),
+                              onPressed: () => _remove(l),
+                            ),
+                          ],
                         ),
                       );
                     },
@@ -148,255 +156,91 @@ class _LeavesState extends ConsumerState<LeavesScreen> {
     );
   }
 
-  Future<void> _add(BuildContext context, WidgetRef ref) async {
+  /// طلاب سنة الإجازة وحصص الجدول — مدخلات حوار التحرير.
+  Future<(List<Student>, List<LessonWindow>)> _editorInputs(int yearId) async {
     final AppDb db = ref.read(dbProvider);
-    final AcademicYear? year = await db.activeYear();
+    final List<Student> students = await (db.select(db.students)
+          ..where((s) => s.yearId.equals(yearId)))
+        .get();
+    return (students, await db.lessonWindows());
+  }
+
+  Future<void> _add() async {
+    final AcademicYear? year = await ref.read(dbProvider).activeYear();
     if (year == null) {
       return;
     }
-    final List<Student> students =
-        await (db.select(db.students)..where((s) => s.yearId.equals(year.id))).get();
-    final List<LessonWindow> lessons = await db.lessonWindows();
+    final (List<Student> students, List<LessonWindow> lessons) =
+        await _editorInputs(year.id);
+    if (!mounted) {
+      return;
+    }
     if (students.isEmpty) {
-      if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('لا طلاب في السنة الفعّالة بعد')),
+      );
+      return;
+    }
+    final LeaveDraft? draft = await showLeaveEditor(
+      context,
+      students: students,
+      lessons: lessons,
+    );
+    if (draft == null) {
+      return;
+    }
+    final LeaveChange change = await LeavesService(ref.read(dbProvider))
+        .add(yearId: year.id, draft: draft);
+    _report(change, edited: false);
+  }
+
+  Future<void> _edit(Leave l) async {
+    final (List<Student> students, List<LessonWindow> lessons) =
+        await _editorInputs(l.yearId);
+    if (!mounted) {
+      return;
+    }
+    final LeaveDraft? draft = await showLeaveEditor(
+      context,
+      students: students,
+      lessons: lessons,
+      initial: LeaveDraft.of(l),
+    );
+    if (draft == null) {
+      return;
+    }
+    try {
+      final LeaveChange change =
+          await LeavesService(ref.read(dbProvider)).update(l, draft);
+      _report(change, edited: true);
+    } on LeaveNotFoundException {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('لا طلاب في السنة الفعّالة بعد')),
+          const SnackBar(content: Text('الإجازة لم تعد موجودة')),
         );
       }
+    }
+  }
+
+  /// رسالة النتيجة: الحصص المصحّحة وتنبيهات حد الفصل المُزالة.
+  void _report(LeaveChange change, {required bool edited}) {
+    if (!mounted) {
       return;
     }
-    Student? picked = students.first;
-    DateTime start = DateTime.now();
-    DateTime end = DateTime.now();
-    int type = 0;
-    // نطاق الحصص: فارغ = كل حصص اليوم (السلوك القديم).
-    int? fromSlot;
-    int? toSlot;
-    final TextEditingController reason = TextEditingController();
-    // بحث في الطلاب داخل الحوار: مع كثرة الطلاب يصعب الوصول للمطلوب.
-    final TextEditingController search = TextEditingController();
-    if (!context.mounted) {
+    final List<String> parts = <String>[
+      if (edited) 'عُدّلت الإجازة',
+      if (change.syncedLessons > 0)
+        edited
+            ? 'أُعيد احتساب ${change.syncedLessons} حصة'
+            : 'صُحّحت ${change.syncedLessons} حصة من غياب إلى إجازة',
+      if (change.dismissedAlerts.isNotEmpty)
+        'أُزيل تنبيه حد الفصل (${change.dismissedAlerts.length})',
+    ];
+    if (parts.isEmpty) {
       return;
     }
-    final bool? ok = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) => StatefulBuilder(
-        builder: (BuildContext context, StateSetter setSt) {
-          // تصفية الطلاب حسب النص المكتوب: يُسرّع الوصول للطالب المطلوب.
-          final String query = search.text.trim();
-          final List<Student> filtered = query.isEmpty
-              ? students
-              : <Student>[
-                  for (final Student s in students)
-                    if (s.fullName.toLowerCase().contains(query.toLowerCase())) s,
-                ];
-          return AlertDialog(
-            title: const Text('إجازة جديدة'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  TextField(
-                    controller: search,
-                    // عند تصفية الطلاب: يُحدَّد أول طالب مطابق تلقائيًا
-                    // (ولا يبقى اختيار قديم خارج القائمة المعروض).
-                    onChanged: (String v) {
-                      final String q = v.trim();
-                      final List<Student> matches = q.isEmpty
-                          ? students
-                          : <Student>[
-                              for (final Student s in students)
-                                if (s.fullName.toLowerCase().contains(q.toLowerCase())) s,
-                            ];
-                      setSt(() {
-                        if (matches.isEmpty) {
-                          picked = null;
-                        } else if (!matches.contains(picked)) {
-                          picked = matches.first;
-                        }
-                      });
-                    },
-                    decoration: const InputDecoration(
-                      labelText: 'بحث في الطلاب',
-                      prefixIcon: Icon(Icons.search),
-                      isDense: true,
-                    ),
-                  ),
-                  if (filtered.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 8),
-                      child: Text('لا طالب مطابق للبحث', textAlign: TextAlign.center),
-                    ),
-                  DropdownButtonFormField<Student>(
-                    key: ValueKey<Student?>(picked),
-                    initialValue: picked,
-                    items: <DropdownMenuItem<Student>>[
-                      for (final Student s in filtered)
-                        DropdownMenuItem<Student>(value: s, child: Text(s.fullName)),
-                    ],
-                    onChanged: (Student? s) => setSt(() => picked = s),
-                    decoration: const InputDecoration(labelText: 'الطالب'),
-                  ),
-                  ListTile(
-                    title: const Text('من'),
-                    subtitle: Text(SchoolTime.dateKey(start)),
-                    onTap: () async {
-                      final DateTime? d = await showDatePicker(
-                        context: context,
-                        initialDate: start,
-                        firstDate: DateTime(2015),
-                        lastDate: DateTime(2040),
-                      );
-                      if (d != null) {
-                        setSt(() {
-                          start = d;
-                          if (end.isBefore(start)) {
-                            end = start;
-                          }
-                        });
-                      }
-                    },
-                  ),
-                  ListTile(
-                    title: const Text('إلى'),
-                    subtitle: Text(SchoolTime.dateKey(end)),
-                    onTap: () async {
-                      final DateTime? d = await showDatePicker(
-                        context: context,
-                        initialDate: end,
-                        firstDate: start,
-                        lastDate: DateTime(2040),
-                      );
-                      if (d != null) {
-                        setSt(() => end = d);
-                      }
-                    },
-                  ),
-                  Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: DropdownButtonFormField<int?>(
-                          key: ValueKey<String?>('from-$fromSlot'),
-                          initialValue: fromSlot,
-                          isExpanded: true,
-                          items: <DropdownMenuItem<int?>>[
-                            const DropdownMenuItem<int?>(
-                              value: null,
-                              child: Text('كل الحصص'),
-                            ),
-                            for (final LessonWindow l in lessons)
-                              DropdownMenuItem<int?>(
-                                value: l.slot,
-                                child: Text(l.displayName),
-                              ),
-                          ],
-                          onChanged: (int? v) => setSt(() {
-                            fromSlot = v;
-                            if (v == null) {
-                              toSlot = null;
-                            } else if (toSlot != null && toSlot! < v) {
-                              toSlot = v;
-                            }
-                          }),
-                          decoration: const InputDecoration(labelText: 'من الحصة'),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: DropdownButtonFormField<int?>(
-                          key: ValueKey<String?>('to-$toSlot'),
-                          initialValue: toSlot,
-                          isExpanded: true,
-                          items: <DropdownMenuItem<int?>>[
-                            const DropdownMenuItem<int?>(
-                              value: null,
-                              child: Text('آخر اليوم'),
-                            ),
-                            for (final LessonWindow l in lessons)
-                              DropdownMenuItem<int?>(
-                                value: l.slot,
-                                child: Text(l.displayName),
-                              ),
-                          ],
-                          onChanged: fromSlot == null
-                              ? null
-                              : (int? v) => setSt(() {
-                                    toSlot = v;
-                                    if (v != null && fromSlot != null &&
-                                        v < fromSlot!) {
-                                      fromSlot = v;
-                                    }
-                                  }),
-                          decoration: const InputDecoration(labelText: 'إلى الحصة'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  DropdownButtonFormField<int>(
-                    key: ValueKey<int>(type),
-                    initialValue: type,
-                    items: <DropdownMenuItem<int>>[
-                      for (int i = 0; i < leaveTypeNames.length; i++)
-                        DropdownMenuItem<int>(value: i, child: Text(leaveTypeNames[i])),
-                    ],
-                    onChanged: (int? t) => setSt(() => type = t ?? 0),
-                    decoration: const InputDecoration(labelText: 'النوع'),
-                  ),
-                  TextField(
-                    controller: reason,
-                    decoration: const InputDecoration(labelText: 'السبب (اختياري)'),
-                  ),
-                ],
-              ),
-            ),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('إلغاء'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('حفظ'),
-              ),
-            ],
-          );
-        },
-      ),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(parts.join(' • '))),
     );
-    search.dispose();
-    reason.dispose();
-    final Student? stu = picked;
-    if (ok != true || stu == null || start.isAfter(end)) {
-      return;
-    }
-    final String startKey = SchoolTime.dateKey(start);
-    final String endKey = SchoolTime.dateKey(end);
-    await db.into(db.leaves).insert(
-          LeavesCompanion(
-            yearId: Value(year.id),
-            studentId: Value(stu.id),
-            start: Value(startKey),
-            end: Value(endKey),
-            fromSlot: Value(fromSlot),
-            toSlot: Value(toSlot),
-            type: Value(type),
-            reason: Value(reason.text.trim()),
-            createdAt: Value(DateTime.now().toIso8601String()),
-          ),
-        );
-    final int synced = await db.syncLeaveToAttendance(
-      studentId: stu.id,
-      start: startKey,
-      end: endKey,
-      added: true,
-      fromSlot: fromSlot,
-      toSlot: toSlot,
-    );
-    await db.logAudit('leave_add', '${stu.fullName} $startKey');
-    if (context.mounted && synced > 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('صُحّحت $synced حصة من غياب إلى إجازة')),
-      );
-    }
   }
 }

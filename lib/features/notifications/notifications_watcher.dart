@@ -39,6 +39,10 @@ class _NotificationsWatcherState extends ConsumerState<NotificationsWatcher> {
   Timer? _debounce;
   bool _syncing = false;
 
+  /// تغيير وصل أثناء احتساب جارٍ: يُعاد الاحتساب فور انتهائه بدل إسقاطه
+  /// (وإلا بقي الجرس على حالة قديمة حتى التغيير التالي).
+  bool _resyncRequested = false;
+
   /// معرّفات السنة الفعّالة التي رأيناها في آخر احتساب ناجح — أساس
   /// إلغاء إشعارات النظام اليتيمة.
   Set<int> _lastKnownIds = <int>{};
@@ -90,18 +94,26 @@ class _NotificationsWatcherState extends ConsumerState<NotificationsWatcher> {
   }
 
   Future<void> _syncNow() async {
-    if (_syncing || !mounted) {
+    if (!mounted) {
+      return;
+    }
+    if (_syncing) {
+      _resyncRequested = true;
       return;
     }
     _syncing = true;
     try {
-      final Set<int> current =
-          await NotificationsService(ref.read(dbProvider)).sync();
-      // سطر حُذف (حذف طالب/تغيير سنة) ⇒ إشعاره في النظام يتيم ⇒ ألغه.
-      for (final int gone in _lastKnownIds.difference(current)) {
-        await LocalNotifications.cancel(gone);
-      }
-      _lastKnownIds = current;
+      do {
+        _resyncRequested = false;
+        final Set<int> current =
+            await NotificationsService(ref.read(dbProvider)).sync();
+        // سطر حُذف (حذف طالب/تغيير سنة/إجازة أنزلته تحت الحد) ⇒ إشعاره في
+        // النظام يتيم ⇒ ألغه.
+        for (final int gone in _lastKnownIds.difference(current)) {
+          await LocalNotifications.cancel(gone);
+        }
+        _lastKnownIds = current;
+      } while (_resyncRequested && mounted);
     } catch (e, st) {
       AppErrorLog.instance.record(e, st, where: 'notifications:sync');
     } finally {

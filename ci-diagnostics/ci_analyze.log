@@ -1,5 +1,41 @@
 Analyzing Student-hodor...                                      
 
-warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • test/screens_widget_test.dart:243:77 • unnecessary_non_null_assertion
+  error • Undefined name 'IconButtonVisualDensity'. Try correcting the name to one that is defined, or defining the name • lib/core/explanation.dart:19:26 • undefined_identifier
+  error • Undefined class 'IconButtonVisualDensity'. Try changing the name to the name of an existing class, or creating a class with the name 'IconButtonVisualDensity' • lib/core/explanation.dart:32:9 • undefined_class
+  error • The name 'LessonWindow' isn't a type, so it can't be used as a type argument. Try correcting the name to an existing type, or defining a type named 'LessonWindow' • lib/core/lesson_alerts.dart:51:16 • non_type_as_type_argument
+  error • Undefined class 'LessonWindow'. Try changing the name to the name of an existing class, or creating a class with the name 'LessonWindow' • lib/core/lesson_alerts.dart:57:16 • undefined_class
+  error • The named parameter 'dateKey' is required, but there's no corresponding argument. Try adding the required argument • lib/core/lesson_alerts.dart:66:24 • missing_required_argument
+  error • The named parameter 'lesson' is required, but there's no corresponding argument. Try adding the required argument • lib/core/lesson_alerts.dart:66:24 • missing_required_argument
+  error • Too many positional arguments: 0 expected, but 2 found. Try removing the extra positional arguments, or specifying the name for named arguments • lib/core/lesson_alerts.dart:67:11 • extra_positional_arguments_could_be_named
+  error • The named parameter 'dateKey' is required, but there's no corresponding argument. Try adding the required argument • lib/core/lesson_alerts.dart:76:24 • missing_required_argument
+  error • The named parameter 'lesson' is required, but there's no corresponding argument. Try adding the required argument • lib/core/lesson_alerts.dart:76:24 • missing_required_argument
+  error • Too many positional arguments: 0 expected, but 2 found. Try removing the extra positional arguments, or specifying the name for named arguments • lib/core/lesson_alerts.dart:77:11 • extra_positional_arguments_could_be_named
+  error • Undefined class 'LessonWindow'. Try changing the name to the name of an existing class, or creating a class with the name 'LessonWindow' • lib/core/lesson_alerts.dart:99:14 • undefined_class
+  error • 'default' can't be used as an identifier because it's a keyword. Try renaming this to be an identifier that isn't a keyword • lib/core/local_notifications.dart:209:32 • expected_identifier_but_got_keyword
+  error • There's no constant named 'default' in 'Importance'. Try correcting the name to the name of an existing constant, or defining a constant named 'default' • lib/core/local_notifications.dart:209:32 • undefined_enum_constant
+  error • 'default' can't be used as an identifier because it's a keyword. Try renaming this to be an identifier that isn't a keyword • lib/core/local_notifications.dart:210:28 • expected_identifier_but_got_keyword
+  error • There's no constant named 'default' in 'Priority'. Try correcting the name to the name of an existing constant, or defining a constant named 'default' • lib/core/local_notifications.dart:210:28 • undefined_enum_constant
+  error • The constructor being called isn't a const constructor. Try removing 'const' from the constructor invocation • lib/core/local_notifications.dart:212:24 • const_with_non_const
+  error • Abstract classes can't be instantiated. Try creating an instance of a concrete subtype • lib/core/local_notifications.dart:212:30 • instantiate_abstract_class
+  error • Too many positional arguments: 0 expected, but 1 found. Try removing the extra arguments • lib/core/local_notifications.dart:212:55 • extra_positional_arguments
+  error • The named parameter 'caseSensitive' isn't defined. Try correcting the name to an existing named parameter's name, or defining a named parameter with the name 'caseSensitive' • lib/features/leaves/leaves_screen.dart:191:52 • undefined_named_parameter
+  error • The named parameter 'caseSensitive' isn't defined. Try correcting the name to an existing named parameter's name, or defining a named parameter with the name 'caseSensitive' • lib/features/leaves/leaves_screen.dart:209:60 • undefined_named_parameter
+  error • The named parameter 'enabled' isn't defined. Try correcting the name to an existing named parameter's name, or defining a named parameter with the name 'enabled' • lib/features/lessons/lessons_screen.dart:338:19 • undefined_named_parameter
+   info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • lib/features/settings/settings_screen.dart:574:20 • prefer_const_constructors
+   info • Use 'const' for final variables initialized to a constant value. Try replacing 'final' with 'const' • test/explanation_anchor_test.dart:11:7 • prefer_const_declarations
+  error • Undefined class 'AppDb'. Try changing the name to the name of an existing class, or creating a class with the name 'AppDb' • test/leaves_search_test.dart:16:8 • undefined_class
+  error • Undefined name 'AppDb'. Try correcting the name to one that is defined, or defining the name • test/leaves_search_test.dart:19:10 • undefined_identifier
+   info • The local variable '_tearDown' starts with an underscore. Try renaming the variable to not start with an underscore • test/leaves_search_test.dart:24:16 • no_leading_underscores_for_local_identifiers
+   info • The local variable '_seed' starts with an underscore. Try renaming the variable to not start with an underscore • test/leaves_search_test.dart:32:16 • no_leading_underscores_for_local_identifiers
+  error • The function 'AcademicYearsCompanion' isn't defined. Try importing the library that defines 'AcademicYearsCompanion', correcting the name to the name of an existing function, or defining a function named 'AcademicYearsCompanion' • test/leaves_search_test.dart:35:13 • undefined_function
+   info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • test/leaves_search_test.dart:36:21 • prefer_const_constructors
+   info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • test/leaves_search_test.dart:39:23 • prefer_const_constructors
+  error • The function 'SchoolClassesCompanion' isn't defined. Try importing the library that defines 'SchoolClassesCompanion', correcting the name to the name of an existing function, or defining a function named 'SchoolClassesCompanion' • test/leaves_search_test.dart:43:9 • undefined_function
+  error • The function 'StudentsCompanion' isn't defined. Try importing the library that defines 'StudentsCompanion', correcting the name to the name of an existing function, or defining a function named 'StudentsCompanion' • test/leaves_search_test.dart:55:11 • undefined_function
+   info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • test/leaves_search_test.dart:60:18 • prefer_const_constructors
+   info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • test/lesson_alerts_test.dart:25:11 • prefer_const_constructors
+   info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • test/lesson_alerts_test.dart:26:19 • prefer_const_constructors
+   info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • test/lesson_alerts_test.dart:29:21 • prefer_const_constructors
+   info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • test/lesson_alerts_test.dart:110:16 • prefer_const_constructors
 
-1 issue found. (ran in 17.7s)
+37 issues found. (ran in 15.4s)

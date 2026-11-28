@@ -712,23 +712,29 @@ class _SummaryBar extends StatelessWidget {
                     margin: const EdgeInsets.all(8),
                     child: Padding(
                       padding: const EdgeInsets.all(8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      child: Wrap(
+                        // عناصر قد لا تتسع لها السطر: تنتقل إلى السطر التالي
+                        // كاملة بدلاً من التضييق على زر الإقفال حتى يتكسّر
+                        // شعارُه (حرف فوق آخر).
+                        alignment: WrapAlignment.spaceBetween,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 8,
+                        runSpacing: 8,
                         children: <Widget>[
                           Text('مسجل: $recorded / $total'),
-                          Expanded(
-                            child: Text(
-                              status,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(fontSize: 13),
-                            ),
+                          Text(
+                            status,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 13),
                           ),
                           Text(
                             'حاضر $present • متأخر $late • غائب $absent • إجازة $leave',
                             textAlign: TextAlign.center,
+                            softWrap: true,
                             style: const TextStyle(fontSize: 11),
                           ),
-                          Flexible(
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(minWidth: 132),
                             child: FilledButton.icon(
                               onPressed: () => onToggleClose(ses),
                               icon: Icon(closed ? Icons.lock_open : Icons.lock),

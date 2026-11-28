@@ -1,16 +1,6 @@
 Analyzing Student-hodor...                                      
 
-  error • The named parameter 'dateKey' is required, but there's no corresponding argument. Try adding the required argument • lib/core/lesson_alerts.dart:67:24 • missing_required_argument
-  error • The named parameter 'lesson' is required, but there's no corresponding argument. Try adding the required argument • lib/core/lesson_alerts.dart:67:24 • missing_required_argument
-  error • Too many positional arguments: 0 expected, but 2 found. Try removing the extra positional arguments, or specifying the name for named arguments • lib/core/lesson_alerts.dart:68:11 • extra_positional_arguments_could_be_named
-  error • The named parameter 'dateKey' is required, but there's no corresponding argument. Try adding the required argument • lib/core/lesson_alerts.dart:77:24 • missing_required_argument
-  error • The named parameter 'lesson' is required, but there's no corresponding argument. Try adding the required argument • lib/core/lesson_alerts.dart:77:24 • missing_required_argument
-  error • Too many positional arguments: 0 expected, but 2 found. Try removing the extra positional arguments, or specifying the name for named arguments • lib/core/lesson_alerts.dart:78:11 • extra_positional_arguments_could_be_named
-   info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • test/explanation_anchor_test.dart:15:9 • prefer_const_constructors
-   info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • test/explanation_anchor_test.dart:15:24 • prefer_const_constructors
-   info • Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation • test/explanation_anchor_test.dart:15:38 • prefer_const_constructors
-   info • The import of 'dart:async' is unnecessary because all of the used elements are also provided by the import of 'package:flutter_test/flutter_test.dart'. Try removing the import directive • test/leaves_search_test.dart:1:8 • unnecessary_import
-warning • The receiver can't be null, so the null-aware operator '?.' is unnecessary. Try replacing the operator '?.' with '.' • test/leaves_search_test.dart:101:29 • invalid_null_aware_operator
-   info • Unnecessary 'const' keyword. Try removing the keyword • test/lesson_alerts_test.dart:110:44 • unnecessary_const
+  error • The property 'labelText' can't be unconditionally accessed because the receiver can be 'null'. Try making the access conditional (using '?.') or adding a null check to the target ('!') • test/leaves_search_test.dart:88:48 • unchecked_use_of_nullable_value
+  error • The property 'labelText' can't be unconditionally accessed because the receiver can be 'null'. Try making the access conditional (using '?.') or adding a null check to the target ('!') • test/leaves_search_test.dart:133:48 • unchecked_use_of_nullable_value
 
-12 issues found. (ran in 14.6s)
+2 issues found. (ran in 17.1s)

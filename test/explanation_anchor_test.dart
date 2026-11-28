@@ -12,7 +12,9 @@ void main() {
           'شرح كامل طويل يتجاوز سطراً واحداً ليتأكد أنه يُعرض '
           'بلا قطع عند فتح الحوار من أي صفحة.';
       await tester.pumpWidget(
-        const Scaffold(body: Center(child: ExplanationAnchor(text: text))),
+        const MaterialApp(
+          home: Scaffold(body: Center(child: ExplanationAnchor(text: text))),
+        ),
       );
 
       await tester.tap(find.byType(ExplanationAnchor));

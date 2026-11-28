@@ -45,18 +45,21 @@ void main() {
           section: const Value('أ'),
         ),
       );
-      for (final String name in <String>[
+      final List<String> names = <String>[
         'أحمد حسن',
         'محمد كريم',
         'علي حسن',
-      ]) {
+      ];
+      for (int i = 0; i < names.length; i++) {
+        final String name = names[i];
         await db.into(db.students).insert(
           StudentsCompanion(
             yearId: Value(year),
             classId: Value(cls),
             fullName: Value(name),
             personKey: Value('p-${name.hashCode}'),
-            seq: const Value(0),
+            // الترقيم داخل الصف فريد: كل طالب برقم تسلسلي مختلف.
+            seq: Value(i),
             createdAt: const Value('2026-09-01T08:00:00'),
           ),
         );

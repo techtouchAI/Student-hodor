@@ -336,6 +336,16 @@ class ClosureScheduler {
   }
 
   Future<bool> _isSchoolDay(DateTime day, Map<String, String> settings) async {
+    return isSchoolDay(db, day, settings);
+  }
+
+  /// هل [day] يوم دوام (أيام الدوام الأسبوعية + العطل)؟ مشترك بين جدولة
+  /// الإقفال وتنبيهات بداية/نهاية الحصة — مصدر واحد للقاعدة.
+  static Future<bool> isSchoolDay(
+    AppDb db,
+    DateTime day,
+    Map<String, String> settings,
+  ) async {
     final Set<int> weekdays = <int>{
       for (final String w
           in (settings['work_weekdays'] ?? '7,1,2,3,4').split(','))

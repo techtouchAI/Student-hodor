@@ -31,6 +31,17 @@ class LocalNotifications {
   static const String _channelDescription =
       'تُرفع عندما يبلغ الطالب الحد الثاني من أيام الغياب';
 
+  /// قناة: بداية ونهاية الحصة. أهمية افتراضية ⇒ إشعار مرئي في قائمة
+  /// الإشعارات (لا منبثق)، والصوت يتحكّم به إعداد «تنبيه صوتي» عبر
+  /// `AndroidNotificationSound` (جرس المدرسة من موارد التطبيق).
+  static const String _lessonChannelId = 'lesson_schedule_alerts';
+  static const String _lessonChannelName = 'تنبيهات الحصص';
+  static const String _lessonChannelDescription =
+      'تنبيه مرئي (وصوتي عند التفعيل) عند بداية ونهاية كل حصة';
+
+  /// اسم مورد الصوت (ملف في `res/raw`): جرس المدرسة.
+  static const String _lessonBellSound = 'lesson_bell';
+
   /// أيقونة صغيرة بيضاء (طبقة launcher أحادية اللون) — أفضل الممارسات
   /// لأيقونات الإشعارات.
   static const String _icon = 'ic_launcher_monochrome';
@@ -169,6 +180,47 @@ class LocalNotifications {
       return true;
     } catch (e, st) {
       _log(e, st, 'show');
+      return false;
+    }
+  }
+
+  /// يعرض تنبيه بداية/نهاية الحصة. يعيد `false` إن لم يُعرض (الطبقة غير
+  /// جاهزة أو رفض النظام). [sound] يتحكّم بصوت الجرس: عند `true` يلعب
+  /// نظام الإشعار صوت جرس المدرسة من موارد التطبيق، وإلا يبقى التنبيه
+  /// مرئيًا بلا صوت.
+  static Future<bool> showLessonAlert({
+    required int id,
+    required String title,
+    required String body,
+    required String payload,
+    required bool sound,
+  }) async {
+    final FlutterLocalNotificationsPlugin? plugin = _plugin;
+    if (!_ready || plugin == null) {
+      return false;
+    }
+    try {
+      // v21+: الوعاء `NotificationDetails` إلزامي حول تفاصيل المنصة.
+      // الصوت يعتمد على الإعداد — لذا لا يكون الوصف `const` ثابتاً.
+      final AndroidNotificationDetails android = AndroidNotificationDetails(
+        _lessonChannelId,
+        _lessonChannelName,
+        channelDescription: _lessonChannelDescription,
+        importance: Importance.default,
+        priority: Priority.default,
+        icon: _icon,
+        sound: sound ? const AndroidNotificationSound(_lessonBellSound) : null,
+      );
+      await plugin.show(
+        id: id,
+        title: title,
+        body: body,
+        notificationDetails: NotificationDetails(android: android),
+        payload: payload,
+      );
+      return true;
+    } catch (e, st) {
+      _log(e, st, 'showLessonAlert');
       return false;
     }
   }

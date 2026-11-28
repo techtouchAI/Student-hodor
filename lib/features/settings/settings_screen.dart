@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
 
+import '../../core/explanation.dart';
 import '../../core/local_notifications.dart';
 import '../../core/school_time.dart';
 import '../../data/backup_service.dart';
@@ -570,7 +571,20 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 8),
           SwitchListTile(
             value: _systemNotif,
-            title: const Text('إشعارات النظام (خارج التطبيق)'),
+            title: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: const <Widget>[
+                Text('إشعارات النظام (خارج التطبيق)'),
+                SizedBox(width: 4),
+                ExplanationAnchor(
+                  text: 'إشعار منبثق على الهاتف عند بلوغ الطالب حد الفصل '
+                  '(العتبة الثانية) من أيام الغياب. التنبيه داخل التطبيق '
+                  '(زر الجرس) يعمل دائمًا بلا اعتماد على الصلاحية، '
+                  'والصلاحية تُطلب من المستخدم لإشعارات النظام خارج '
+                  'التطبيق (أندرويد 13+).',
+                ),
+              ],
+            ),
             subtitle: const Text(
               'إشعار منبثق على الهاتف عند بلوغ الطالب حد الفصل — '
               'التنبيه داخل التطبيق (زر الجرس) يعمل دائمًا',
@@ -638,6 +652,12 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
             subtitle: const Text(
               'عدد الحصص وأسماؤها وأوقاتها — الحضور يُسجَّل حصةً حصة',
             ),
+            trailing: const ExplanationAnchor(
+              text: 'عدد الحصص وأسماؤها وأوقاتها. الحضور يُسجَّل حصةً حصة '
+              'حسب هذا الجدول، ويُحسب التأخير من بداية الحصة + دقائق '
+              'السماح في الإعدادات، وتحدّد نهاية كل حصة موعد الإقفال '
+              'التلقائي للغياب. التعديل لا يمسّ السجلات السابقة.',
+            ),
             onTap: _lessons,
           ),
           ListTile(
@@ -649,6 +669,11 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
             leading: const Icon(Icons.backup),
             title: const Text('نسخ احتياطي ومشاركة'),
             subtitle: const Text('حاوية كاملة: البيانات والإعدادات والصور'),
+            trailing: const ExplanationAnchor(
+              text: 'نسخة كاملة من بيانات التطبيق: الطلاب والحضور والإجازات '
+              'والحصص والإعدادات والصور. تُحفظ في ملف يمكن نقله إلى جهاز '
+              'آخر أو مشاركته، وتستعيد منها كاملة عند الحاجة.',
+            ),
             onTap: _restoring ? null : _backup,
           ),
           ListTile(
@@ -656,6 +681,11 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
             title: const Text('استعادة كاملة من ملف'),
             subtitle: const Text(
               'تستبدل بيانات التطبيق كاملةً ببيانات النسخة — لا دمج',
+            ),
+            trailing: const ExplanationAnchor(
+              text: 'تستبدل بيانات التطبيق كاملةً ببيانات النسخة المحفوظة '
+              '— لا دمج بينهما. تُنفَّذ بعد تأكيد صريح، ويُنصح بنسخة '
+              'احتياطي حديثة قبل الاستعادة.',
             ),
             onTap: _restoring ? null : _restore,
           ),

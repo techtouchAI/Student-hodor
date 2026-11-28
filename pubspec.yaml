@@ -58,10 +58,13 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: 4.0.0
-  build_runner: 2.16.1
+  # 2.15.1 مثبّت بدقة: build_runner 2.16.x يتطلب analyzer ^14.6.0 (عبر meta ^1.18.3)
+  # بينما Flutter 3.44.0 يثبت meta على 1.18.0 — فلا ينحل الإصدار مع سقف analyzer أدناه.
+  # 2.15.1 يحل مع meta 1.18.0 ويحافظ على السقف أدناه.
+  build_runner: 2.15.1
   drift_dev: 2.35.0
   # سقف analyzer مقصود: analyzer 14 أزال `AnalysisOptionsImpl.contextFeatures`
-  # التي ما زال build_runner 2.16.1 يستخدمها، فيفشل التوليد (وشاشة بيضاء لاحقاً)
+  # التي ما زال build_runner يستخدمها، فيفشل التوليد (وشاشة بيضاء لاحقاً)
   # بسبب اعتمادية عابرة لا علاقة لها بكودنا. التثبيت يحفظ توليداً قابلاً للتكرار.
   analyzer: ">=7.4.0 <14.0.0"
 

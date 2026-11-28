@@ -18,6 +18,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/local_notifications.dart';
 import '../../core/school_time.dart';
 import '../../data/backup_service.dart';
+import '../../data/closure_scheduler.dart';
 import '../../data/db.dart';
 import '../../data/error_log.dart';
 import '../../features/about/about_screen.dart';
@@ -206,6 +207,13 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
     await db.logAudit('settings_save', '');
     ref.invalidate(settingsProvider);
     ref.invalidate(effectiveSettingsProvider);
+    // أيام الدوام والجدول تطال جدولة الإقفال التلقائي: تُبنى من البيانات
+    // الفعلية فور الحفظ.
+    try {
+      await ClosureScheduler(db).cancelPendingAndRefresh();
+    } catch (e, st) {
+      AppErrorLog.instance.record(e, st, where: 'settings:closureRefresh');
+    }
   }
 
   Future<void> _lessons() async {
@@ -287,6 +295,14 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
       final String safetyCopy =
           await svc.exportSafetyCopy(reason: 'قبل الاستعادة');
       await svc.restoreFull(bytes);
+
+      // الجدولة تُبنى من بيانات الإعدادات والحصص الفعلية بعد الاستبدال:
+      // لا تُعتمد مواعيد قديمة محفوظة في النظام.
+      try {
+        await ClosureScheduler(db).cancelPendingAndRefresh();
+      } catch (e, st) {
+        AppErrorLog.instance.record(e, st, where: 'settings:closureRestore');
+      }
 
       // لا بيانات قديمة في المزوّدات أو حقول الشاشة بعد الاستبدال.
       ref.invalidate(settingsProvider);

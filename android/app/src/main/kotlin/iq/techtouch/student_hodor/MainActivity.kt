@@ -17,6 +17,7 @@ class MainActivity : FlutterActivity() {
     private val linkChannelName = "iq.techtouch.student_hodor.links"
     private val backupChannelName = "iq.techtouch.student_hodor.backup"
     private val notificationsChannelName = "iq.techtouch.student_hodor.notifications"
+    private val closureChannelName = "iq.techtouch.student_hodor.closure"
 
     /** المجلد الفرعي داخل التنزيلات الذي تُحفظ فيه كل النسخ الاحتياطية. */
     private val backupFolder = "نسخة احتياطية للغيابات"
@@ -88,6 +89,44 @@ class MainActivity : FlutterActivity() {
                     }
                 } else {
                     result.notImplemented()
+                }
+            }
+
+        // جدولة الإقفال التلقائي: تدفع دارت مهمات الإقفال (معرّف، تاريخ، وقت)
+        // إلى AlarmManager. التنبيه يعيد إطلاق التطبيق في الموعد، ويُنفّذ
+        // الاسترداد من القاعدة عند الإقلاع — فلا تعتمد العملية على بقاء
+        // الواجهة مفتوحة، ولا تضيع المهام حتى لو منع النظام التنبيه.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, closureChannelName)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "scheduleClosures" -> {
+                        val raw = call.argument<List<Map<String, Any?>>>("tasks")
+                        if (raw == null) {
+                            result.error("BAD_ARGUMENT", "قائمة المهام مفقودة", null)
+                        } else {
+                            ClosureAlarmScheduler.schedule(
+                                this,
+                                raw.mapNotNull { entry ->
+                                    ClosureAlarmScheduler.ArmedTask(
+                                        id = (entry["id"] as? Number)?.toInt()
+                                            ?: return@mapNotNull null,
+                                        date = entry["date"] as? String
+                                            ?: return@mapNotNull null,
+                                        time = entry["time"] as? String
+                                            ?: return@mapNotNull null,
+                                    )
+                                },
+                            )
+                            result.success(null)
+                        }
+                    }
+
+                    "cancelAll" -> {
+                        ClosureAlarmScheduler.cancelAll(this)
+                        result.success(null)
+                    }
+
+                    else -> result.notImplemented()
                 }
             }
     }

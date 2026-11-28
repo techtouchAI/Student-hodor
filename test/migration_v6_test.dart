@@ -201,10 +201,10 @@ void main() {
     // ---------- (7) الإصدار النهائي ----------
     final QueryRow version =
         await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 6);
+    expect(version.read<int>('user_version'), 7);
   });
 
-  test('قاعدة جديدة تكتب الإصدار 6 من أول فتح', () async {
+  test('قاعدة جديدة تكتب الإصدار 7 من أول فتح', () async {
     final File file = File('${dir.path}/fresh.sqlite');
     final AppDb db = AppDb.forTesting(NativeDatabase(file));
     addTearDown(db.close);
@@ -212,7 +212,7 @@ void main() {
     expect(await db.lessonCount(), LessonSchedule.defaults.length);
     final QueryRow version =
         await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 6);
+    expect(version.read<int>('user_version'), 7);
   });
 }
 

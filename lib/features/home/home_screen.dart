@@ -14,6 +14,7 @@ import '../../core/lesson.dart';
 import '../../core/local_notifications.dart';
 import '../../core/nav.dart';
 import '../../core/school_time.dart';
+import '../../data/closure_scheduler.dart';
 import '../../data/db.dart';
 import '../../data/error_log.dart';
 import '../../data/years_service.dart';
@@ -32,6 +33,8 @@ class _HomeState extends ConsumerState<HomeScreen> {
   late final Stream<List<AttendanceRow>> _todayRows;
   late final Stream<List<Session>> _todaySessions;
   late final Stream<List<Lesson>> _lessons;
+  /// مهمات الإقفال التلقائي لليوم — لحالة «تلقائي/يدوي» في بطاقة الحصة.
+  late final Stream<List<ClosureTask>> _todayClosureTasks;
 
   @override
   void initState() {
@@ -50,6 +53,9 @@ class _HomeState extends ConsumerState<HomeScreen> {
             (SchoolClasses c) => OrderingTerm.asc(c.grade),
             (SchoolClasses c) => OrderingTerm.asc(c.section),
           ]))
+        .watch();
+    _todayClosureTasks = (db.select(db.closureTasks)
+          ..where((t) => t.date.equals(_today)))
         .watch();
     // مرة واحدة فقط (أول إقلاع بعد الإعداد الأولي): شرح قصير ثم طلب
     // صلاحية الإشعارات من النظام (طبقة «خارج التطبيق»).
@@ -211,6 +217,16 @@ class _HomeState extends ConsumerState<HomeScreen> {
     }
   }
 
+  /// تغيير السنة (تحويل/أرشفة) يُلغي جدولة الإقفال التلقائي القديمة
+  /// ويُعيد بناءها من السنة والحصص الفعلية.
+  Future<void> _rescheduleAfterYearChange() async {
+    try {
+      await ClosureScheduler(ref.read(dbProvider)).cancelPendingAndRefresh();
+    } catch (e, st) {
+      AppErrorLog.instance.record(e, st, where: 'home:closureRefresh');
+    }
+  }
+
   Future<void> _openPin(BuildContext context, WidgetRef ref, String route) async {
     final String? pin = await ref.read(dbProvider).setting('pin');
     if (!context.mounted) {
@@ -361,6 +377,7 @@ class _HomeState extends ConsumerState<HomeScreen> {
       ref.invalidate(currentYearProvider);
       ref.invalidate(yearEndedProvider);
       ref.invalidate(settingsProvider);
+      await _rescheduleAfterYearChange();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('بدأت سنة جديدة ونُقل $n طالباً بأسمائهم')),
@@ -370,6 +387,7 @@ class _HomeState extends ConsumerState<HomeScreen> {
       await svc.closeYear(y.id);
       ref.invalidate(currentYearProvider);
       ref.invalidate(yearEndedProvider);
+      await _rescheduleAfterYearChange();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('أُرشفت السنة؛ تقاريرها تبقى متاحة')),
@@ -439,6 +457,7 @@ class _HomeState extends ConsumerState<HomeScreen> {
                 sessionsStream: _todaySessions,
                 classesStream: _classes,
                 lessonsStream: _lessons,
+                closureTasksStream: _todayClosureTasks,
               ),
               const SizedBox(height: 8),
               GridView.count(
@@ -520,6 +539,7 @@ class _TodayCard extends StatelessWidget {
     required this.sessionsStream,
     required this.classesStream,
     required this.lessonsStream,
+    required this.closureTasksStream,
   });
 
   final String today;
@@ -527,6 +547,7 @@ class _TodayCard extends StatelessWidget {
   final Stream<List<Session>> sessionsStream;
   final Stream<List<SchoolClass>> classesStream;
   final Stream<List<Lesson>> lessonsStream;
+  final Stream<List<ClosureTask>> closureTasksStream;
 
   @override
   Widget build(BuildContext context) => Card(
@@ -625,16 +646,36 @@ class _TodayCard extends StatelessWidget {
                                           (counted[r.classId] ?? 0) + 1;
                                     }
                                   }
-                                  return Column(
-                                    children: <Widget>[
-                                      for (final SchoolClass c in classes)
-                                        _ClassDayTile(
-                                          today: today,
-                                          schoolClass: c,
-                                          recorded: counted[c.id] ?? 0,
-                                          session: byClass[c.id],
-                                        ),
-                                    ],
+                                  return StreamGuard<List<ClosureTask>>(
+                                    stream: closureTasksStream,
+                                    loading: const Padding(
+                                      padding: EdgeInsets.all(8),
+                                      child: LinearProgressIndicator(),
+                                    ),
+                                    builder: (
+                                      BuildContext context,
+                                      List<ClosureTask> allTasks,
+                                    ) {
+                                      // مهمات الإقفال للحصة الجارية وحدها.
+                                      final Map<int, ClosureTask> taskByClass =
+                                          <int, ClosureTask>{
+                                        for (final ClosureTask t in allTasks)
+                                          if (t.lessonId == current.id)
+                                            t.classId: t,
+                                      };
+                                      return Column(
+                                        children: <Widget>[
+                                          for (final SchoolClass c in classes)
+                                            _ClassDayTile(
+                                              today: today,
+                                              schoolClass: c,
+                                              recorded: counted[c.id] ?? 0,
+                                              session: byClass[c.id],
+                                              closureTask: taskByClass[c.id],
+                                            ),
+                                        ],
+                                      );
+                                    },
                                   );
                                 },
                               );
@@ -660,20 +701,32 @@ class _ClassDayTile extends StatelessWidget {
     required this.schoolClass,
     required this.recorded,
     required this.session,
+    this.closureTask,
   });
 
   final String today;
   final SchoolClass schoolClass;
   final int recorded;
   final Session? session;
+  final ClosureTask? closureTask;
 
   @override
   Widget build(BuildContext context) {
     final String title = '${schoolClass.grade} ـ ${schoolClass.section}';
     final Session? s = session;
+    final bool closed = s?.closedAt != null;
+    // تمييز الإقفال التلقائي عن اليدوي من مهمة الإقفال (مصدر الحقيقة).
+    final String mode = closed
+        ? (closureTask?.state == ClosureTaskState.executed &&
+                closureTask?.result == 'closed'
+            ? ' (تلقائي)'
+            : closureTask?.state == ClosureTaskState.failed
+                ? ' (يُسترد)'
+                : ' (يدوي)')
+        : '';
     final String state = s == null
         ? 'لم تُفتح جلسة'
-        : (s.closedAt != null ? 'مقفلة' : 'مفتوحة');
+        : (closed ? 'مقفلة$mode' : 'مفتوحة');
     return ListTile(
       dense: true,
       title: Text(

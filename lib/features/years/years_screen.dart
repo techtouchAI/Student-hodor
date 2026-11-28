@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/school_time.dart';
+import '../../data/closure_scheduler.dart';
 import '../../data/db.dart';
 import '../../data/error_log.dart';
 import '../../data/years_service.dart';
@@ -74,6 +75,18 @@ class YearsScreen extends ConsumerWidget {
                         await _deleteYear(context, ref, y);
                     }
                     ref.invalidate(currentYearProvider);
+                    // أي تغيير في السنوات يلغي جدولة الإقفال القديمة ويُعيد
+                    // بناءها من السنة والحصص الفعلية.
+                    try {
+                      await ClosureScheduler(ref.read(dbProvider))
+                          .cancelPendingAndRefresh();
+                    } catch (e, st) {
+                      AppErrorLog.instance.record(
+                        e,
+                        st,
+                        where: 'years:closureRefresh',
+                      );
+                    }
                   },
                   itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
                     if (!y.active && !y.closed)
@@ -381,6 +394,13 @@ class YearsScreen extends ConsumerWidget {
     ref.invalidate(effectiveSettingsProvider);
     ref.invalidate(currentYearProvider);
     ref.invalidate(yearEndedProvider);
+    // التصفير يُزيل كل المهمات مع بياناتها؛ الجدولة تُبنى من جديد في
+    // الإقلاع التالي حسب البيانات الجديدة.
+    try {
+      await ClosureScheduler(ref.read(dbProvider)).cancelPendingAndRefresh();
+    } catch (e, st) {
+      AppErrorLog.instance.record(e, st, where: 'years:closureReset');
+    }
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('تم التصفير. النسخة الاحتياطية: $backup')),

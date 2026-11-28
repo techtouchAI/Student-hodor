@@ -8,6 +8,13 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.VIBRATE" />
 
+    <!-- جدولة الإقفال التلقائي: RECEIVE_BOOT_COMPLETED لإعادة ترتيب التنبيهات
+         بعد إعادة تشغيل الهاتف، وSCHEDULE_EXACT_ALARM للوصول إلى موعد نهاية
+         الحصة بدقة على أندرويد 12+ (يُسقَط إلى تنبيه غير دقيق إن رُفضت،
+         ويبقى الاسترداد عند تشغيل التطبيق ضماناً). لا تُطلب صلاحيات أخرى. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
     <!-- إزالة صلاحيات الشبكة التي تضيفها مكتبة ML Kit (عبر mobile_scanner)
          إلى البيان المدمج: التطبيق أوفلاين بالكامل، ونموذج الباركود مُضمّن
          داخل الحزمة فلا يحتاج تنزيلاً. إبقاء الصلاحية يعني أن كل تحديث يطلب
@@ -57,6 +64,20 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- بعد إعادة تشغيل الهاتف: يعيد ترتيب تنبيهات الإقفال التلقائي من
+             ملف الجدولة على القرص (لا يفتح التطبيق). exported=true لأن
+             BOOT_COMPLETED من بثّات النظام ولا تُسلَّم للمستقبلات غير
+             المصدَّرة على أندرويد 12+، والإجراء لا يطال بيانات حساسة. -->
+        <receiver
+            android:name=".ClosureBootReceiver"
+            android:enabled="true"
+            android:exported="true"
+            android:label="إعادة جدولة الإقفال التلقائي">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
     </application>
 
     <queries>

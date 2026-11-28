@@ -1,48 +1,48 @@
 00:00 +0: loading /home/runner/work/Student-hodor/Student-hodor/test/badge_print_test.dart
 00:00 +0: /home/runner/work/Student-hodor/Student-hodor/test/badge_print_test.dart: ترقيم ورقة A4: 10 بادجات للصفحة
 00:00 +1: /home/runner/work/Student-hodor/Student-hodor/test/badge_print_test.dart: ورقة A4 وباج مفرد بخط أميري: PDF صالح بعدد الصفحات الصحيح
+00:00 +2: /home/runner/work/Student-hodor/Student-hodor/test/badge_print_test.dart: ورقة A4 وباج مفرد بخط أميري: PDF صالح بعدد الصفحات الصحيح
+00:00 +3: /home/runner/work/Student-hodor/Student-hodor/test/badge_print_test.dart: ورقة A4 وباج مفرد بخط أميري: PDF صالح بعدد الصفحات الصحيح
+00:00 +4: /home/runner/work/Student-hodor/Student-hodor/test/badge_print_test.dart: ورقة A4 وباج مفرد بخط أميري: PDF صالح بعدد الصفحات الصحيح
+00:00 +5: /home/runner/work/Student-hodor/Student-hodor/test/badge_print_test.dart: ورقة A4 وباج مفرد بخط أميري: PDF صالح بعدد الصفحات الصحيح
+00:00 +6: /home/runner/work/Student-hodor/Student-hodor/test/badge_print_test.dart: ورقة A4 وباج مفرد بخط أميري: PDF صالح بعدد الصفحات الصحيح
 Courier has no Unicode support see https://github.com/DavBfr/dart_pdf/wiki/Fonts-Management
 Courier has no Unicode support see https://github.com/DavBfr/dart_pdf/wiki/Fonts-Management
-00:00 +2: /home/runner/work/Student-hodor/Student-hodor/test/badge_print_test.dart: التحقق من الصورة: صالح يُقبَل وتالف/فارغ يُرفَض
-00:00 +3: /home/runner/work/Student-hodor/Student-hodor/test/badge_print_test.dart: التحقق من الصورة: صالح يُقبَل وتالف/فارغ يُرفَض
-00:00 +4: /home/runner/work/Student-hodor/Student-hodor/test/badge_print_test.dart: التحقق من الصورة: صالح يُقبَل وتالف/فارغ يُرفَض
-00:00 +5: /home/runner/work/Student-hodor/Student-hodor/test/badge_print_test.dart: التحقق من الصورة: صالح يُقبَل وتالف/فارغ يُرفَض
-00:00 +6: /home/runner/work/Student-hodor/Student-hodor/test/badge_print_test.dart: التحقق من الصورة: صالح يُقبَل وتالف/فارغ يُرفَض
 00:00 +7: /home/runner/work/Student-hodor/Student-hodor/test/badge_print_test.dart: التحقق من الصورة: صالح يُقبَل وتالف/فارغ يُرفَض
-00:02 +8: /home/runner/work/Student-hodor/Student-hodor/test/absences_export_test.dart: ورقة الغيابات فقط تعرض غيابات الطالب وحدها وبلا الحالات الأخرى
-00:02 +9: /home/runner/work/Student-hodor/Student-hodor/test/absences_export_test.dart: ورقة الغيابات فقط الأشهر المحددة ترشّح الغيابات
-00:02 +10: /home/runner/work/Student-hodor/Student-hodor/test/absences_export_test.dart: ورقة الغيابات فقط اسم الملف عربي ويصف النطاق
-00:02 +11: /home/runner/work/Student-hodor/Student-hodor/test/absences_export_test.dart: PDF الغيابات فقط يبني مستنداً بصفحة على الأقل غياباتٍ فقط بلا كشوف ولا ملخص
-00:02 +12: /home/runner/work/Student-hodor/Student-hodor/test/close_session_test.dart: إقفال الجلسة يولّد غياباً لمن لم يُسجّل ويحترم الإجازة
-00:02 +13: /home/runner/work/Student-hodor/Student-hodor/test/close_session_test.dart: إقفال الجلسة يولّد غياباً لمن لم يُسجّل ويحترم الإجازة
+00:01 +8: /home/runner/work/Student-hodor/Student-hodor/test/absences_export_test.dart: ورقة الغيابات فقط تعرض غيابات الطالب وحدها وبلا الحالات الأخرى
+00:02 +9: /home/runner/work/Student-hodor/Student-hodor/test/close_session_test.dart: إقفال الجلسة يولّد غياباً لمن لم يُسجّل ويحترم الإجازة
+00:02 +10: /home/runner/work/Student-hodor/Student-hodor/test/absences_export_test.dart: ورقة الغيابات فقط الأشهر المحددة ترشّح الغيابات
+00:02 +11: /home/runner/work/Student-hodor/Student-hodor/test/absences_export_test.dart: ورقة الغيابات فقط اسم الملف عربي ويصف النطاق
+00:02 +12: /home/runner/work/Student-hodor/Student-hodor/test/absences_export_test.dart: PDF الغيابات فقط يبني مستنداً بصفحة على الأقل غياباتٍ فقط بلا كشوف ولا ملخص
+00:02 +13: /home/runner/work/Student-hodor/Student-hodor/test/absences_export_test.dart: PDF الغيابات فقط الترشيح بشهر محدد يبني مستنداً صالحاً أيضاً
 00:03 +14: /home/runner/work/Student-hodor/Student-hodor/test/closure_scheduler_test.dart: refreshSchedule يبني مهمة لكل (صف، حصة) لليوم والغد بمواعيد نهاية الحصة
 00:03 +15: /home/runner/work/Student-hodor/Student-hodor/test/closure_scheduler_test.dart: لا مهام ليوم عطلة أو غير دوام، والمهمات المعلقة له تُحذف
-00:03 +16: /home/runner/work/Student-hodor/Student-hodor/test/closure_scheduler_test.dart: لا تُنفَّذ مهام لمواعيد مستقبلية، ولا تُبنى مهام لما بعد الغد
-00:03 +17: /home/runner/work/Student-hodor/Student-hodor/test/closure_scheduler_test.dart: refreshSchedule متكرر لا يخلق مهام مكررة (التفرّد)
-00:03 +18: /home/runner/work/Student-hodor/Student-hodor/test/closure_scheduler_test.dart: تعديل الجدول يلغي المهمات المعلقة ويعيد بناءها من الحصص الجديدة
-00:03 +19: /home/runner/work/Student-hodor/Student-hodor/test/closure_scheduler_test.dart: حذف حصة تحذف مهام إقفالها آلياً ثم يُعاد بناء الجدولة من الباقية
-00:03 +20: /home/runner/work/Student-hodor/Student-hodor/test/closure_scheduler_test.dart: لا جدولة بلا سنة فعّالة، والمهمات المعلقة لليوم تُحذف
-00:03 +21: /home/runner/work/Student-hodor/Student-hodor/test/closure_scheduler_test.dart: recoverDue يُنفّذ المهمات المتأخّرة بعد إعادة التشغيل أو تغير الساعة
-00:03 +22: /home/runner/work/Student-hodor/Student-hodor/test/closure_scheduler_test.dart: تنفيذ المهمة مرتين لا يُولّد غياباً مكرراً (ذرّية)
-00:03 +23: /home/runner/work/Student-hodor/Student-hodor/test/closure_scheduler_test.dart: جلسة أُغلقت يدوياً قبل الموعد: الإقفال التلقائي لا يضيف غياباً
-00:03 +24: /home/runner/work/Student-hodor/Student-hodor/test/closure_scheduler_test.dart: مهمة فشلت تُعاد محاولتها في الاسترداد التالي
-00:04 +25: /home/runner/work/Student-hodor/Student-hodor/test/closure_scheduler_test.dart: تنفيذ مهمة أُنفّذت لا يُعاد (التفرّد يمنع التعارض)
-00:04 +26: /home/runner/work/Student-hodor/Student-hodor/test/closure_scheduler_test.dart: مهمة منفّذة لا تُمسّ حتى لو تغيّر موعد الحصة (سجل انتهاء)
-00:04 +27: /home/runner/work/Student-hodor/Student-hodor/test/closure_scheduler_test.dart: closureStatusLabel تُصوّر حالات الدوام من الجلسة والمهمة
-00:04 +28: /home/runner/work/Student-hodor/Student-hodor/test/closure_scheduler_test.dart: مهمات اليوم المتأخّرة تُبنى وتُسترد عند التشغيل، ولا تُعاد بعد التنفيذ
-00:04 +29: /home/runner/work/Student-hodor/Student-hodor/test/late_time_test.dart: أدوات وقت التأخر تنسيق الوقت وتحليله
-00:04 +30: /home/runner/work/Student-hodor/Student-hodor/test/late_time_test.dart: أدوات وقت التأخر مدة التأخر وصيغتها العربية
-00:04 +31: /home/runner/work/Student-hodor/Student-hodor/test/late_time_test.dart: أدوات وقت التأخر سطر عرض المتأخر بحسب المعطيات
-00:04 +32: /home/runner/work/Student-hodor/Student-hodor/test/late_time_test.dart: المسح يثبّت وقت الوصول الفعلي بعد نافذة السماح: متأخر مع وقته، وقبلها: حاضر مع وقته
-00:04 +33: /home/runner/work/Student-hodor/Student-hodor/test/late_time_test.dart: المسح يثبّت وقت الوصول الفعلي نافذة السماح: بداية الدوام + دقائق السماح من الإعدادات
-00:04 +34: /home/runner/work/Student-hodor/Student-hodor/test/late_time_test.dart: الوقت في سجل الحضور تغيير الحالة يدوياً بلا وقت يمسح الوقت السابق
+00:03 +16: /home/runner/work/Student-hodor/Student-hodor/test/late_time_test.dart: أدوات وقت التأخر تنسيق الوقت وتحليله
+00:03 +17: /home/runner/work/Student-hodor/Student-hodor/test/closure_scheduler_test.dart: لا تُنفَّذ مهام لمواعيد مستقبلية، ولا تُبنى مهام لما بعد الغد
+00:03 +18: /home/runner/work/Student-hodor/Student-hodor/test/closure_scheduler_test.dart: لا تُنفَّذ مهام لمواعيد مستقبلية، ولا تُبنى مهام لما بعد الغد
+00:03 +19: /home/runner/work/Student-hodor/Student-hodor/test/closure_scheduler_test.dart: لا تُنفَّذ مهام لمواعيد مستقبلية، ولا تُبنى مهام لما بعد الغد
+00:03 +20: /home/runner/work/Student-hodor/Student-hodor/test/late_time_test.dart: المسح يثبّت وقت الوصول الفعلي بعد نافذة السماح: متأخر مع وقته، وقبلها: حاضر مع وقته
+00:03 +21: /home/runner/work/Student-hodor/Student-hodor/test/late_time_test.dart: المسح يثبّت وقت الوصول الفعلي بعد نافذة السماح: متأخر مع وقته، وقبلها: حاضر مع وقته
+00:03 +22: /home/runner/work/Student-hodor/Student-hodor/test/late_time_test.dart: المسح يثبّت وقت الوصول الفعلي بعد نافذة السماح: متأخر مع وقته، وقبلها: حاضر مع وقته
+00:03 +23: /home/runner/work/Student-hodor/Student-hodor/test/late_time_test.dart: المسح يثبّت وقت الوصول الفعلي بعد نافذة السماح: متأخر مع وقته، وقبلها: حاضر مع وقته
+00:03 +24: /home/runner/work/Student-hodor/Student-hodor/test/late_time_test.dart: المسح يثبّت وقت الوصول الفعلي بعد نافذة السماح: متأخر مع وقته، وقبلها: حاضر مع وقته
+00:03 +25: /home/runner/work/Student-hodor/Student-hodor/test/late_time_test.dart: المسح يثبّت وقت الوصول الفعلي بعد نافذة السماح: متأخر مع وقته، وقبلها: حاضر مع وقته
+00:03 +26: /home/runner/work/Student-hodor/Student-hodor/test/late_time_test.dart: المسح يثبّت وقت الوصول الفعلي بعد نافذة السماح: متأخر مع وقته، وقبلها: حاضر مع وقته
+00:03 +27: /home/runner/work/Student-hodor/Student-hodor/test/closure_scheduler_test.dart: جلسة أُغلقت يدوياً قبل الموعد: الإقفال التلقائي لا يضيف غياباً
+00:03 +28: /home/runner/work/Student-hodor/Student-hodor/test/closure_scheduler_test.dart: جلسة أُغلقت يدوياً قبل الموعد: الإقفال التلقائي لا يضيف غياباً
+00:03 +29: /home/runner/work/Student-hodor/Student-hodor/test/late_time_test.dart: الوقت في سجل الحضور تغيير الحالة يدوياً بلا وقت يمسح الوقت السابق
+00:03 +30: /home/runner/work/Student-hodor/Student-hodor/test/closure_scheduler_test.dart: مهمة فشلت تُعاد محاولتها في الاسترداد التالي
+00:03 +31: /home/runner/work/Student-hodor/Student-hodor/test/closure_scheduler_test.dart: تنفيذ مهمة أُنفّذت لا يُعاد (التفرّد يمنع التعارض)
+00:03 +32: /home/runner/work/Student-hodor/Student-hodor/test/closure_scheduler_test.dart: مهمة منفّذة لا تُمسّ حتى لو تغيّر موعد الحصة (سجل انتهاء)
+00:03 +33: /home/runner/work/Student-hodor/Student-hodor/test/closure_scheduler_test.dart: closureStatusLabel تُصوّر حالات الدوام من الجلسة والمهمة
+00:03 +34: /home/runner/work/Student-hodor/Student-hodor/test/closure_scheduler_test.dart: مهمات اليوم المتأخّرة تُبنى وتُسترد عند التشغيل، ولا تُعاد بعد التنفيذ
 00:04 +35: /home/runner/work/Student-hodor/Student-hodor/test/hijri_test.dart: نطاقات سليمة لسنة كاملة
 00:04 +36: /home/runner/work/Student-hodor/Student-hodor/test/hijri_test.dart: تسلسل الأيام متصل (لا قفزات)
 00:04 +37: /home/runner/work/Student-hodor/Student-hodor/test/hijri_test.dart: نص العرض يحتوي اسم شهر هجري
-00:05 +38: /home/runner/work/Student-hodor/Student-hodor/test/leave_sync_test.dart: إضافة إجازة تحوّل الغياب التلقائي إلى إجازة وحذفها يعيده
-00:05 +39: /home/runner/work/Student-hodor/Student-hodor/test/leave_sync_test.dart: إضافة إجازة تلغي الغياب اليدوي أيضاً وتحافظ على مصدره
-00:05 +40: /home/runner/work/Student-hodor/Student-hodor/test/leave_sync_test.dart: الحضور والتأخر والإجازة اليدوية لا تُمسّ بالمزامنة
-00:05 +41: /home/runner/work/Student-hodor/Student-hodor/test/leave_sync_test.dart: upsertAttendance يحدّث السجل القائم ولا يكرره
+00:04 +38: /home/runner/work/Student-hodor/Student-hodor/test/leave_sync_test.dart: إضافة إجازة تحوّل الغياب التلقائي إلى إجازة وحذفها يعيده
+00:04 +39: /home/runner/work/Student-hodor/Student-hodor/test/leave_sync_test.dart: إضافة إجازة تلغي الغياب اليدوي أيضاً وتحافظ على مصدره
+00:04 +40: /home/runner/work/Student-hodor/Student-hodor/test/leave_sync_test.dart: الحضور والتأخر والإجازة اليدوية لا تُمسّ بالمزامنة
+00:04 +41: /home/runner/work/Student-hodor/Student-hodor/test/leave_sync_test.dart: upsertAttendance يحدّث السجل القائم ولا يكرره
 00:05 +42: /home/runner/work/Student-hodor/Student-hodor/test/leave_sync_test.dart: الفهارس تُنشأ عند إنشاء قاعدة جديدة
 00:05 +43: /home/runner/work/Student-hodor/Student-hodor/test/closure_backup_test.dart: البيان يشمل مهمات الإقفال ويُحصيها
 00:05 +44: /home/runner/work/Student-hodor/Student-hodor/test/closure_backup_test.dart: استعادة نسخة جديدة تُعيد مهمات الإقفال كما هي
@@ -63,7 +63,7 @@ Here is the stacktrace from when the database was opened a second time:
 #8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
-00:06 +45: /home/runner/work/Student-hodor/Student-hodor/test/closure_backup_test.dart: استعادة بيان قديم (بلا قسم مهمات الإقفال) لا تُعطّل الاستعادة
+00:05 +45: /home/runner/work/Student-hodor/Student-hodor/test/closure_backup_test.dart: استعادة بيان قديم (بلا قسم مهمات الإقفال) لا تُعطّل الاستعادة
 WARNING (drift): It looks like you've created the database class AppDb multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
@@ -81,12 +81,12 @@ Here is the stacktrace from when the database was opened a second time:
 #8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
-00:06 +46: /home/runner/work/Student-hodor/Student-hodor/test/migration_v6_test.dart: ترقية 5⇒6 تُسند كل سطر قديم إلى الحصة الأولى وتُبقي البيانات
-00:07 +47: /home/runner/work/Student-hodor/Student-hodor/test/migration_v6_test.dart: قاعدة جديدة تكتب الإصدار 7 من أول فتح
-00:07 +48: /home/runner/work/Student-hodor/Student-hodor/test/backup_legacy_test.dart: نسخة بصيغة أحدث من التطبيق تُرفض قبل أي مسح أو استعادة
-00:07 +49: /home/runner/work/Student-hodor/Student-hodor/test/backup_legacy_test.dart: نسخة بلا رقم صيغة (صيغة 1) تُقبل وتُستعاد كاملة
-00:07 +50: /home/runner/work/Student-hodor/Student-hodor/test/backup_legacy_test.dart: رفض نسخة بصيغة أحدث لا يغيّر أي صف ولا أي إعداد
-00:07 +51: /home/runner/work/Student-hodor/Student-hodor/test/backup_legacy_test.dart: نسخة v2 بلا حصص: زرع افتراضي وإسناد كل سطر إلى الحصة الأولى
+00:05 +46: /home/runner/work/Student-hodor/Student-hodor/test/migration_v6_test.dart: ترقية 5⇒6 تُسند كل سطر قديم إلى الحصة الأولى وتُبقي البيانات
+00:06 +47: /home/runner/work/Student-hodor/Student-hodor/test/migration_v6_test.dart: قاعدة جديدة تكتب الإصدار 7 من أول فتح
+00:06 +48: /home/runner/work/Student-hodor/Student-hodor/test/backup_legacy_test.dart: نسخة بصيغة أحدث من التطبيق تُرفض قبل أي مسح أو استعادة
+00:06 +49: /home/runner/work/Student-hodor/Student-hodor/test/backup_legacy_test.dart: نسخة بلا رقم صيغة (صيغة 1) تُقبل وتُستعاد كاملة
+00:06 +50: /home/runner/work/Student-hodor/Student-hodor/test/backup_legacy_test.dart: رفض نسخة بصيغة أحدث لا يغيّر أي صف ولا أي إعداد
+00:06 +51: /home/runner/work/Student-hodor/Student-hodor/test/backup_legacy_test.dart: نسخة v2 بلا حصص: زرع افتراضي وإسناد كل سطر إلى الحصة الأولى
 WARNING (drift): It looks like you've created the database class AppDb multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
@@ -104,7 +104,7 @@ Here is the stacktrace from when the database was opened a second time:
 #8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
-00:07 +52: /home/runner/work/Student-hodor/Student-hodor/test/backup_legacy_test.dart: نسخة v1 (بلا رقم صيغة وبلا حصص): تُستعاد بسلامة مرجعية
+00:06 +52: /home/runner/work/Student-hodor/Student-hodor/test/backup_legacy_test.dart: نسخة v1 (بلا رقم صيغة وبلا حصص): تُستعاد بسلامة مرجعية
 WARNING (drift): It looks like you've created the database class AppDb multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
@@ -122,7 +122,7 @@ Here is the stacktrace from when the database was opened a second time:
 #8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
-00:07 +53: /home/runner/work/Student-hodor/Student-hodor/test/backup_legacy_test.dart: نسخة v3: الحصص والإجازات والحضور تعود كما هي
+00:06 +53: /home/runner/work/Student-hodor/Student-hodor/test/backup_legacy_test.dart: نسخة v3: الحصص والإجازات والحضور تعود كما هي
 WARNING (drift): It looks like you've created the database class AppDb multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
@@ -140,7 +140,8 @@ Here is the stacktrace from when the database was opened a second time:
 #8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
-00:07 +54: /home/runner/work/Student-hodor/Student-hodor/test/backup_legacy_test.dart: الاستعادة الكاملة تحفظ حصتين في اليوم نفسه، وتكرارها لا يضاعف
+00:06 +54: /home/runner/work/Student-hodor/Student-hodor/test/backup_restore_test.dart: الاستعادة تستبدل البيانات الحالية ببيانات النسخة (لا دمج)
+00:06 +54: /home/runner/work/Student-hodor/Student-hodor/test/backup_legacy_test.dart: الاستعادة الكاملة تحفظ حصتين في اليوم نفسه، وتكرارها لا يضاعف
 WARNING (drift): It looks like you've created the database class AppDb multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
@@ -159,6 +160,7 @@ Here is the stacktrace from when the database was opened a second time:
 #9      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
+00:06 +55: /home/runner/work/Student-hodor/Student-hodor/test/backup_restore_test.dart: الاستعادة تستبدل البيانات الحالية ببيانات النسخة (لا دمج)
 00:07 +55: /home/runner/work/Student-hodor/Student-hodor/test/backup_legacy_test.dart: المرجع المجهول في نسخة حديثة يُرفض قبل أي كتابة ولا يُسند إلى الأولى
 WARNING (drift): It looks like you've created the database class AppDb multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
@@ -178,6 +180,7 @@ Here is the stacktrace from when the database was opened a second time:
 #9      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
+00:07 +56: /home/runner/work/Student-hodor/Student-hodor/test/backup_restore_test.dart: الاستعادة تستبدل البيانات الحالية ببيانات النسخة (لا دمج)
 00:07 +56: /home/runner/work/Student-hodor/Student-hodor/test/backup_legacy_test.dart: تكرار الاستعادة لا يضاعف أحداث المسح
 WARNING (drift): It looks like you've created the database class AppDb multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
@@ -216,9 +219,9 @@ Here is the stacktrace from when the database was opened a second time:
 #9      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
-00:08 +58: /home/runner/work/Student-hodor/Student-hodor/test/backup_restore_test.dart: الفحص وحده لا يكتب شيئاً، ولا تُلمس البيانات قبل التأكيد
-00:08 +59: /home/runner/work/Student-hodor/Student-hodor/test/backup_restore_test.dart: ملفات غير صالحة تُرفض قبل أي كتابة ولا تغيّر صفاً
-00:08 +60: /home/runner/work/Student-hodor/Student-hodor/test/backup_restore_test.dart: فشل أثناء التطبيق يتراجع كاملاً: لا قاعدة نصف مستعادة
+00:07 +58: /home/runner/work/Student-hodor/Student-hodor/test/backup_restore_test.dart: الفحص وحده لا يكتب شيئاً، ولا تُلمس البيانات قبل التأكيد
+00:07 +59: /home/runner/work/Student-hodor/Student-hodor/test/backup_restore_test.dart: ملفات غير صالحة تُرفض قبل أي كتابة ولا تغيّر صفاً
+00:07 +60: /home/runner/work/Student-hodor/Student-hodor/test/backup_restore_test.dart: فشل أثناء التطبيق يتراجع كاملاً: لا قاعدة نصف مستعادة
 WARNING (drift): It looks like you've created the database class AppDb multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
@@ -237,7 +240,7 @@ Here is the stacktrace from when the database was opened a second time:
 #9      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
-00:08 +61: /home/runner/work/Student-hodor/Student-hodor/test/backup_restore_test.dart: الاستعادة المتزامنة مرفوضة، والحارس يُحرَّر بعد الانتهاء
+00:07 +61: /home/runner/work/Student-hodor/Student-hodor/test/backup_restore_test.dart: الاستعادة المتزامنة مرفوضة، والحارس يُحرَّر بعد الانتهاء
 WARNING (drift): It looks like you've created the database class AppDb multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
@@ -256,7 +259,7 @@ Here is the stacktrace from when the database was opened a second time:
 #9      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
-00:08 +62: /home/runner/work/Student-hodor/Student-hodor/test/backup_restore_test.dart: نسخة فارغة (بلا سنوات) تستبدل البيانات وتُبقي جدول حصص صالحاً
+00:07 +62: /home/runner/work/Student-hodor/Student-hodor/test/backup_restore_test.dart: نسخة فارغة (بلا سنوات) تستبدل البيانات وتُبقي جدول حصص صالحاً
 WARNING (drift): It looks like you've created the database class AppDb multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
@@ -275,91 +278,99 @@ Here is the stacktrace from when the database was opened a second time:
 #9      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
-00:08 +63: /home/runner/work/Student-hodor/Student-hodor/test/backup_restore_test.dart: نسخة v1 (JSON بلا حصص): استبدال كامل وترحيل الحصص الافتراضية
-00:08 +64: /home/runner/work/Student-hodor/Student-hodor/test/lesson_log_export_test.dart: Excel: سجل الحصص وحده ورقة واحدة فقط تحمل بيانات السجل بالترتيب والأوقات الصحيحة
-00:08 +65: /home/runner/work/Student-hodor/Student-hodor/test/lesson_log_export_test.dart: Excel: سجل الحصص وحده سجل فارغ: رسالة صريحة بدل ورقة تبدو تالفة
-00:08 +66: /home/runner/work/Student-hodor/Student-hodor/test/lesson_log_export_test.dart: PDF: سجل الحصص وحده مستند غير فارغ بسجل الحصص وحده
-00:08 +67: /home/runner/work/Student-hodor/Student-hodor/test/name_import_test.dart: نص UTF-8: الترقيم يُنزع، الترويسة والأسطر الفارغة تُتخطّى بالترتيب
-00:08 +68: /home/runner/work/Student-hodor/Student-hodor/test/lesson_log_export_test.dart: PDF: سجل الحصص وحده مستند غير فارغ بسجل فارغ
-00:08 +69: /home/runner/work/Student-hodor/Student-hodor/test/lesson_log_export_test.dart: PDF: سجل الحصص وحده مستند غير فارغ بسجل فارغ
-00:08 +70: /home/runner/work/Student-hodor/Student-hodor/test/lesson_log_export_test.dart: PDF: سجل الحصص وحده مستند غير فارغ بسجل فارغ
-00:08 +71: /home/runner/work/Student-hodor/Student-hodor/test/lesson_log_export_test.dart: PDF: سجل الحصص وحده مستند غير فارغ بسجل فارغ
-00:09 +72: /home/runner/work/Student-hodor/Student-hodor/test/name_import_test.dart: Word: الفقرات والجدول مع استدلال عمود الاسم وتخطّي الترويسة
-00:09 +73: /home/runner/work/Student-hodor/Student-hodor/test/name_import_test.dart: Word: جدول بلا عمود اسمي لا يُنتج أسماء وهمية
-00:09 +74: /home/runner/work/Student-hodor/Student-hodor/test/name_import_test.dart: التطبيع: تشكيل وتطويل ومسافات زائدة، وحد 120 محرفاً
-00:09 +75: /home/runner/work/Student-hodor/Student-hodor/test/name_import_test.dart: المكرر داخل الملف يُسقَط والمتشابه يُعدّ مكرراً
-00:09 +76: /home/runner/work/Student-hodor/Student-hodor/test/name_import_test.dart: الاستيراد: ترتيب وتسلسل وباجات، ثم تجاهل الموجودين عند التكرار
-00:09 +77: /home/runner/work/Student-hodor/Student-hodor/test/name_import_test.dart: UTF-16BE بعلامة ترتيب يُقرأ بلا رموز مشوّهة
-00:09 +78: /home/runner/work/Student-hodor/Student-hodor/test/name_import_test.dart: Word: الكلمة المقسومة على مقاطع تشغيل لا تُفصل بمسافة مُخترعة
-00:09 +79: /home/runner/work/Student-hodor/Student-hodor/test/name_import_test.dart: Word: جداول متعددة — جدول بيانات لا يُقرأ أسماءً، وجدول الأسماء يُقرأ
-00:09 +80: /home/runner/work/Student-hodor/Student-hodor/test/name_import_test.dart: التشابه: الهمزات والتشكيل مكرر، واختلاف حرف ليس مكرراً
-00:09 +81: /home/runner/work/Student-hodor/Student-hodor/test/name_import_test.dart: فشل في منتصف الاستيراد يردّ كل شيء (لا اسم نصف مستورد)
-00:09 +82: /home/runner/work/Student-hodor/Student-hodor/test/name_import_test.dart: الاستيراد إلى صف آخر لا يمسّ صفاً غيره
+00:07 +63: /home/runner/work/Student-hodor/Student-hodor/test/backup_restore_test.dart: نسخة v1 (JSON بلا حصص): استبدال كامل وترحيل الحصص الافتراضية
+00:07 +64: /home/runner/work/Student-hodor/Student-hodor/test/lesson_log_export_test.dart: Excel: سجل الحصص وحده ورقة واحدة فقط تحمل بيانات السجل بالترتيب والأوقات الصحيحة
+00:08 +65: /home/runner/work/Student-hodor/Student-hodor/test/lesson_log_export_test.dart: Excel: سجل الحصص وحده ورقة واحدة فقط تحمل بيانات السجل بالترتيب والأوقات الصحيحة
+00:08 +66: /home/runner/work/Student-hodor/Student-hodor/test/lesson_log_export_test.dart: Excel: سجل الحصص وحده ورقة واحدة فقط تحمل بيانات السجل بالترتيب والأوقات الصحيحة
+00:08 +67: /home/runner/work/Student-hodor/Student-hodor/test/lesson_log_export_test.dart: Excel: سجل الحصص وحده ورقة واحدة فقط تحمل بيانات السجل بالترتيب والأوقات الصحيحة
+00:08 +68: /home/runner/work/Student-hodor/Student-hodor/test/lesson_log_export_test.dart: Excel: سجل الحصص وحده ورقة واحدة فقط تحمل بيانات السجل بالترتيب والأوقات الصحيحة
+00:08 +69: /home/runner/work/Student-hodor/Student-hodor/test/name_import_test.dart: Word: الفقرات والجدول مع استدلال عمود الاسم وتخطّي الترويسة
+00:08 +70: /home/runner/work/Student-hodor/Student-hodor/test/lesson_log_export_test.dart: Excel: سجل الحصص وحده سجل فارغ: رسالة صريحة بدل ورقة تبدو تالفة
+00:08 +71: /home/runner/work/Student-hodor/Student-hodor/test/name_import_test.dart: Word: جدول بلا عمود اسمي لا يُنتج أسماء وهمية
+00:08 +72: /home/runner/work/Student-hodor/Student-hodor/test/lesson_log_export_test.dart: PDF: سجل الحصص وحده مستند غير فارغ بسجل الحصص وحده
+00:08 +73: /home/runner/work/Student-hodor/Student-hodor/test/lesson_log_export_test.dart: PDF: سجل الحصص وحده مستند غير فارغ بسجل الحصص وحده
+00:08 +74: /home/runner/work/Student-hodor/Student-hodor/test/lesson_log_export_test.dart: PDF: سجل الحصص وحده مستند غير فارغ بسجل الحصص وحده
+00:08 +75: /home/runner/work/Student-hodor/Student-hodor/test/lesson_log_export_test.dart: PDF: سجل الحصص وحده مستند غير فارغ بسجل الحصص وحده
+00:08 +76: /home/runner/work/Student-hodor/Student-hodor/test/lesson_log_export_test.dart: PDF: سجل الحصص وحده مستند غير فارغ بسجل الحصص وحده
+00:08 +77: /home/runner/work/Student-hodor/Student-hodor/test/lesson_log_export_test.dart: PDF: سجل الحصص وحده مستند غير فارغ بسجل الحصص وحده
+00:08 +78: /home/runner/work/Student-hodor/Student-hodor/test/lesson_log_export_test.dart: PDF: سجل الحصص وحده مستند غير فارغ بسجل الحصص وحده
+00:08 +79: /home/runner/work/Student-hodor/Student-hodor/test/lesson_log_export_test.dart: PDF: سجل الحصص وحده مستند غير فارغ بسجل الحصص وحده
+00:08 +80: /home/runner/work/Student-hodor/Student-hodor/test/name_import_test.dart: فشل في منتصف الاستيراد يردّ كل شيء (لا اسم نصف مستورد)
+00:08 +81: /home/runner/work/Student-hodor/Student-hodor/test/lesson_log_export_test.dart: PDF: سجل الحصص وحده مستند غير فارغ بسجل فارغ
+00:08 +82: /home/runner/work/Student-hodor/Student-hodor/test/lesson_log_export_test.dart: PDF: سجل الحصص وحده مستند غير فارغ بسجل فارغ
 00:14 +83: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الصفوف: قائمة الصفوف تظهر
 00:14 +84: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الصفوف: قائمة الصفوف تظهر
 00:14 +85: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الصفوف: قائمة الصفوف تظهر
 00:14 +86: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الصفوف: قائمة الصفوف تظهر
-00:15 +87: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الصفوف → الطلاب: ضغط الصف يفتح شاشة فيها الطلاب
-00:15 +88: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الطلاب: رابط مباشر بمعامِلات عربية مرمّزة
-00:15 +89: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الطلاب: رابط مباشر بمعامِلات عربية مرمّزة
-00:15 +90: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الطلاب: رابط مباشر بمعامِلات عربية مرمّزة
-00:15 +91: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الطلاب: رابط مباشر بمعامِلات عربية مرمّزة
-00:15 +92: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها البادجات: الشاشة تُحمِّل باجات الصف بلا عطل
-00:16 +93: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها كشف اليوم: قائمة الحالات + شريط الملخّص
-00:16 +94: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها كشف اليوم: زر الإقفال لا يتكسّر شعارُه على الشاشة الضيقة
-00:16 +95: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء معرّف صف محذوف ⇒ يُعتمد الصف الوحيد ولا استثناء
-00:16 +96: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء بلا معامِلات إطلاقاً ⇒ الشاشة تُحلّ صفّها من القاعدة
-00:16 +97: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء بلا معامِلات إطلاقاً ⇒ الشاشة تُحلّ صفّها من القاعدة
-00:16 +98: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء بلا معامِلات إطلاقاً ⇒ الشاشة تُحلّ صفّها من القاعدة
-00:16 +99: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء بلا معامِلات إطلاقاً ⇒ الشاشة تُحلّ صفّها من القاعدة
-00:16 +100: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء بلا معامِلات إطلاقاً ⇒ الشاشة تُحلّ صفّها من القاعدة
-00:16 +101: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء بلا معامِلات إطلاقاً ⇒ الشاشة تُحلّ صفّها من القاعدة
-00:16 +102: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء بلا معامِلات إطلاقاً ⇒ الشاشة تُحلّ صفّها من القاعدة
-00:16 +103: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء قيمة class غير رقمية ⇒ لا انهيار
-00:16 +104: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء كشف اليوم بلا تاريخ ⇒ يُعتمد اليوم
-00:16 +105: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء بلا سنة فعّالة ⇒ رسالة إرشادية لا بياض
-00:16 +106: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: extra يتجاوز معاملة الرابط ClassRef عبر extra يحدّد الصف والعنوان
-00:16 +107: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: بطاقات الصفوف والطلاب: لا نص مقتطع بطاقة الصف: الاسم وعدد الطلاب بلا ellipsis وبلا حدّ أسطر
-00:17 +108: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: بطاقات الصفوف والطلاب: لا نص مقتطع بطاقة الطالب: رقم الطالب بلا ellipsis
-00:17 +109: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: ملف الطالب يُحمَّل فعلاً (لا دوران بلا نهاية) ضغط اسم الطالب يعرض ملفه كاملاً
-00:17 +110: /home/runner/work/Student-hodor/Student-hodor/test/early_alerts_test.dart: العتبة الأولى تُدخل من بلغها أياماً مرتبين بالأكثر غياباً
-00:17 +111: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: ملف الطالب يُحمَّل فعلاً (لا دوران بلا نهاية) التنقّل بين الأشهر يعيد بناء الشبكة بلا عطل
-00:17 +112: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: ملف الطالب يُحمَّل فعلاً (لا دوران بلا نهاية) التنقّل بين الأشهر يعيد بناء الشبكة بلا عطل
-00:17 +113: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: ملف الطالب يُحمَّل فعلاً (لا دوران بلا نهاية) التنقّل بين الأشهر يعيد بناء الشبكة بلا عطل
-00:18 +114: /home/runner/work/Student-hodor/Student-hodor/test/ci_publish_policy_test.dart: قرار النشر محسوب في مكان واحد: دفع إلى main فقط
-00:18 +115: /home/runner/work/Student-hodor/Student-hodor/test/ci_publish_policy_test.dart: كل خطوة تمسّ الإصدار مقيدة بـPUBLISH_RELEASE
-00:18 +116: /home/runner/work/Student-hodor/Student-hodor/test/ci_publish_policy_test.dart: البوابة تعمل في كل بناء، لكنها تقارن بالمنشور عند النشر فقط
-00:18 +117: /home/runner/work/Student-hodor/Student-hodor/test/ci_publish_policy_test.dart: نشر main لا يُلغى تلقائياً في منتصفه
-00:18 +118: /home/runner/work/Student-hodor/Student-hodor/test/ci_publish_policy_test.dart: التشغيل اليدوي وطلبات السحب لا تُفعّل النشر
-00:18 +119: /home/runner/work/Student-hodor/Student-hodor/test/year_delete_test.dart: حذف سنة يزيل كل ما يخصها وحدها ويُبقى السنة الأخرى سالمة
+00:15 +87: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الصفوف: قائمة الصفوف تظهر
+00:15 +88: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الصفوف: قائمة الصفوف تظهر
+00:15 +89: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الصفوف: قائمة الصفوف تظهر
+00:16 +90: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الصفوف → الطلاب: ضغط الصف يفتح شاشة فيها الطلاب
+00:16 +91: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الصفوف → الطلاب: ضغط الصف يفتح شاشة فيها الطلاب
+00:16 +92: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الصفوف → الطلاب: ضغط الصف يفتح شاشة فيها الطلاب
+00:16 +93: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الصفوف → الطلاب: ضغط الصف يفتح شاشة فيها الطلاب
+00:16 +94: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الصفوف → الطلاب: ضغط الصف يفتح شاشة فيها الطلاب
+00:16 +95: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الصفوف → الطلاب: ضغط الصف يفتح شاشة فيها الطلاب
+00:16 +96: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الصفوف → الطلاب: ضغط الصف يفتح شاشة فيها الطلاب
+00:16 +97: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها الطلاب: رابط مباشر بمعامِلات عربية مرمّزة
+00:16 +98: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها البادجات: الشاشة تُحمِّل باجات الصف بلا عطل
+00:16 +99: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها كشف اليوم: قائمة الحالات + شريط الملخّص
+00:17 +100: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: شاشات الصفوف تُبنى وتعرض بياناتها كشف اليوم: زر الإقفال لا يتكسّر شعارُه على الشاشة الضيقة
+00:17 +101: /home/runner/work/Student-hodor/Student-hodor/test/early_alerts_test.dart: العتبة الأولى تُدخل من بلغها أياماً مرتبين بالأكثر غياباً
+00:17 +102: /home/runner/work/Student-hodor/Student-hodor/test/early_alerts_test.dart: العتبة الأولى تُدخل من بلغها أياماً مرتبين بالأكثر غياباً
+00:17 +103: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء بلا معامِلات إطلاقاً ⇒ الشاشة تُحلّ صفّها من القاعدة
+00:17 +104: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء بلا معامِلات إطلاقاً ⇒ الشاشة تُحلّ صفّها من القاعدة
+00:17 +105: /home/runner/work/Student-hodor/Student-hodor/test/early_alerts_test.dart: عتبة عالية (كـ200 يوم) تُخرج قائمة فارغة
+00:17 +106: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء قيمة class غير رقمية ⇒ لا انهيار
+00:17 +107: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء كشف اليوم بلا تاريخ ⇒ يُعتمد اليوم
+00:17 +108: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: معامِلات تالفة أو مفقودة لا تُنتج صفحة بيضاء بلا سنة فعّالة ⇒ رسالة إرشادية لا بياض
+00:17 +109: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: extra يتجاوز معاملة الرابط ClassRef عبر extra يحدّد الصف والعنوان
+00:18 +110: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: بطاقات الصفوف والطلاب: لا نص مقتطع بطاقة الصف: الاسم وعدد الطلاب بلا ellipsis وبلا حدّ أسطر
+00:18 +111: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: بطاقات الصفوف والطلاب: لا نص مقتطع بطاقة الطالب: رقم الطالب بلا ellipsis
+00:18 +112: /home/runner/work/Student-hodor/Student-hodor/test/ci_publish_policy_test.dart: قرار النشر محسوب في مكان واحد: دفع إلى main فقط
+00:18 +113: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: ملف الطالب يُحمَّل فعلاً (لا دوران بلا نهاية) ضغط اسم الطالب يعرض ملفه كاملاً
+00:18 +114: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: ملف الطالب يُحمَّل فعلاً (لا دوران بلا نهاية) ضغط اسم الطالب يعرض ملفه كاملاً
+00:18 +115: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: ملف الطالب يُحمَّل فعلاً (لا دوران بلا نهاية) ضغط اسم الطالب يعرض ملفه كاملاً
+00:18 +116: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: ملف الطالب يُحمَّل فعلاً (لا دوران بلا نهاية) ضغط اسم الطالب يعرض ملفه كاملاً
+00:18 +117: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: ملف الطالب يُحمَّل فعلاً (لا دوران بلا نهاية) ضغط اسم الطالب يعرض ملفه كاملاً
+00:18 +118: /home/runner/work/Student-hodor/Student-hodor/test/screens_widget_test.dart: ملف الطالب يُحمَّل فعلاً (لا دوران بلا نهاية) التنقّل بين الأشهر يعيد بناء الشبكة بلا عطل
+00:19 +119: /home/runner/work/Student-hodor/Student-hodor/test/year_delete_test.dart: حذف سنة يزيل كل ما يخصها وحدها ويُبقى السنة الأخرى سالمة
 00:19 +120: /home/runner/work/Student-hodor/Student-hodor/test/year_delete_test.dart: حذف آخر سنة يفرغ القاعدة بالكامل بلا استثناء
 00:19 +121: /home/runner/work/Student-hodor/Student-hodor/test/backup_photo_lifecycle_test.dart: فشل الفحص لا يثبّت أي صورة ولا ينشئ أي ملف
-00:19 +122: /home/runner/work/Student-hodor/Student-hodor/test/backup_photo_lifecycle_test.dart: فشل الاستعادة بعد التثبيت يحذف ما أنشأته المحاولة وحدها
-00:19 +123: /home/runner/work/Student-hodor/Student-hodor/test/backup_photo_lifecycle_test.dart: ملف كان موجوداً قبل الاستعادة لا يُحذف ولو أعاده المثبِّت
-00:19 +124: /home/runner/work/Student-hodor/Student-hodor/test/backup_photo_lifecycle_test.dart: ملف يشير إليه سجل قائم في القاعدة لا يُحذف بعد الفشل
-00:19 +125: /home/runner/work/Student-hodor/Student-hodor/test/backup_photo_lifecycle_test.dart: تعذّر قراءة قائمة الصور السابقة يوقف التنظيف بدل المخاطرة
-00:19 +126: /home/runner/work/Student-hodor/Student-hodor/test/backup_photo_lifecycle_test.dart: نجاح الاستعادة يُبقي الصور الجديدة ويربطها بالسجلات
-00:19 +127: /home/runner/work/Student-hodor/Student-hodor/test/backup_photo_lifecycle_test.dart: سياسة الحذف نقية: تُستثني الملفات السابقة والمستخدمة والمكررة
-00:19 +128: /home/runner/work/Student-hodor/Student-hodor/test/badge_code_test.dart: رمز المدرسة حتمي لنفس الاسم ومختلف لاسم آخر
-00:19 +129: /home/runner/work/Student-hodor/Student-hodor/test/badge_code_test.dart: دورة make/parse سليمة
-00:20 +130: /home/runner/work/Student-hodor/Student-hodor/test/badge_code_test.dart: رمز تالف يُرفض (checksum)
-00:20 +131: /home/runner/work/Student-hodor/Student-hodor/test/badge_code_test.dart: نص عشوائي لا يُقبل
-00:20 +132: /home/runner/work/Student-hodor/Student-hodor/test/badge_code_test.dart: نسخة البدل الفاقد تُشفَّر وتُفك ولا تكسر الرموز القديمة
-00:20 +133: /home/runner/work/Student-hodor/Student-hodor/test/import_names_screen_test.dart: المعاينة تعرض الأسماء ولا تكتب شيئاً قبل التأكيد
-00:21 +134: /home/runner/work/Student-hodor/Student-hodor/test/explanation_anchor_test.dart: ضغط زر التوضيح يعرض النص الكامل، والإغلاق يعود للشاشة
-00:21 +135: /home/runner/work/Student-hodor/Student-hodor/test/explanation_anchor_test.dart: ضغط زر التوضيح يعرض النص الكامل، والإغلاق يعود للشاشة
-00:21 +136: /home/runner/work/Student-hodor/Student-hodor/test/explanation_anchor_test.dart: ضغط زر التوضيح يعرض النص الكامل، والإغلاق يعود للشاشة
-00:21 +137: /home/runner/work/Student-hodor/Student-hodor/test/import_names_screen_test.dart: زر الرجوع يعيد إلى الشاشة السابقة بعد المعاينة بلا كتابة
-00:22 +138: /home/runner/work/Student-hodor/Student-hodor/test/import_names_screen_test.dart: ملف تالف يعرض رسالة واضحة ولا يُسقط الشاشة ولا يكتب
-00:22 +139: /home/runner/work/Student-hodor/Student-hodor/test/import_names_screen_test.dart: التأكيد يضيف بالترتيب ويعيد النتيجة إلى المسار السابق
-00:22 +140: /home/runner/work/Student-hodor/Student-hodor/test/import_names_screen_test.dart: ضغط متكرر على زر الاستيراد: نافذة واحدة وكتابة واحدة (لا تكرار)
+00:20 +122: /home/runner/work/Student-hodor/Student-hodor/test/backup_photo_lifecycle_test.dart: فشل الاستعادة بعد التثبيت يحذف ما أنشأته المحاولة وحدها
+00:20 +123: /home/runner/work/Student-hodor/Student-hodor/test/backup_photo_lifecycle_test.dart: ملف كان موجوداً قبل الاستعادة لا يُحذف ولو أعاده المثبِّت
+00:20 +124: /home/runner/work/Student-hodor/Student-hodor/test/backup_photo_lifecycle_test.dart: ملف يشير إليه سجل قائم في القاعدة لا يُحذف بعد الفشل
+00:20 +125: /home/runner/work/Student-hodor/Student-hodor/test/backup_photo_lifecycle_test.dart: تعذّر قراءة قائمة الصور السابقة يوقف التنظيف بدل المخاطرة
+00:20 +126: /home/runner/work/Student-hodor/Student-hodor/test/badge_code_test.dart: رمز المدرسة حتمي لنفس الاسم ومختلف لاسم آخر
+00:20 +127: /home/runner/work/Student-hodor/Student-hodor/test/backup_photo_lifecycle_test.dart: نجاح الاستعادة يُبقي الصور الجديدة ويربطها بالسجلات
+00:20 +128: /home/runner/work/Student-hodor/Student-hodor/test/backup_photo_lifecycle_test.dart: نجاح الاستعادة يُبقي الصور الجديدة ويربطها بالسجلات
+00:20 +129: /home/runner/work/Student-hodor/Student-hodor/test/backup_photo_lifecycle_test.dart: نجاح الاستعادة يُبقي الصور الجديدة ويربطها بالسجلات
+00:20 +130: /home/runner/work/Student-hodor/Student-hodor/test/backup_photo_lifecycle_test.dart: نجاح الاستعادة يُبقي الصور الجديدة ويربطها بالسجلات
+00:20 +131: /home/runner/work/Student-hodor/Student-hodor/test/backup_photo_lifecycle_test.dart: نجاح الاستعادة يُبقي الصور الجديدة ويربطها بالسجلات
+00:20 +132: /home/runner/work/Student-hodor/Student-hodor/test/backup_photo_lifecycle_test.dart: سياسة الحذف نقية: تُستثني الملفات السابقة والمستخدمة والمكررة
+00:21 +133: /home/runner/work/Student-hodor/Student-hodor/test/import_names_screen_test.dart: المعاينة تعرض الأسماء ولا تكتب شيئاً قبل التأكيد
+00:22 +134: /home/runner/work/Student-hodor/Student-hodor/test/import_names_screen_test.dart: المعاينة تعرض الأسماء ولا تكتب شيئاً قبل التأكيد
+00:22 +135: /home/runner/work/Student-hodor/Student-hodor/test/import_names_screen_test.dart: إلغاء منتقي الملفات لا يُنتج معاينة ولا يكتب ولا يُسقط الشاشة
+00:22 +136: /home/runner/work/Student-hodor/Student-hodor/test/import_names_screen_test.dart: التراجع في نافذة التأكيد لا يضيف طلاباً ويُبقي المعاينة
+00:22 +137: /home/runner/work/Student-hodor/Student-hodor/test/import_names_screen_test.dart: زر الرجوع يعيد إلى الشاشة السابقة بعد المعاينة بلا كتابة
+00:23 +138: /home/runner/work/Student-hodor/Student-hodor/test/import_names_screen_test.dart: ملف تالف يعرض رسالة واضحة ولا يُسقط الشاشة ولا يكتب
+00:23 +139: /home/runner/work/Student-hodor/Student-hodor/test/lesson_scope_test.dart: حذف حصة قبل النطاق: الإجازة تنتقل مع حصصها نفسها
+00:23 +140: /home/runner/work/Student-hodor/Student-hodor/test/import_names_screen_test.dart: التأكيد يضيف بالترتيب ويعيد النتيجة إلى المسار السابق
+00:23 +141: /home/runner/work/Student-hodor/Student-hodor/test/import_names_screen_test.dart: التأكيد يضيف بالترتيب ويعيد النتيجة إلى المسار السابق
+00:23 +142: /home/runner/work/Student-hodor/Student-hodor/test/import_names_screen_test.dart: التأكيد يضيف بالترتيب ويعيد النتيجة إلى المسار السابق
+00:23 +143: /home/runner/work/Student-hodor/Student-hodor/test/import_names_screen_test.dart: التأكيد يضيف بالترتيب ويعيد النتيجة إلى المسار السابق
+00:23 +144: /home/runner/work/Student-hodor/Student-hodor/test/lesson_scope_test.dart: ترتيب يفرّق حصص الإجازة يُرفض ولا يترك أثراً
+00:23 +145: /home/runner/work/Student-hodor/Student-hodor/test/import_names_screen_test.dart: ضغط متكرر على زر الاستيراد: نافذة واحدة وكتابة واحدة (لا تكرار)
+00:23 +146: /home/runner/work/Student-hodor/Student-hodor/test/import_names_screen_test.dart: ضغط متكرر على زر الاستيراد: نافذة واحدة وكتابة واحدة (لا تكرار)
+00:23 +147: /home/runner/work/Student-hodor/Student-hodor/test/import_names_screen_test.dart: ضغط متكرر على زر الاستيراد: نافذة واحدة وكتابة واحدة (لا تكرار)
+00:23 +148: /home/runner/work/Student-hodor/Student-hodor/test/import_names_screen_test.dart: ضغط متكرر على زر الاستيراد: نافذة واحدة وكتابة واحدة (لا تكرار)
 
 Warning: A call to tap() with finder "Found 1 widget with text "استيراد 2 اسماً": [
   Text("استيراد 2 اسماً", dependencies: [DefaultSelectionStyle, DefaultTextStyle, MediaQuery]),
 ]" derived an Offset (Offset(176.1, 572.0)) that would not hit test on the specified widget.
 Maybe the widget is actually off-screen, or another widget is obscuring it, or the widget cannot receive pointer events.
-The finder corresponds to this RenderBox: RenderParagraph#e3467 relayoutBoundary=up27
-The hit test result at that offset is: HitTestResult(RenderPointerListener#791f8@Offset(176.1, 572.0), RenderSemanticsAnnotations#080ad@Offset(176.1, 572.0), RenderCustomPaint#67a7a@Offset(176.1, 572.0), RenderSemanticsAnnotations#cd5ee@Offset(176.1, 572.0), RenderSemanticsAnnotations#29d41@Offset(176.1, 572.0), RenderSemanticsAnnotations#b51d2@Offset(176.1, 572.0), RenderTapRegionSurface#71c9e@Offset(176.1, 572.0), RenderSemanticsAnnotations#02b7b@Offset(176.1, 572.0), RenderSemanticsAnnotations#10334@Offset(176.1, 572.0), HitTestEntry<HitTestTarget>#ec29a(_ReusableRenderView#491e5), HitTestEntry<HitTestTarget>#ecbb5(<AutomatedTestWidgetsFlutterBinding>))
+The finder corresponds to this RenderBox: RenderParagraph#e024e relayoutBoundary=up27
+The hit test result at that offset is: HitTestResult(RenderPointerListener#860a6@Offset(176.1, 572.0), RenderSemanticsAnnotations#c46c6@Offset(176.1, 572.0), RenderCustomPaint#5f525@Offset(176.1, 572.0), RenderSemanticsAnnotations#8ad41@Offset(176.1, 572.0), RenderSemanticsAnnotations#92735@Offset(176.1, 572.0), RenderSemanticsAnnotations#a9e6a@Offset(176.1, 572.0), RenderTapRegionSurface#9c8db@Offset(176.1, 572.0), RenderSemanticsAnnotations#2c7f4@Offset(176.1, 572.0), RenderSemanticsAnnotations#408ac@Offset(176.1, 572.0), HitTestEntry<HitTestTarget>#61949(_ReusableRenderView#a69e1), HitTestEntry<HitTestTarget>#4d5d2(<AutomatedTestWidgetsFlutterBinding>))
 #0      WidgetController._getElementPoint (package:flutter_test/src/controller.dart:2165:25)
 #1      WidgetController.getCenter (package:flutter_test/src/controller.dart:1947:12)
 #2      WidgetController.tap (package:flutter_test/src/controller.dart:1080:7)
@@ -374,392 +385,73 @@ The hit test result at that offset is: HitTestResult(RenderPointerListener#791f8
 To silence this warning, pass "warnIfMissed: false" to "tap()".
 To make this warning fatal, set WidgetController.hitTestWarningShouldBeFatal to true.
 
-00:22 +141: /home/runner/work/Student-hodor/Student-hodor/test/lesson_scope_test.dart: حذف حصة قبل النطاق: الإجازة تنتقل مع حصصها نفسها
-00:22 +142: /home/runner/work/Student-hodor/Student-hodor/test/lesson_scope_test.dart: حذف حصة داخل النطاق: يقلّ النطاق بواحد ويبقى مربوطاً بالحصص
-00:22 +143: /home/runner/work/Student-hodor/Student-hodor/test/lesson_scope_test.dart: حذف حصة بعد النطاق: النطاق لا يتغيّر
-00:22 +144: /home/runner/work/Student-hodor/Student-hodor/test/lesson_scope_test.dart: إعادة الترتيب: النطاق يلحق بالحصص لا بالأرقام
-00:22 +145: /home/runner/work/Student-hodor/Student-hodor/test/lesson_scope_test.dart: ترتيب يفرّق حصص الإجازة يُرفض ولا يترك أثراً
-00:22 +146: /home/runner/work/Student-hodor/Student-hodor/test/lesson_scope_test.dart: إجازة مفتوحة النهاية (من الحصة ٣) تحفظ حصصها نفسها بعد الإضافة وإعادة الترتيب
-00:22 +147: /home/runner/work/Student-hodor/Student-hodor/test/lesson_scope_test.dart: تطابق isOnLeave مع السجلات بعد الحذف (لا حالة محتسبة مخالفة)
-00:23 +148: /home/runner/work/Student-hodor/Student-hodor/test/lesson_scope_test.dart: إجازة «كل الحصص» تبقى كل الحصص بعد الحذف
-00:23 +149: /home/runner/work/Student-hodor/Student-hodor/test/leaves_search_test.dart: بحث الطلاب في حوار الإجازة يصفي القائمة حسب الاسم
-══╡ EXCEPTION CAUGHT BY WIDGETS LIBRARY ╞═══════════════════════════════════════════════════════════
-The following assertion was thrown building Scaffold(dirty, state: ScaffoldState#c3417(tickers:
-tracking 3 tickers)):
-No Directionality widget found.
-Scaffold widgets require a Directionality widget ancestor.
-The specific widget that could not find a Directionality ancestor was:
-  StatefulElement#295e2(DEFUNCT)
-The ownership chain for the affected widget is: "Scaffold ← LeavesScreen ← UncontrolledProviderScope
-  ← ProviderScope ← _FocusInheritedScope ← _FocusScopeWithExternalFocusNode ← _FocusInheritedScope ←
-  Focus ← FocusTraversalGroup ← MediaQuery ← ⋯"
-Typically, the Directionality widget is introduced by the MaterialApp or WidgetsApp widget at the
-top of your application widget tree. It determines the ambient reading direction and is used, for
-example, to determine how to lay out text, how to interpret "start" and "end" values, and to resolve
-EdgeInsetsDirectional, AlignmentDirectional, and other *Directional objects.
-
-When the exception was thrown, this was the stack:
-#0      debugCheckHasDirectionality.<anonymous closure> (package:flutter/src/widgets/debug.dart:375:7)
-#1      debugCheckHasDirectionality (package:flutter/src/widgets/debug.dart:397:4)
-#2      ScaffoldState.build (package:flutter/src/material/scaffold.dart:3014:12)
-#3      StatefulElement.build (package:flutter/src/widgets/framework.dart:5931:27)
-#4      ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5817:15)
-#5      StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
-#6      Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
-#7      ComponentElement._firstBuild (package:flutter/src/widgets/framework.dart:5799:5)
-#8      StatefulElement._firstBuild (package:flutter/src/widgets/framework.dart:5973:11)
-#9      ComponentElement.mount (package:flutter/src/widgets/framework.dart:5793:5)
-...     Normal element mounting (15 frames)
-#24     _UncontrolledProviderScopeElement.mount (package:flutter_riverpod/src/framework.dart:315:11)
-...     Normal element mounting (9 frames)
-#33     Element.inflateWidget (package:flutter/src/widgets/framework.dart:4587:20)
-#34     Element.updateChild (package:flutter/src/widgets/framework.dart:4053:20)
-#35     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
-#36     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
-#37     ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
-#38     _InheritedNotifierElement.update (package:flutter/src/widgets/inherited_notifier.dart:108:11)
-#39     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
-#40     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
-#41     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
-#42     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
-#43     StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
-#44     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
-#45     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
-#46     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
-#47     ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
-#48     _InheritedNotifierElement.update (package:flutter/src/widgets/inherited_notifier.dart:108:11)
-#49     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
-#50     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
-#51     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
-#52     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
-#53     StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
-#54     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
-#55     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
-#56     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
-#57     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
-#58     StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
-#59     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
-#60     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
-#61     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
-#62     ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
-#63     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
-#64     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
-#65     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
-#66     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
-#67     StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
-#68     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
-#69     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
-#70     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
-#71     ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
-#72     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
-#73     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
-#74     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
-#75     ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
-#76     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
-#77     _RawViewElement._updateChild (package:flutter/src/widgets/view.dart:481:16)
-#78     _RawViewElement.update (package:flutter/src/widgets/view.dart:568:5)
-#79     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
-#80     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
-#81     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
-#82     StatelessElement.update (package:flutter/src/widgets/framework.dart:5895:5)
-#83     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
-#84     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
-#85     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
-#86     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
-#87     StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
-#88     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
-#89     RootElement._rebuild (package:flutter/src/widgets/binding.dart:2091:16)
-#90     RootElement.update (package:flutter/src/widgets/binding.dart:2069:5)
-#91     RootElement.performRebuild (package:flutter/src/widgets/binding.dart:2083:7)
-#92     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
-#93     BuildScope._tryRebuild (package:flutter/src/widgets/framework.dart:2750:15)
-#94     BuildScope._flushDirtyElements (package:flutter/src/widgets/framework.dart:2807:11)
-#95     BuildOwner.buildScope (package:flutter/src/widgets/framework.dart:3111:18)
-#96     AutomatedTestWidgetsFlutterBinding.drawFrame (package:flutter_test/src/binding.dart:2431:19)
-#97     RendererBinding._handlePersistentFrameCallback (package:flutter/src/rendering/binding.dart:509:5)
-#98     SchedulerBinding._invokeFrameCallback (package:flutter/src/scheduler/binding.dart:1430:15)
-#99     SchedulerBinding.handleDrawFrame (package:flutter/src/scheduler/binding.dart:1345:9)
-#100    AutomatedTestWidgetsFlutterBinding.pump.<anonymous closure> (package:flutter_test/src/binding.dart:2260:9)
-#103    TestAsyncUtils.guard (package:flutter_test/src/test_async_utils.dart:74:41)
-#104    AutomatedTestWidgetsFlutterBinding.pump (package:flutter_test/src/binding.dart:2249:27)
-#105    WidgetTester.pumpWidget.<anonymous closure> (package:flutter_test/src/widget_tester.dart:598:22)
-#108    TestAsyncUtils.guard (package:flutter_test/src/test_async_utils.dart:74:41)
-#109    WidgetTester.pumpWidget (package:flutter_test/src/widget_tester.dart:595:27)
-#110    main.<anonymous closure> (file:///home/runner/work/Student-hodor/Student-hodor/test/leaves_search_test.dart:75:22)
-<asynchronous suspension>
-#111    testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
-<asynchronous suspension>
-#112    TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1952:5)
-<asynchronous suspension>
-<asynchronous suspension>
-(elided 5 frames from dart:async and package:stack_trace)
-
-════════════════════════════════════════════════════════════════════════════════════════════════════
+00:24 +149: /home/runner/work/Student-hodor/Student-hodor/test/leaves_search_test.dart: بحث الطلاب في حوار الإجازة يصفي القائمة حسب الاسم
+00:25 +150: /home/runner/work/Student-hodor/Student-hodor/test/leaves_search_test.dart: بحث الطلاب في حوار الإجازة يصفي القائمة حسب الاسم
+00:25 +151: /home/runner/work/Student-hodor/Student-hodor/test/leaves_search_test.dart: بحث الطلاب في حوار الإجازة يصفي القائمة حسب الاسم
+00:25 +152: /home/runner/work/Student-hodor/Student-hodor/test/leaves_search_test.dart: بحث الطلاب في حوار الإجازة يصفي القائمة حسب الاسم
+00:25 +153: /home/runner/work/Student-hodor/Student-hodor/test/leaves_search_test.dart: بحث الطلاب في حوار الإجازة يصفي القائمة حسب الاسم
+00:25 +154: /home/runner/work/Student-hodor/Student-hodor/test/leaves_search_test.dart: بحث الطلاب في حوار الإجازة يصفي القائمة حسب الاسم
+00:25 +155: /home/runner/work/Student-hodor/Student-hodor/test/leaves_search_test.dart: بحث الطلاب في حوار الإجازة يصفي القائمة حسب الاسم
+00:26 +156: /home/runner/work/Student-hodor/Student-hodor/test/leaves_search_test.dart: بحث الطلاب في حوار الإجازة يصفي القائمة حسب الاسم
+00:26 +157: /home/runner/work/Student-hodor/Student-hodor/test/leaves_search_test.dart: بحث الطلاب في حوار الإجازة يصفي القائمة حسب الاسم
+00:26 +158: /home/runner/work/Student-hodor/Student-hodor/test/leaves_search_test.dart: بحث الطلاب في حوار الإجازة يصفي القائمة حسب الاسم
+00:26 +159: /home/runner/work/Student-hodor/Student-hodor/test/leaves_search_test.dart: بحث الطلاب في حوار الإجازة يصفي القائمة حسب الاسم
+00:26 +160: /home/runner/work/Student-hodor/Student-hodor/test/leaves_search_test.dart: بحث الطلاب في حوار الإجازة يصفي القائمة حسب الاسم
+00:26 +161: /home/runner/work/Student-hodor/Student-hodor/test/leaves_search_test.dart: بحث الطلاب في حوار الإجازة يصفي القائمة حسب الاسم
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
-The following assertion was thrown running a test:
-The finder "Found 0 widgets with type "FloatingActionButton": []" (used in a call to "tap()") could
-not find any matching widgets.
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 2 widgets with text "محمد كريم": [
+            Text("محمد كريم", dependencies: [DefaultSelectionStyle, DefaultTextStyle, MediaQuery]),
+            Text("محمد كريم", dependencies: [DefaultSelectionStyle, DefaultTextStyle, MediaQuery]),
+          ]>
+   Which: is too many
+الطالب المطابق يظهر
 
 When the exception was thrown, this was the stack:
-#0      WidgetController._getElementPoint (package:flutter_test/src/controller.dart:2095:7)
-#1      WidgetController.getCenter (package:flutter_test/src/controller.dart:1947:12)
-#2      WidgetController.tap (package:flutter_test/src/controller.dart:1080:7)
-#3      main.<anonymous closure> (file:///home/runner/work/Student-hodor/Student-hodor/test/leaves_search_test.dart:84:22)
+#4      main.<anonymous closure> (file:///home/runner/work/Student-hodor/Student-hodor/test/leaves_search_test.dart:107:9)
 <asynchronous suspension>
-#4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
 <asynchronous suspension>
-#5      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1952:5)
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1952:5)
 <asynchronous suspension>
 <asynchronous suspension>
 (elided one frame from package:stack_trace)
 
+This was caught by the test expectation on the following line:
+  file:///home/runner/work/Student-hodor/Student-hodor/test/leaves_search_test.dart line 107
 The test description was:
   بحث الطلاب في حوار الإجازة يصفي القائمة حسب الاسم
 ════════════════════════════════════════════════════════════════════════════════════════════════════
-══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
-The following message was thrown:
-Multiple exceptions (2) were detected during the running of the current test, and at least one was
-unexpected.
-════════════════════════════════════════════════════════════════════════════════════════════════════
-00:23 +149 -1: /home/runner/work/Student-hodor/Student-hodor/test/leaves_search_test.dart: بحث الطلاب في حوار الإجازة يصفي القائمة حسب الاسم [E]
+00:26 +161 -1: /home/runner/work/Student-hodor/Student-hodor/test/closure_execution_test.dart: يوم عطلة: لا مهمة ولا غياب من الجدولة
+00:26 +161 -1: /home/runner/work/Student-hodor/Student-hodor/test/leaves_search_test.dart: بحث الطلاب في حوار الإجازة يصفي القائمة حسب الاسم [E]
   Test failed. See exception logs above.
   The test description was: بحث الطلاب في حوار الإجازة يصفي القائمة حسب الاسم
   
-══╡ EXCEPTION CAUGHT BY WIDGET INSPECTOR ╞══════════════════════════════════════════════════════════
-The following assertion was thrown:
-Looking up a deactivated widget's ancestor is unsafe.
-At this point the state of the widget's element tree is no longer stable.
-To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by
-calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.
-
-When the exception was thrown, this was the stack:
-#0      Element._debugCheckStateIsActiveForAncestorLookup.<anonymous closure> (package:flutter/src/widgets/framework.dart:5049:9)
-#1      Element._debugCheckStateIsActiveForAncestorLookup (package:flutter/src/widgets/framework.dart:5063:6)
-#2      Element.visitAncestorElements (package:flutter/src/widgets/framework.dart:5174:12)
-#3      _describeRelevantUserCode (package:flutter/src/widgets/widget_inspector.dart:4242:13)
-#4      _parseDiagnosticsNode (package:flutter/src/widgets/widget_inspector.dart:4161:12)
-#5      debugTransformDebugCreator (package:flutter/src/widgets/widget_inspector.dart:4140:21)
-#6      _FlutterErrorDetailsNode.builder (package:flutter/src/foundation/assertions.dart:1300:31)
-#7      DiagnosticableNode.emptyBodyDescription (package:flutter/src/foundation/diagnostics.dart:2939:45)
-#8      TextTreeRenderer._debugRender (package:flutter/src/foundation/diagnostics.dart:1307:14)
-#9      TextTreeRenderer.render (package:flutter/src/foundation/diagnostics.dart:1137:14)
-#10     FlutterError.dumpErrorToConsole (package:flutter/src/foundation/assertions.dart:1030:13)
-#11     TestWidgetsFlutterBinding._runTest.<anonymous closure> (package:flutter_test/src/binding.dart:1779:24)
-#12     FlutterError.reportError (package:flutter/src/foundation/assertions.dart:1193:14)
-#13     TestWidgetsFlutterBinding._runTest.handleUncaughtError (package:flutter_test/src/binding.dart:1878:20)
-#14     TestWidgetsFlutterBinding._runTest.<anonymous closure> (package:flutter_test/src/binding.dart:1920:13)
-<asynchronous suspension>
-(elided 5 frames from dart:async)
-
-This exception was caught while trying to describe the user-relevant code of another error.
-════════════════════════════════════════════════════════════════════════════════════════════════════
-00:23 +149 -1: /home/runner/work/Student-hodor/Student-hodor/test/leaves_search_test.dart: بحث بلا نتيجة يُظهر رسالة ولا ينهار الحوار
-══╡ EXCEPTION CAUGHT BY WIDGETS LIBRARY ╞═══════════════════════════════════════════════════════════
-The following assertion was thrown building Scaffold(dirty, state: ScaffoldState#ea255(tickers:
-tracking 3 tickers)):
-No Directionality widget found.
-Scaffold widgets require a Directionality widget ancestor.
-The specific widget that could not find a Directionality ancestor was:
-  StatefulElement#b3b93(DEFUNCT)
-The ownership chain for the affected widget is: "Scaffold ← LeavesScreen ← UncontrolledProviderScope
-  ← ProviderScope ← _FocusInheritedScope ← _FocusScopeWithExternalFocusNode ← _FocusInheritedScope ←
-  Focus ← FocusTraversalGroup ← MediaQuery ← ⋯"
-Typically, the Directionality widget is introduced by the MaterialApp or WidgetsApp widget at the
-top of your application widget tree. It determines the ambient reading direction and is used, for
-example, to determine how to lay out text, how to interpret "start" and "end" values, and to resolve
-EdgeInsetsDirectional, AlignmentDirectional, and other *Directional objects.
-
-When the exception was thrown, this was the stack:
-#0      debugCheckHasDirectionality.<anonymous closure> (package:flutter/src/widgets/debug.dart:375:7)
-#1      debugCheckHasDirectionality (package:flutter/src/widgets/debug.dart:397:4)
-#2      ScaffoldState.build (package:flutter/src/material/scaffold.dart:3014:12)
-#3      StatefulElement.build (package:flutter/src/widgets/framework.dart:5931:27)
-#4      ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5817:15)
-#5      StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
-#6      Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
-#7      ComponentElement._firstBuild (package:flutter/src/widgets/framework.dart:5799:5)
-#8      StatefulElement._firstBuild (package:flutter/src/widgets/framework.dart:5973:11)
-#9      ComponentElement.mount (package:flutter/src/widgets/framework.dart:5793:5)
-...     Normal element mounting (15 frames)
-#24     _UncontrolledProviderScopeElement.mount (package:flutter_riverpod/src/framework.dart:315:11)
-...     Normal element mounting (9 frames)
-#33     Element.inflateWidget (package:flutter/src/widgets/framework.dart:4587:20)
-#34     Element.updateChild (package:flutter/src/widgets/framework.dart:4053:20)
-#35     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
-#36     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
-#37     ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
-#38     _InheritedNotifierElement.update (package:flutter/src/widgets/inherited_notifier.dart:108:11)
-#39     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
-#40     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
-#41     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
-#42     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
-#43     StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
-#44     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
-#45     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
-#46     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
-#47     ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
-#48     _InheritedNotifierElement.update (package:flutter/src/widgets/inherited_notifier.dart:108:11)
-#49     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
-#50     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
-#51     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
-#52     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
-#53     StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
-#54     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
-#55     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
-#56     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
-#57     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
-#58     StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
-#59     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
-#60     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
-#61     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
-#62     ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
-#63     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
-#64     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
-#65     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
-#66     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
-#67     StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
-#68     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
-#69     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
-#70     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
-#71     ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
-#72     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
-#73     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
-#74     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
-#75     ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
-#76     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
-#77     _RawViewElement._updateChild (package:flutter/src/widgets/view.dart:481:16)
-#78     _RawViewElement.update (package:flutter/src/widgets/view.dart:568:5)
-#79     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
-#80     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
-#81     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
-#82     StatelessElement.update (package:flutter/src/widgets/framework.dart:5895:5)
-#83     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
-#84     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
-#85     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
-#86     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
-#87     StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
-#88     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
-#89     RootElement._rebuild (package:flutter/src/widgets/binding.dart:2091:16)
-#90     RootElement.update (package:flutter/src/widgets/binding.dart:2069:5)
-#91     RootElement.performRebuild (package:flutter/src/widgets/binding.dart:2083:7)
-#92     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
-#93     BuildScope._tryRebuild (package:flutter/src/widgets/framework.dart:2750:15)
-#94     BuildScope._flushDirtyElements (package:flutter/src/widgets/framework.dart:2807:11)
-#95     BuildOwner.buildScope (package:flutter/src/widgets/framework.dart:3111:18)
-#96     AutomatedTestWidgetsFlutterBinding.drawFrame (package:flutter_test/src/binding.dart:2431:19)
-#97     RendererBinding._handlePersistentFrameCallback (package:flutter/src/rendering/binding.dart:509:5)
-#98     SchedulerBinding._invokeFrameCallback (package:flutter/src/scheduler/binding.dart:1430:15)
-#99     SchedulerBinding.handleDrawFrame (package:flutter/src/scheduler/binding.dart:1345:9)
-#100    AutomatedTestWidgetsFlutterBinding.pump.<anonymous closure> (package:flutter_test/src/binding.dart:2260:9)
-#103    TestAsyncUtils.guard (package:flutter_test/src/test_async_utils.dart:74:41)
-#104    AutomatedTestWidgetsFlutterBinding.pump (package:flutter_test/src/binding.dart:2249:27)
-#105    WidgetTester.pumpWidget.<anonymous closure> (package:flutter_test/src/widget_tester.dart:598:22)
-#108    TestAsyncUtils.guard (package:flutter_test/src/test_async_utils.dart:74:41)
-#109    WidgetTester.pumpWidget (package:flutter_test/src/widget_tester.dart:595:27)
-#110    main.<anonymous closure> (file:///home/runner/work/Student-hodor/Student-hodor/test/leaves_search_test.dart:123:22)
-<asynchronous suspension>
-#111    testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
-<asynchronous suspension>
-#112    TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1952:5)
-<asynchronous suspension>
-<asynchronous suspension>
-(elided 5 frames from dart:async and package:stack_trace)
-
-════════════════════════════════════════════════════════════════════════════════════════════════════
-══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
-The following assertion was thrown running a test:
-The finder "Found 0 widgets with type "FloatingActionButton": []" (used in a call to "tap()") could
-not find any matching widgets.
-
-When the exception was thrown, this was the stack:
-#0      WidgetController._getElementPoint (package:flutter_test/src/controller.dart:2095:7)
-#1      WidgetController.getCenter (package:flutter_test/src/controller.dart:1947:12)
-#2      WidgetController.tap (package:flutter_test/src/controller.dart:1080:7)
-#3      main.<anonymous closure> (file:///home/runner/work/Student-hodor/Student-hodor/test/leaves_search_test.dart:130:22)
-<asynchronous suspension>
-#4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
-<asynchronous suspension>
-#5      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1952:5)
-<asynchronous suspension>
-<asynchronous suspension>
-(elided one frame from package:stack_trace)
-
-The test description was:
-  بحث بلا نتيجة يُظهر رسالة ولا ينهار الحوار
-════════════════════════════════════════════════════════════════════════════════════════════════════
-══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
-The following message was thrown:
-Multiple exceptions (2) were detected during the running of the current test, and at least one was
-unexpected.
-════════════════════════════════════════════════════════════════════════════════════════════════════
-00:23 +149 -2: /home/runner/work/Student-hodor/Student-hodor/test/leaves_search_test.dart: بحث بلا نتيجة يُظهر رسالة ولا ينهار الحوار [E]
-  Test failed. See exception logs above.
-  The test description was: بحث بلا نتيجة يُظهر رسالة ولا ينهار الحوار
-  
-══╡ EXCEPTION CAUGHT BY WIDGET INSPECTOR ╞══════════════════════════════════════════════════════════
-The following assertion was thrown:
-Looking up a deactivated widget's ancestor is unsafe.
-At this point the state of the widget's element tree is no longer stable.
-To safely refer to a widget's ancestor in its dispose() method, save a reference to the ancestor by
-calling dependOnInheritedWidgetOfExactType() in the widget's didChangeDependencies() method.
-
-When the exception was thrown, this was the stack:
-#0      Element._debugCheckStateIsActiveForAncestorLookup.<anonymous closure> (package:flutter/src/widgets/framework.dart:5049:9)
-#1      Element._debugCheckStateIsActiveForAncestorLookup (package:flutter/src/widgets/framework.dart:5063:6)
-#2      Element.visitAncestorElements (package:flutter/src/widgets/framework.dart:5174:12)
-#3      _describeRelevantUserCode (package:flutter/src/widgets/widget_inspector.dart:4242:13)
-#4      _parseDiagnosticsNode (package:flutter/src/widgets/widget_inspector.dart:4161:12)
-#5      debugTransformDebugCreator (package:flutter/src/widgets/widget_inspector.dart:4140:21)
-#6      _FlutterErrorDetailsNode.builder (package:flutter/src/foundation/assertions.dart:1300:31)
-#7      DiagnosticableNode.emptyBodyDescription (package:flutter/src/foundation/diagnostics.dart:2939:45)
-#8      TextTreeRenderer._debugRender (package:flutter/src/foundation/diagnostics.dart:1307:14)
-#9      TextTreeRenderer.render (package:flutter/src/foundation/diagnostics.dart:1137:14)
-#10     FlutterError.dumpErrorToConsole (package:flutter/src/foundation/assertions.dart:1030:13)
-#11     TestWidgetsFlutterBinding._runTest.<anonymous closure> (package:flutter_test/src/binding.dart:1779:24)
-#12     FlutterError.reportError (package:flutter/src/foundation/assertions.dart:1193:14)
-#13     TestWidgetsFlutterBinding._runTest.handleUncaughtError (package:flutter_test/src/binding.dart:1878:20)
-#14     TestWidgetsFlutterBinding._runTest.<anonymous closure> (package:flutter_test/src/binding.dart:1920:13)
-<asynchronous suspension>
-(elided 5 frames from dart:async)
-
-This exception was caught while trying to describe the user-relevant code of another error.
-════════════════════════════════════════════════════════════════════════════════════════════════════
-00:24 +149 -2: /home/runner/work/Student-hodor/Student-hodor/test/lesson_alerts_test.dart: تنبيه يحدد اللحظات الواجب التنبيه عنها ويسجل الحالة (لا تكرار)
-00:24 +150 -2: /home/runner/work/Student-hodor/Student-hodor/test/lesson_alerts_test.dart: تنبيه النهاية يُسجّل عند بلوغ موعدها
-00:24 +151 -2: /home/runner/work/Student-hodor/Student-hodor/test/lesson_alerts_test.dart: تعطيل التنبيهات يكتم كل شيء ولا يمسّ الحالة
-00:24 +152 -2: /home/runner/work/Student-hodor/Student-hodor/test/lesson_alerts_test.dart: قيم «تم التنبيه» القديمة تُنظَّف في كل دورة
-00:24 +153 -2: /home/runner/work/Student-hodor/Student-hodor/test/lesson_alerts_test.dart: وقت تالف في الحصة يُتخطى بلا استثناء
-00:24 +154 -2: /home/runner/work/Student-hodor/Student-hodor/test/lesson_alerts_test.dart: يوم عطلة لا يُنبّه
-00:24 +155 -2: /home/runner/work/Student-hodor/Student-hodor/test/closure_execution_test.dart: إقفال تلقائي يولّد غياباً لمن لم يسجل ويُبقي الحضور والتأخير
-00:24 +156 -2: /home/runner/work/Student-hodor/Student-hodor/test/closure_execution_test.dart: الإجازة تمنع الغياب (يوم كامل وجزئي لحصة أخرى)
-00:24 +157 -2: /home/runner/work/Student-hodor/Student-hodor/test/closure_execution_test.dart: إجازة أُضيفت بعد الإقفال تُحوّل الغياب لإجازة ولا تُحذف السجل
-00:24 +158 -2: /home/runner/work/Student-hodor/Student-hodor/test/closure_execution_test.dart: حذف الإجازة بعد الإقفال يعيد الغياب (إعادة احتساب)
-00:24 +159 -2: /home/runner/work/Student-hodor/Student-hodor/test/closure_execution_test.dart: إعادة فتح الحصة ثم مهمة إقفال لا تُولّد غياباً مكرراً
-00:24 +160 -2: /home/runner/work/Student-hodor/Student-hodor/test/closure_execution_test.dart: الإقفال التلقائي يسجّل في سجل التدقيق
-00:24 +161 -2: /home/runner/work/Student-hodor/Student-hodor/test/closure_execution_test.dart: يوم عطلة: لا مهمة ولا غياب من الجدولة
-00:24 +162 -2: /home/runner/work/Student-hodor/Student-hodor/test/closure_execution_test.dart: المسح بعد الإقفال يسجل حضوراً ولا يغيّر مهمة الإقفال
-00:24 +163 -2: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: تشكيل سياقي: محمد
-00:24 +164 -2: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: لام-ألف نهائية بعد حرف متصل: سلام
-00:24 +165 -2: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: لام-ألف معزولة في بداية الكلمة: لام
-00:24 +166 -2: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: حروف لا تتصل بما بعدها: أداء
-00:24 +167 -2: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: التشكيل يُحذف افتراضياً ويبقى اختيارياً
-00:24 +168 -2: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: الترتيب البصري يبقي الأرقام متسلسلة ويضعها بموضعها
-00:24 +169 -2: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: نص لاتيني داخل سياق عربي لا ينكسر
-00:24 +170 -2: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: arabicForPdf لا يرمي على نص فارغ أو أرقام فقط
-00:24 +171 -2: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: التطويل يُحفَظ: فاصل الصف «السادس ـ أ» لا يتحول لفراغ مزدوج
-00:24 +172 -2: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: الأقواس حول عربية تُعكَس صورها وتبقى بموضعها
-00:24 +173 -2: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: نص لاتيني خالص بأقواس يُترَك كما هو
-00:24 +174 -2: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: زوج أقواس يحوي خليطاً لا ينكسر ولا تُقلَب محتوياته
-00:24 +175 -2: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: لا فراغ مضاعف حول الأرقام داخل السياق العربي
-00:24 +176 -2: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: عبارة لاتينية داخل عربية تبقى كتلة واحدة لا تنعكس كلماتها
-00:24 +177 -2: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: ملتصقات الأرقام لا تنفصل: النسبة مع رقمها والسالب معه
-00:24 +178 -2: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: أشكال التقديم مطابقة ليونيكود: كل حرف بشكله المعزول الصحيح
-00:24 +179 -2: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: كلمات ذهبية بأشكال مواضعها الصحيحة (ابتدائي/وسطي/نهائي)
-00:24 +180 -2: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: لام-ألف وحدها صاحبة النطاق FEF5-FEFC لا الياء
-00:25 +181 -2: /home/runner/work/Student-hodor/Student-hodor/test/student_phone_test.dart: الهاتف الاختياري يُحفظ ويُسترجع
-00:25 +182 -2: /home/runner/work/Student-hodor/Student-hodor/test/student_phone_test.dart: سطر هاتف الباج: الرقم أو فراغ 11 رقماً
-00:25 +183 -2: /home/runner/work/Student-hodor/Student-hodor/test/backup_roundtrip_test.dart: تسلسل الطالب يحمل الهاتف ذهاباً وإياباً
-00:26 +184 -2: /home/runner/work/Student-hodor/Student-hodor/test/backup_roundtrip_test.dart: حاوية zip: الصور والتدقيق والهاتف ذهاباً وإياباً
+00:26 +162 -1: /home/runner/work/Student-hodor/Student-hodor/test/leaves_search_test.dart: بحث بلا نتيجة يُظهر رسالة ولا ينهار الحوار
+00:26 +163 -1: /home/runner/work/Student-hodor/Student-hodor/test/leaves_search_test.dart: بحث بلا نتيجة يُظهر رسالة ولا ينهار الحوار
+00:27 +164 -1: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: تشكيل سياقي: محمد
+00:27 +165 -1: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: لام-ألف نهائية بعد حرف متصل: سلام
+00:27 +166 -1: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: لام-ألف معزولة في بداية الكلمة: لام
+00:27 +167 -1: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: حروف لا تتصل بما بعدها: أداء
+00:27 +168 -1: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: التشكيل يُحذف افتراضياً ويبقى اختيارياً
+00:27 +169 -1: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: الترتيب البصري يبقي الأرقام متسلسلة ويضعها بموضعها
+00:27 +170 -1: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: نص لاتيني داخل سياق عربي لا ينكسر
+00:27 +171 -1: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: arabicForPdf لا يرمي على نص فارغ أو أرقام فقط
+00:27 +172 -1: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: التطويل يُحفَظ: فاصل الصف «السادس ـ أ» لا يتحول لفراغ مزدوج
+00:27 +173 -1: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: الأقواس حول عربية تُعكَس صورها وتبقى بموضعها
+00:27 +174 -1: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: نص لاتيني خالص بأقواس يُترَك كما هو
+00:27 +175 -1: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: زوج أقواس يحوي خليطاً لا ينكسر ولا تُقلَب محتوياته
+00:27 +176 -1: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: لا فراغ مضاعف حول الأرقام داخل السياق العربي
+00:27 +177 -1: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: عبارة لاتينية داخل عربية تبقى كتلة واحدة لا تنعكس كلماتها
+00:27 +178 -1: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: ملتصقات الأرقام لا تنفصل: النسبة مع رقمها والسالب معه
+00:27 +179 -1: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: أشكال التقديم مطابقة ليونيكود: كل حرف بشكله المعزول الصحيح
+00:27 +180 -1: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: كلمات ذهبية بأشكال مواضعها الصحيحة (ابتدائي/وسطي/نهائي)
+00:27 +181 -1: /home/runner/work/Student-hodor/Student-hodor/test/arabic_shaping_test.dart: لام-ألف وحدها صاحبة النطاق FEF5-FEFC لا الياء
+00:27 +182 -1: /home/runner/work/Student-hodor/Student-hodor/test/student_phone_test.dart: الهاتف الاختياري يُحفظ ويُسترجع
+00:27 +183 -1: /home/runner/work/Student-hodor/Student-hodor/test/student_phone_test.dart: سطر هاتف الباج: الرقم أو فراغ 11 رقماً
+00:28 +184 -1: /home/runner/work/Student-hodor/Student-hodor/test/backup_roundtrip_test.dart: تسلسل الطالب يحمل الهاتف ذهاباً وإياباً
+00:28 +185 -1: /home/runner/work/Student-hodor/Student-hodor/test/backup_roundtrip_test.dart: حاوية zip: الصور والتدقيق والهاتف ذهاباً وإياباً
 WARNING (drift): It looks like you've created the database class AppDb multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
@@ -777,7 +469,7 @@ Here is the stacktrace from when the database was opened a second time:
 #8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
-00:26 +185 -2: /home/runner/work/Student-hodor/Student-hodor/test/backup_roundtrip_test.dart: نسخة JSON قديمة تُسترجع كاملة (بلا صور ولا تدقيق مستورد)
+00:28 +186 -1: /home/runner/work/Student-hodor/Student-hodor/test/backup_roundtrip_test.dart: نسخة JSON قديمة تُسترجع كاملة (بلا صور ولا تدقيق مستورد)
 WARNING (drift): It looks like you've created the database class AppDb multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
@@ -795,46 +487,46 @@ Here is the stacktrace from when the database was opened a second time:
 #8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
-00:26 +186 -2: /home/runner/work/Student-hodor/Student-hodor/test/close_day_test.dart: إقفال اليوم: ست حصص، لا تكرار، والإجازة لا تُمسّ
-00:26 +187 -2: /home/runner/work/Student-hodor/Student-hodor/test/close_day_test.dart: إقفال اليوم ذرّي: فشل لاحق يردّ كل سجلات الإقفال
-00:26 +188 -2: /home/runner/work/Student-hodor/Student-hodor/test/close_day_test.dart: إعادة فتح اليوم ذرّية: فشل لاحق يُبقي الحصص مقفلة
-00:27 +189 -2: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: النطاق من بداية السنة حتى اليوم والحالات في مواضعها
-00:27 +190 -2: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: اليوم بعد نهاية السنة يُكبَت بنهايتها
-00:27 +191 -2: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: Excel السجل: أيام ملونة وإحصائيات وRTL
-00:27 +192 -2: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: PDF السجل يُبنى صفحات صالحة
-00:27 +193 -2: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: PDF السجل يُبنى صفحات صالحة
-00:27 +194 -2: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: PDF السجل يُبنى صفحات صالحة
-00:27 +195 -2: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: PDF السجل يُبنى صفحات صالحة
-00:27 +196 -2: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: PDF السجل يُبنى صفحات صالحة
-00:27 +197 -2: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: PDF السجل يُبنى صفحات صالحة
-00:27 +198 -2: /home/runner/work/Student-hodor/Student-hodor/test/lessons_test.dart: العقد مع قاعدة البيانات الحضور لكل حصة: غياب حصة لا يمسّ حصة أخرى
-00:27 +199 -2: /home/runner/work/Student-hodor/Student-hodor/test/lessons_test.dart: العقد مع قاعدة البيانات الحضور لكل حصة: غياب حصة لا يمسّ حصة أخرى
-00:27 +200 -2: /home/runner/work/Student-hodor/Student-hodor/test/lessons_test.dart: العقد مع قاعدة البيانات حفظ الجدول يحفظ الهوية ويحمي الحصص ذات السجلات
-00:28 +201 -2: /home/runner/work/Student-hodor/Student-hodor/test/export_screen_test.dart: exportHasContent إكسل: أي قسم يكفي، وانعدام الكل مرفوض
-00:28 +202 -2: /home/runner/work/Student-hodor/Student-hodor/test/export_screen_test.dart: exportHasContent إكسل: الغيابات وحدها قسم كافٍ
-00:28 +203 -2: /home/runner/work/Student-hodor/Student-hodor/test/export_screen_test.dart: exportHasContent سجل الحصص التفصيلي قسم كافٍ في الصيغتين
-00:28 +204 -2: /home/runner/work/Student-hodor/Student-hodor/test/export_screen_test.dart: exportHasContent سجل الحصص وحده كافٍ في Excel وPDF (انحدار: زر التوليد)
-00:28 +205 -2: /home/runner/work/Student-hodor/Student-hodor/test/export_screen_test.dart: exportHasContent سجل الحصص مع قسم آخر يبقى صالحاً، ولا اختيار يُرفض في الصيغتين
-00:28 +206 -2: /home/runner/work/Student-hodor/Student-hodor/test/export_screen_test.dart: exportHasContent PDF: الإجازات ليست قسماً (خاصة بإكسل)
-00:28 +207 -2: /home/runner/work/Student-hodor/Student-hodor/test/migration_v7_test.dart: ترقية 6⇒7 تُنشئ جدول المهمات فارغاً وتُبقي البيانات
-00:29 +208 -2: /home/runner/work/Student-hodor/Student-hodor/test/migration_v7_test.dart: قاعدة جديدة تكتب الإصدار 7 من أول فتح
-00:29 +209 -2: /home/runner/work/Student-hodor/Student-hodor/test/fk_integrity_test.dart: قاعدة جديدة: التفعيل فعّال والسجل اليتيم يُرفض فعلاً
-00:29 +210 -2: /home/runner/work/Student-hodor/Student-hodor/test/fk_integrity_test.dart: قاعدة موجودة تُفتح من جديد: التفعيل يُطبَّق على الاتصال الجديد
-00:29 +211 -2: /home/runner/work/Student-hodor/Student-hodor/test/fk_integrity_test.dart: حذف سنة دراسية: لا صفوف يتيمة والسنة الأخرى سليمة
-00:29 +212 -2: /home/runner/work/Student-hodor/Student-hodor/test/fk_integrity_test.dart: حذف صف: المحمي يُرفض بلا أثر، والفارغ يُحذف بسلامة
-00:29 +213 -2: /home/runner/work/Student-hodor/Student-hodor/test/fk_integrity_test.dart: ارتداد معاملة فاشلة: لا كتابة جزئية والسلامة قائمة
-00:30 +214 -2: /home/runner/work/Student-hodor/Student-hodor/test/excel_export_test.dart: ملف Excel المصدَّر كل أوراقه RTL وتجميد العنوانين محفوظان داخل الـxlsx
-00:30 +215 -2: /home/runner/work/Student-hodor/Student-hodor/test/excel_export_test.dart: ملف Excel المصدَّر يبقى صالحاً بعد الترقيع: أسماء أوراق عربية وبلا Sheet1
-00:30 +216 -2: /home/runner/work/Student-hodor/Student-hodor/test/excel_export_test.dart: ملف Excel المصدَّر تصدير بلا أوراق حقيقية يُبقي ورقة واحدة ولا يُنتج ملفاً تالفاً
-00:30 +217 -2: /home/runner/work/Student-hodor/Student-hodor/test/excel_export_test.dart: ملف Excel المصدَّر ترويسة الكشف اليومي: لا عمود فارغاً والمجاميع في مكانها
-00:30 +218 -2: /home/runner/work/Student-hodor/Student-hodor/test/backup_compat_test.dart: نسخة v1 حقيقية: كل سجل يعود كما هو، والحقول المستحدثة تأخذ دلالتها
-00:30 +219 -2: /home/runner/work/Student-hodor/Student-hodor/test/backup_compat_test.dart: نسخة v1 حقيقية: كل سجل يعود كما هو، والحقول المستحدثة تأخذ دلالتها
-00:30 +220 -2: /home/runner/work/Student-hodor/Student-hodor/test/backup_compat_test.dart: نسخة v1 حقيقية: كل سجل يعود كما هو، والحقول المستحدثة تأخذ دلالتها
-00:30 +221 -2: /home/runner/work/Student-hodor/Student-hodor/test/backup_compat_test.dart: نسخة v1 حقيقية: كل سجل يعود كما هو، والحقول المستحدثة تأخذ دلالتها
-00:30 +222 -2: /home/runner/work/Student-hodor/Student-hodor/test/backup_compat_test.dart: نسخة v1 حقيقية: كل سجل يعود كما هو، والحقول المستحدثة تأخذ دلالتها
-00:30 +223 -2: /home/runner/work/Student-hodor/Student-hodor/test/backup_compat_test.dart: نسخة v1 حقيقية: كل سجل يعود كما هو، والحقول المستحدثة تأخذ دلالتها
-00:30 +224 -2: /home/runner/work/Student-hodor/Student-hodor/test/backup_compat_test.dart: نسخة v2 حقيقية (zip بصور): الهاتف ووقت الوصول والتنبيهات تعود كما هي
-00:30 +225 -2: /home/runner/work/Student-hodor/Student-hodor/test/backup_compat_test.dart: نسخة v3 كاملة: كل صف يعود حرفياً بلا فقدان أي حقل
+00:28 +187 -1: /home/runner/work/Student-hodor/Student-hodor/test/close_day_test.dart: إقفال اليوم: ست حصص، لا تكرار، والإجازة لا تُمسّ
+00:28 +188 -1: /home/runner/work/Student-hodor/Student-hodor/test/close_day_test.dart: إقفال اليوم ذرّي: فشل لاحق يردّ كل سجلات الإقفال
+00:28 +189 -1: /home/runner/work/Student-hodor/Student-hodor/test/close_day_test.dart: إعادة فتح اليوم ذرّية: فشل لاحق يُبقي الحصص مقفلة
+00:29 +190 -1: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: النطاق من بداية السنة حتى اليوم والحالات في مواضعها
+00:29 +191 -1: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: اليوم بعد نهاية السنة يُكبَت بنهايتها
+00:29 +192 -1: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: Excel السجل: أيام ملونة وإحصائيات وRTL
+00:29 +193 -1: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: Excel السجل: أيام ملونة وإحصائيات وRTL
+00:29 +194 -1: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: Excel السجل: أيام ملونة وإحصائيات وRTL
+00:29 +195 -1: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: Excel السجل: أيام ملونة وإحصائيات وRTL
+00:29 +196 -1: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: Excel السجل: أيام ملونة وإحصائيات وRTL
+00:29 +197 -1: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: Excel السجل: أيام ملونة وإحصائيات وRTL
+00:29 +198 -1: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: Excel السجل: أيام ملونة وإحصائيات وRTL
+00:29 +199 -1: /home/runner/work/Student-hodor/Student-hodor/test/lessons_test.dart: العقد مع قاعدة البيانات حفظ الجدول يحفظ الهوية ويحمي الحصص ذات السجلات
+00:29 +200 -1: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: PDF السجل يُبنى صفحات صالحة
+00:29 +201 -1: /home/runner/work/Student-hodor/Student-hodor/test/student_record_test.dart: اسم ملف السجل عربي وآمن
+00:30 +202 -1: /home/runner/work/Student-hodor/Student-hodor/test/export_screen_test.dart: exportHasContent إكسل: أي قسم يكفي، وانعدام الكل مرفوض
+00:30 +203 -1: /home/runner/work/Student-hodor/Student-hodor/test/export_screen_test.dart: exportHasContent إكسل: الغيابات وحدها قسم كافٍ
+00:30 +204 -1: /home/runner/work/Student-hodor/Student-hodor/test/export_screen_test.dart: exportHasContent سجل الحصص التفصيلي قسم كافٍ في الصيغتين
+00:30 +205 -1: /home/runner/work/Student-hodor/Student-hodor/test/export_screen_test.dart: exportHasContent سجل الحصص وحده كافٍ في Excel وPDF (انحدار: زر التوليد)
+00:30 +206 -1: /home/runner/work/Student-hodor/Student-hodor/test/export_screen_test.dart: exportHasContent سجل الحصص مع قسم آخر يبقى صالحاً، ولا اختيار يُرفض في الصيغتين
+00:30 +207 -1: /home/runner/work/Student-hodor/Student-hodor/test/export_screen_test.dart: exportHasContent PDF: الإجازات ليست قسماً (خاصة بإكسل)
+00:30 +208 -1: /home/runner/work/Student-hodor/Student-hodor/test/migration_v7_test.dart: ترقية 6⇒7 تُنشئ جدول المهمات فارغاً وتُبقي البيانات
+00:31 +209 -1: /home/runner/work/Student-hodor/Student-hodor/test/migration_v7_test.dart: قاعدة جديدة تكتب الإصدار 7 من أول فتح
+00:31 +210 -1: /home/runner/work/Student-hodor/Student-hodor/test/fk_integrity_test.dart: قاعدة جديدة: التفعيل فعّال والسجل اليتيم يُرفض فعلاً
+00:31 +211 -1: /home/runner/work/Student-hodor/Student-hodor/test/fk_integrity_test.dart: قاعدة موجودة تُفتح من جديد: التفعيل يُطبَّق على الاتصال الجديد
+00:31 +212 -1: /home/runner/work/Student-hodor/Student-hodor/test/fk_integrity_test.dart: حذف سنة دراسية: لا صفوف يتيمة والسنة الأخرى سليمة
+00:31 +213 -1: /home/runner/work/Student-hodor/Student-hodor/test/fk_integrity_test.dart: حذف صف: المحمي يُرفض بلا أثر، والفارغ يُحذف بسلامة
+00:31 +214 -1: /home/runner/work/Student-hodor/Student-hodor/test/fk_integrity_test.dart: ارتداد معاملة فاشلة: لا كتابة جزئية والسلامة قائمة
+00:31 +215 -1: /home/runner/work/Student-hodor/Student-hodor/test/excel_export_test.dart: ملف Excel المصدَّر كل أوراقه RTL وتجميد العنوانين محفوظان داخل الـxlsx
+00:32 +216 -1: /home/runner/work/Student-hodor/Student-hodor/test/excel_export_test.dart: ملف Excel المصدَّر يبقى صالحاً بعد الترقيع: أسماء أوراق عربية وبلا Sheet1
+00:32 +217 -1: /home/runner/work/Student-hodor/Student-hodor/test/excel_export_test.dart: ملف Excel المصدَّر تصدير بلا أوراق حقيقية يُبقي ورقة واحدة ولا يُنتج ملفاً تالفاً
+00:32 +218 -1: /home/runner/work/Student-hodor/Student-hodor/test/excel_export_test.dart: ملف Excel المصدَّر ترويسة الكشف اليومي: لا عمود فارغاً والمجاميع في مكانها
+00:32 +219 -1: /home/runner/work/Student-hodor/Student-hodor/test/backup_compat_test.dart: نسخة v1 حقيقية: كل سجل يعود كما هو، والحقول المستحدثة تأخذ دلالتها
+00:32 +220 -1: /home/runner/work/Student-hodor/Student-hodor/test/backup_compat_test.dart: نسخة v1 حقيقية: كل سجل يعود كما هو، والحقول المستحدثة تأخذ دلالتها
+00:32 +221 -1: /home/runner/work/Student-hodor/Student-hodor/test/backup_compat_test.dart: نسخة v1 حقيقية: كل سجل يعود كما هو، والحقول المستحدثة تأخذ دلالتها
+00:32 +222 -1: /home/runner/work/Student-hodor/Student-hodor/test/backup_compat_test.dart: نسخة v1 حقيقية: كل سجل يعود كما هو، والحقول المستحدثة تأخذ دلالتها
+00:32 +223 -1: /home/runner/work/Student-hodor/Student-hodor/test/backup_compat_test.dart: نسخة v1 حقيقية: كل سجل يعود كما هو، والحقول المستحدثة تأخذ دلالتها
+00:32 +224 -1: /home/runner/work/Student-hodor/Student-hodor/test/backup_compat_test.dart: نسخة v1 حقيقية: كل سجل يعود كما هو، والحقول المستحدثة تأخذ دلالتها
+00:32 +225 -1: /home/runner/work/Student-hodor/Student-hodor/test/backup_compat_test.dart: نسخة v2 حقيقية (zip بصور): الهاتف ووقت الوصول والتنبيهات تعود كما هي
+00:33 +226 -1: /home/runner/work/Student-hodor/Student-hodor/test/backup_compat_test.dart: نسخة v3 كاملة: كل صف يعود حرفياً بلا فقدان أي حقل
 WARNING (drift): It looks like you've created the database class AppDb multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
@@ -853,7 +545,7 @@ Here is the stacktrace from when the database was opened a second time:
 #9      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
-00:30 +226 -2: /home/runner/work/Student-hodor/Student-hodor/test/backup_compat_test.dart: أنواع غير صحيحة تُرفض قبل أي كتابة، برسالة تحدد القسم
+00:33 +227 -1: /home/runner/work/Student-hodor/Student-hodor/test/backup_compat_test.dart: أنواع غير صحيحة تُرفض قبل أي كتابة، برسالة تحدد القسم
 WARNING (drift): It looks like you've created the database class AppDb multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
@@ -908,7 +600,7 @@ Here is the stacktrace from when the database was opened a second time:
 #9      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
-00:31 +227 -2: /home/runner/work/Student-hodor/Student-hodor/test/backup_compat_test.dart: مراجع أجنبية يتيمة تُرفض قبل أي كتابة في كل قسم
+00:33 +228 -1: /home/runner/work/Student-hodor/Student-hodor/test/backup_compat_test.dart: مراجع أجنبية يتيمة تُرفض قبل أي كتابة في كل قسم
 WARNING (drift): It looks like you've created the database class AppDb multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
@@ -981,7 +673,7 @@ Here is the stacktrace from when the database was opened a second time:
 #9      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
-00:31 +228 -2: /home/runner/work/Student-hodor/Student-hodor/test/backup_compat_test.dart: حقل إلزامي في المخطط الأول (`closed`) لا يُخترع له افتراضي
+00:33 +229 -1: /home/runner/work/Student-hodor/Student-hodor/test/backup_compat_test.dart: حقل إلزامي في المخطط الأول (`closed`) لا يُخترع له افتراضي
 WARNING (drift): It looks like you've created the database class AppDb multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
 Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
 Here is the stacktrace from when the database was opened a second time:
@@ -999,23 +691,22 @@ Here is the stacktrace from when the database was opened a second time:
 #9      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
 <asynchronous suspension>
 This warning will only appear on debug builds.
-00:31 +229 -2: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: بلوغ الحد الثاني يولّد تنبيهاً واحداً والاحتساب المتكرر لا يُكرر
-00:31 +230 -2: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: خفض العتبة في الإعدادات يُدخل من لم يكن على القائمة
-00:31 +231 -2: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: ازدياد الغياب يحدّث الإحصاء بلا تنبيه جديد
-00:31 +232 -2: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: من انخفض تحت العتبة يحتفظ بتنبيهه (سجل تاريخي)
-00:32 +233 -2: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: وسم القراءة: فردي وجماعي — ويحرّك عدّاد الجرس
-00:32 +234 -2: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: وسم القراءة: فردي وجماعي — ويحرّك عدّاد الجرس
-00:32 +235 -2: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: وسم القراءة: فردي وجماعي — ويحرّك عدّاد الجرس
-00:32 +236 -2: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: وسم القراءة: فردي وجماعي — ويحرّك عدّاد الجرس
-00:32 +237 -2: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: وسم القراءة: فردي وجماعي — ويحرّك عدّاد الجرس
-00:32 +238 -2: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: حذف الطالب يحذف تنبيهه (حذف متسلسل)
-00:32 +239 -2: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: بلا سنة فعّالة لا تُحسب تنبيهات
-00:32 +240 -2: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: تحليل الحمولة: مسار ووسم، والتالف لا ينفجر
-00:32 +241 -2: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: تسوية أيام العتبة نصياً
-00:32 +242 -2: /home/runner/work/Student-hodor/Student-hodor/test/seq_and_badge_test.dart: تسلسل السنة فريد عبر صفين ورموز البادجات لا تتصادم
-00:32 +243 -2: /home/runner/work/Student-hodor/Student-hodor/test/seq_and_badge_test.dart: بدل فاقد: إبطال القديم وإصدار رمز مختلف صالح للقراءة
-00:32 +244 -2: Some tests failed.
+00:33 +230 -1: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: بلوغ الحد الثاني يولّد تنبيهاً واحداً والاحتساب المتكرر لا يُكرر
+00:33 +231 -1: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: خفض العتبة في الإعدادات يُدخل من لم يكن على القائمة
+00:33 +232 -1: /home/runner/work/Student-hodor/Student-hodor/test/school_time_test.dart: الجمعة والسبت خارج أيام الدوام الافتراضية
+00:34 +233 -1: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: ازدياد الغياب يحدّث الإحصاء بلا تنبيه جديد
+00:34 +234 -1: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: ازدياد الغياب يحدّث الإحصاء بلا تنبيه جديد
+00:34 +235 -1: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: ازدياد الغياب يحدّث الإحصاء بلا تنبيه جديد
+00:34 +236 -1: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: ازدياد الغياب يحدّث الإحصاء بلا تنبيه جديد
+00:34 +237 -1: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: من انخفض تحت العتبة يحتفظ بتنبيهه (سجل تاريخي)
+00:34 +238 -1: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: وسم القراءة: فردي وجماعي — ويحرّك عدّاد الجرس
+00:34 +239 -1: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: حذف الطالب يحذف تنبيهه (حذف متسلسل)
+00:34 +240 -1: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: بلا سنة فعّالة لا تُحسب تنبيهات
+00:34 +241 -1: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: تحليل الحمولة: مسار ووسم، والتالف لا ينفجر
+00:34 +242 -1: /home/runner/work/Student-hodor/Student-hodor/test/notifications_test.dart: تسوية أيام العتبة نصياً
+00:34 +243 -1: /home/runner/work/Student-hodor/Student-hodor/test/seq_and_badge_test.dart: تسلسل السنة فريد عبر صفين ورموز البادجات لا تتصادم
+00:34 +244 -1: /home/runner/work/Student-hodor/Student-hodor/test/seq_and_badge_test.dart: بدل فاقد: إبطال القديم وإصدار رمز مختلف صالح للقراءة
+00:34 +245 -1: Some tests failed.
 
 Failing tests:
   /home/runner/work/Student-hodor/Student-hodor/test/leaves_search_test.dart: بحث الطلاب في حوار الإجازة يصفي القائمة حسب الاسم
-  /home/runner/work/Student-hodor/Student-hodor/test/leaves_search_test.dart: بحث بلا نتيجة يُظهر رسالة ولا ينهار الحوار

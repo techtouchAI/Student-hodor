@@ -521,6 +521,10 @@ class AppDb extends _$AppDb {
     'alert_threshold_2': '15',
     // إشعارات النظام (خارج التطبيق) — مفتوحة افتراضيًا.
     'system_notifications_enabled': '1',
+    // تنبيهات بداية/نهاية الحصة: تنبيه مرئي (وصوتي عند التفعيل) — مفعّل
+    // افتراضيًا. الصوت (جرس المدرسة) اختياري ومفعّل افتراضيًا.
+    'lesson_alerts_enabled': '1',
+    'lesson_alerts_sound': '1',
     'day_start': '08:00',
     'late_after_minutes': '15',
   };

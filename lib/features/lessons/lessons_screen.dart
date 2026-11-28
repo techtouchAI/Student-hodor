@@ -56,6 +56,11 @@ class _LessonsScreenState extends ConsumerState<LessonsScreen> {
   bool _saving = false;
   String? _error;
 
+  /// إعدادات تنبيهات الحصص: تنبيه مرئي عند بداية/نهاية الحصة، والصوت
+  /// (جرس المدرسة) — كلاهما مفعّل افتراضيًا.
+  bool _lessonAlerts = true;
+  bool _lessonBell = true;
+
   @override
   void initState() {
     super.initState();
@@ -74,11 +79,14 @@ class _LessonsScreenState extends ConsumerState<LessonsScreen> {
     try {
       final AppDb db = ref.read(dbProvider);
       final List<LessonWindow> lessons = await db.lessonWindows();
+      final Map<String, String> settings = await db.effectiveSettings();
       if (!mounted) {
         return;
       }
       final List<_Draft> old = <_Draft>[..._drafts];
       setState(() {
+        _lessonAlerts = settings['lesson_alerts_enabled'] != '0';
+        _lessonBell = settings['lesson_alerts_sound'] != '0';
         _drafts
           ..clear()
           ..addAll(<_Draft>[
@@ -223,6 +231,24 @@ class _LessonsScreenState extends ConsumerState<LessonsScreen> {
     );
   }
 
+  /// يحفظ إعدادات تنبيهات الحصص فور التبديل: التنبيه يُطبَّق من أول
+  /// دورة زمنية تالية دون الحاجة لحفظ الجدول.
+  Future<void> _setLessonAlert(
+    String key,
+    bool value,
+    void Function(bool applied) onApplied,
+  ) async {
+    try {
+      await ref.read(dbProvider).setSetting(key, value ? '1' : '0');
+      if (mounted) {
+        onApplied(value);
+      }
+    } catch (e, st) {
+      AppErrorLog.instance.record(e, st, where: 'lessons:alertSetting');
+      _snack('تعذر حفظ الإعداد: $e');
+    }
+  }
+
   /// إعادة الملء بالجدول الافتراضي في المحرر **دون حفظ** — يمكن للمستخدم
   /// تعديله أو التراجع قبل الحفظ.
   void _resetDrafts() {
@@ -279,6 +305,48 @@ class _LessonsScreenState extends ConsumerState<LessonsScreen> {
             'تعديل الوقت لا يمسّ السجلات السابقة.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+        ),
+        Card(
+          margin: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                const Text(
+                  'تنبيهات الحصص',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                SwitchListTile(
+                  value: _lessonAlerts,
+                  title: const Text('تنبيه عند بداية ونهاية الحصة'),
+                  subtitle: const Text(
+                    'إشعار مرئي (منبثق في قائمة الإشعارات) يُعرض '
+                    'تلقائيًا عند بلوغ وقت بداية كل حصة ونهايتها',
+                  ),
+                  onChanged: (bool v) => _setLessonAlert(
+                    'lesson_alerts_enabled',
+                    v,
+                    (bool b) => setState(() => _lessonAlerts = b),
+                  ),
+                ),
+                SwitchListTile(
+                  value: _lessonBell,
+                  // التنبيه الصوتي اختياري ومفعّل افتراضيًا.
+                  title: const Text('تنبيه صوتي (جرس المدرسة)'),
+                  subtitle: const Text(
+                    'صوت جرس مدرسي مع التنبيه — يعمل عند تفعيل التنبيهات',
+                  ),
+                  onChanged: (bool v) => _setLessonAlert(
+                    'lesson_alerts_sound',
+                    v,
+                    (bool b) => setState(() => _lessonBell = b),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         Expanded(

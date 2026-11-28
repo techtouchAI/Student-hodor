@@ -173,153 +173,198 @@ class _LeavesState extends ConsumerState<LeavesScreen> {
     int? fromSlot;
     int? toSlot;
     final TextEditingController reason = TextEditingController();
+    // بحث في الطلاب داخل الحوار: مع كثرة الطلاب يصعب الوصول للمطلوب.
+    final TextEditingController search = TextEditingController();
     if (!context.mounted) {
       return;
     }
     final bool? ok = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) => StatefulBuilder(
-        builder: (BuildContext context, StateSetter setSt) => AlertDialog(
-          title: const Text('إجازة جديدة'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                DropdownButtonFormField<Student>(
-                  key: ValueKey<Student?>(picked),
-                  initialValue: picked,
-                  items: <DropdownMenuItem<Student>>[
-                    for (final Student s in students)
-                      DropdownMenuItem<Student>(value: s, child: Text(s.fullName)),
-                  ],
-                  onChanged: (Student? s) => setSt(() => picked = s),
-                  decoration: const InputDecoration(labelText: 'الطالب'),
-                ),
-                ListTile(
-                  title: const Text('من'),
-                  subtitle: Text(SchoolTime.dateKey(start)),
-                  onTap: () async {
-                    final DateTime? d = await showDatePicker(
-                      context: context,
-                      initialDate: start,
-                      firstDate: DateTime(2015),
-                      lastDate: DateTime(2040),
-                    );
-                    if (d != null) {
+        builder: (BuildContext context, StateSetter setSt) {
+          // تصفية الطلاب حسب النص المكتوب: يُسرّع الوصول للطالب المطلوب.
+          final String query = search.text.trim();
+          final List<Student> filtered = query.isEmpty
+              ? students
+              : <Student>[
+                  for (final Student s in students)
+                    if (s.fullName.toLowerCase().contains(query.toLowerCase())) s,
+                ];
+          return AlertDialog(
+            title: const Text('إجازة جديدة'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  TextField(
+                    controller: search,
+                    // عند تصفية الطلاب: يُحدَّد أول طالب مطابق تلقائيًا
+                    // (ولا يبقى اختيار قديم خارج القائمة المعروض).
+                    onChanged: (String v) {
+                      final String q = v.trim();
+                      final List<Student> matches = q.isEmpty
+                          ? students
+                          : <Student>[
+                              for (final Student s in students)
+                                if (s.fullName.toLowerCase().contains(q.toLowerCase())) s,
+                            ];
                       setSt(() {
-                        start = d;
-                        if (end.isBefore(start)) {
-                          end = start;
+                        if (matches.isEmpty) {
+                          picked = null;
+                        } else if (!matches.contains(picked)) {
+                          picked = matches.first;
                         }
                       });
-                    }
-                  },
-                ),
-                ListTile(
-                  title: const Text('إلى'),
-                  subtitle: Text(SchoolTime.dateKey(end)),
-                  onTap: () async {
-                    final DateTime? d = await showDatePicker(
-                      context: context,
-                      initialDate: end,
-                      firstDate: start,
-                      lastDate: DateTime(2040),
-                    );
-                    if (d != null) {
-                      setSt(() => end = d);
-                    }
-                  },
-                ),
-                Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: DropdownButtonFormField<int?>(
-                        key: ValueKey<String?>('from-$fromSlot'),
-                        initialValue: fromSlot,
-                        isExpanded: true,
-                        items: <DropdownMenuItem<int?>>[
-                          const DropdownMenuItem<int?>(
-                            value: null,
-                            child: Text('كل الحصص'),
-                          ),
-                          for (final LessonWindow l in lessons)
-                            DropdownMenuItem<int?>(
-                              value: l.slot,
-                              child: Text(l.displayName),
-                            ),
-                        ],
-                        onChanged: (int? v) => setSt(() {
-                          fromSlot = v;
-                          if (v == null) {
-                            toSlot = null;
-                          } else if (toSlot != null && toSlot! < v) {
-                            toSlot = v;
+                    },
+                    decoration: const InputDecoration(
+                      labelText: 'بحث في الطلاب',
+                      prefixIcon: Icon(Icons.search),
+                      isDense: true,
+                    ),
+                  ),
+                  if (filtered.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 8),
+                      child: Text('لا طالب مطابق للبحث', textAlign: TextAlign.center),
+                    ),
+                  DropdownButtonFormField<Student>(
+                    key: ValueKey<Student?>(picked),
+                    initialValue: picked,
+                    items: <DropdownMenuItem<Student>>[
+                      for (final Student s in filtered)
+                        DropdownMenuItem<Student>(value: s, child: Text(s.fullName)),
+                    ],
+                    onChanged: (Student? s) => setSt(() => picked = s),
+                    decoration: const InputDecoration(labelText: 'الطالب'),
+                  ),
+                  ListTile(
+                    title: const Text('من'),
+                    subtitle: Text(SchoolTime.dateKey(start)),
+                    onTap: () async {
+                      final DateTime? d = await showDatePicker(
+                        context: context,
+                        initialDate: start,
+                        firstDate: DateTime(2015),
+                        lastDate: DateTime(2040),
+                      );
+                      if (d != null) {
+                        setSt(() {
+                          start = d;
+                          if (end.isBefore(start)) {
+                            end = start;
                           }
-                        }),
-                        decoration: const InputDecoration(labelText: 'من الحصة'),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: DropdownButtonFormField<int?>(
-                        key: ValueKey<String?>('to-$toSlot'),
-                        initialValue: toSlot,
-                        isExpanded: true,
-                        items: <DropdownMenuItem<int?>>[
-                          const DropdownMenuItem<int?>(
-                            value: null,
-                            child: Text('آخر اليوم'),
-                          ),
-                          for (final LessonWindow l in lessons)
-                            DropdownMenuItem<int?>(
-                              value: l.slot,
-                              child: Text(l.displayName),
+                        });
+                      }
+                    },
+                  ),
+                  ListTile(
+                    title: const Text('إلى'),
+                    subtitle: Text(SchoolTime.dateKey(end)),
+                    onTap: () async {
+                      final DateTime? d = await showDatePicker(
+                        context: context,
+                        initialDate: end,
+                        firstDate: start,
+                        lastDate: DateTime(2040),
+                      );
+                      if (d != null) {
+                        setSt(() => end = d);
+                      }
+                    },
+                  ),
+                  Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: DropdownButtonFormField<int?>(
+                          key: ValueKey<String?>('from-$fromSlot'),
+                          initialValue: fromSlot,
+                          isExpanded: true,
+                          items: <DropdownMenuItem<int?>>[
+                            const DropdownMenuItem<int?>(
+                              value: null,
+                              child: Text('كل الحصص'),
                             ),
-                        ],
-                        onChanged: fromSlot == null
-                            ? null
-                            : (int? v) => setSt(() {
-                                  toSlot = v;
-                                  if (v != null && fromSlot != null &&
-                                      v < fromSlot!) {
-                                    fromSlot = v;
-                                  }
-                                }),
-                        decoration: const InputDecoration(labelText: 'إلى الحصة'),
+                            for (final LessonWindow l in lessons)
+                              DropdownMenuItem<int?>(
+                                value: l.slot,
+                                child: Text(l.displayName),
+                              ),
+                          ],
+                          onChanged: (int? v) => setSt(() {
+                            fromSlot = v;
+                            if (v == null) {
+                              toSlot = null;
+                            } else if (toSlot != null && toSlot! < v) {
+                              toSlot = v;
+                            }
+                          }),
+                          decoration: const InputDecoration(labelText: 'من الحصة'),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                DropdownButtonFormField<int>(
-                  key: ValueKey<int>(type),
-                  initialValue: type,
-                  items: <DropdownMenuItem<int>>[
-                    for (int i = 0; i < leaveTypeNames.length; i++)
-                      DropdownMenuItem<int>(value: i, child: Text(leaveTypeNames[i])),
-                  ],
-                  onChanged: (int? t) => setSt(() => type = t ?? 0),
-                  decoration: const InputDecoration(labelText: 'النوع'),
-                ),
-                TextField(
-                  controller: reason,
-                  decoration: const InputDecoration(labelText: 'السبب (اختياري)'),
-                ),
-              ],
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: DropdownButtonFormField<int?>(
+                          key: ValueKey<String?>('to-$toSlot'),
+                          initialValue: toSlot,
+                          isExpanded: true,
+                          items: <DropdownMenuItem<int?>>[
+                            const DropdownMenuItem<int?>(
+                              value: null,
+                              child: Text('آخر اليوم'),
+                            ),
+                            for (final LessonWindow l in lessons)
+                              DropdownMenuItem<int?>(
+                                value: l.slot,
+                                child: Text(l.displayName),
+                              ),
+                          ],
+                          onChanged: fromSlot == null
+                              ? null
+                              : (int? v) => setSt(() {
+                                    toSlot = v;
+                                    if (v != null && fromSlot != null &&
+                                        v < fromSlot!) {
+                                      fromSlot = v;
+                                    }
+                                  }),
+                          decoration: const InputDecoration(labelText: 'إلى الحصة'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  DropdownButtonFormField<int>(
+                    key: ValueKey<int>(type),
+                    initialValue: type,
+                    items: <DropdownMenuItem<int>>[
+                      for (int i = 0; i < leaveTypeNames.length; i++)
+                        DropdownMenuItem<int>(value: i, child: Text(leaveTypeNames[i])),
+                    ],
+                    onChanged: (int? t) => setSt(() => type = t ?? 0),
+                    decoration: const InputDecoration(labelText: 'النوع'),
+                  ),
+                  TextField(
+                    controller: reason,
+                    decoration: const InputDecoration(labelText: 'السبب (اختياري)'),
+                  ),
+                ],
+              ),
             ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('إلغاء'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('حفظ'),
-            ),
-          ],
-        ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('إلغاء'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('حفظ'),
+              ),
+            ],
+          );
+        },
       ),
     );
+    search.dispose();
+    reason.dispose();
     final Student? stu = picked;
     if (ok != true || stu == null || start.isAfter(end)) {
       return;

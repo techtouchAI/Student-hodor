@@ -23,6 +23,7 @@ import 'features/classes/classes_screen.dart';
 import 'features/export/export_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/leaves/leaves_screen.dart';
+import 'features/notifications/lesson_alerts_watcher.dart';
 import 'features/notifications/notifications_screen.dart';
 import 'features/notifications/notifications_watcher.dart';
 import 'features/onboarding/onboarding_screen.dart';
@@ -179,14 +180,16 @@ class StudentHodorApp extends ConsumerWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0D6E5F)),
           scaffoldBackgroundColor: const Color(0xFFF6F8F7),
         ),
-        // فرض الاتجاه RTL لكل الشاشات + حارس التنبيهات الجذري (مُركَّب فوق
-        // كل المسارات: يمشي الاحتساب الحي وعمل الصلاحيات والروابط العميقة
-        // بلا اعتماد على أي شاشة).
+        // فرض الاتجاه RTL لكل الشاشات + حراس التنبيهات الجذرية (مُركَّبون
+        // فوق كل المسارات: يمشي الاحتساب الحي وعمل الصلاحيات والروابط
+        // العميقة بلا اعتماد على أي شاشة).
         builder: (BuildContext context, Widget? child) => Directionality(
           textDirection: TextDirection.rtl,
           child: NotificationsWatcher(
-            child: ClosureBootstrap(
-              child: child ?? const SizedBox.shrink(),
+            child: LessonAlertsWatcher(
+              child: ClosureBootstrap(
+                child: child ?? const SizedBox.shrink(),
+              ),
             ),
           ),
         ),

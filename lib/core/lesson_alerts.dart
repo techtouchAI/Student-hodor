@@ -17,6 +17,7 @@
 library;
 
 import '../core/late_time.dart';
+import '../core/lesson.dart';
 import '../core/local_notifications.dart';
 import '../core/school_time.dart';
 import '../data/closure_scheduler.dart';

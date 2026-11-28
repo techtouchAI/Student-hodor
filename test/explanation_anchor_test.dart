@@ -8,7 +8,7 @@ void main() {
   testWidgets(
     'ضغط زر التوضيح يعرض النص الكامل، والإغلاق يعود للشاشة',
     (WidgetTester tester) async {
-      final String text =
+      const String text =
           'شرح كامل طويل يتجاوز سطراً واحداً ليتأكد أنه يُعرض '
           'بلا قطع عند فتح الحوار من أي صفحة.';
       await tester.pumpWidget(

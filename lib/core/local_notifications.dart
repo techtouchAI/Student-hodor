@@ -206,10 +206,15 @@ class LocalNotifications {
         _lessonChannelId,
         _lessonChannelName,
         channelDescription: _lessonChannelDescription,
-        importance: Importance.default,
-        priority: Priority.default,
+        importance: Importance.defaultImportance,
+        priority: Priority.defaultPriority,
         icon: _icon,
-        sound: sound ? const AndroidNotificationSound(_lessonBellSound) : null,
+        // `playSound` يتحكّم بتشغيل الصوت أصلاً، و`sound` يحدّد الجرس
+        // (مورد `res/raw`) عند التفعيل.
+        playSound: sound,
+        sound: sound
+            ? const RawResourceAndroidNotificationSound(_lessonBellSound)
+            : null,
       );
       await plugin.show(
         id: id,

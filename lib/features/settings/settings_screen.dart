@@ -571,9 +571,9 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 8),
           SwitchListTile(
             value: _systemNotif,
-            title: Row(
+            title: const Row(
               mainAxisSize: MainAxisSize.min,
-              children: const <Widget>[
+              children: <Widget>[
                 Text('إشعارات النظام (خارج التطبيق)'),
                 SizedBox(width: 4),
                 ExplanationAnchor(

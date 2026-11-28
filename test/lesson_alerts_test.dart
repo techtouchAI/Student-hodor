@@ -22,10 +22,10 @@ void main() {
   /// سنة فعّالة + صف — الحصص الافتراضية (6 حصص) تُزرع تلقائياً.
   Future<void> seed() async {
     final int year = await db.into(db.academicYears).insert(
-          AcademicYearsCompanion(
+          const AcademicYearsCompanion(
             name: Value('2026-2027'),
-            start: const Value('2026-09-01'),
-            end: const Value('2027-06-30'),
+            start: Value('2026-09-01'),
+            end: Value('2027-06-30'),
             active: Value(true),
           ),
         );
@@ -107,7 +107,7 @@ void main() {
   test('وقت تالف في الحصة يُتخطى بلا استثناء', () async {
     await seed();
     await (db.update(db.lessons)..where((l) => l.slot.equals(1)))
-        .write(LessonsCompanion(end: const Value('xx:xx')));
+        .write(const LessonsCompanion(end: const Value('xx:xx')));
     final LessonAlerts alerts = LessonAlerts(db);
 
     // لا استثناء، وبداية الحصة الثانية (08:50) تُسجّل بعد 08:55.
@@ -122,7 +122,10 @@ void main() {
   test('يوم عطلة لا يُنبّه', () async {
     await seed();
     await db.into(db.holidays).insert(
-      const HolidaysCompanion(date: Value('2026-09-16'), title: Value('عطلة')),
+      const HolidaysCompanion(
+        date: Value('2026-09-16'),
+        title: Value('عطلة'),
+      ),
     );
     final LessonAlerts alerts = LessonAlerts(db);
 

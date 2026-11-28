@@ -335,7 +335,6 @@ class _LessonsScreenState extends ConsumerState<LessonsScreen> {
                 SwitchListTile(
                   value: _lessonBell,
                   // التنبيه الصوتي اختياري ومفعّل افتراضيًا.
-                  enabled: _lessonAlerts,
                   title: const Text('تنبيه صوتي (جرس المدرسة)'),
                   subtitle: const Text(
                     'صوت جرس مدرسي مع التنبيه — يعمل عند تفعيل التنبيهات',

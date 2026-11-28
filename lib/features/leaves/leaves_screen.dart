@@ -188,7 +188,7 @@ class _LeavesState extends ConsumerState<LeavesScreen> {
               ? students
               : <Student>[
                   for (final Student s in students)
-                    if (s.fullName.contains(query, caseSensitive: false)) s,
+                    if (s.fullName.toLowerCase().contains(query.toLowerCase())) s,
                 ];
           return AlertDialog(
             title: const Text('إجازة جديدة'),
@@ -206,7 +206,7 @@ class _LeavesState extends ConsumerState<LeavesScreen> {
                           ? students
                           : <Student>[
                               for (final Student s in students)
-                                if (s.fullName.contains(q, caseSensitive: false)) s,
+                                if (s.fullName.toLowerCase().contains(q.toLowerCase())) s,
                             ];
                       setSt(() {
                         if (matches.isEmpty) {

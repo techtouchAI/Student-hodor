@@ -16,7 +16,6 @@ class ExplanationAnchor extends StatelessWidget {
     this.icon = Icons.help_outline,
     this.tooltip = 'توضيح',
     this.color,
-    this.visualDensity = IconButtonVisualDensity.compact,
   });
 
   /// التوضيح الكامل الذي يظهر عند الضغط.
@@ -29,13 +28,11 @@ class ExplanationAnchor extends StatelessWidget {
   final String tooltip;
 
   final Color? color;
-  final IconButtonVisualDensity visualDensity;
 
   @override
   Widget build(BuildContext context) => IconButton(
         icon: Icon(icon, color: color),
         tooltip: tooltip,
-        visualDensity: visualDensity,
         onPressed: () => showExplanation(context, text),
       );
 

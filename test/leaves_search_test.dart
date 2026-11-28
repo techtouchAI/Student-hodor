@@ -5,6 +5,7 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:student_hodor/data/db.dart';
 import 'package:student_hodor/features/leaves/leaves_screen.dart';
 import 'package:student_hodor/state/providers.dart';
 
@@ -21,7 +22,7 @@ void main() {
 
   /// فصل الشجرة ثم إغلاق القاعدة في التزامن الحقيقي (نفس منهجية اختبارات
   /// الشاشات: تُحيل اشتراكات drift مؤقتًا صفريًا فلا يتبقى مؤقّت معلّق).
-  Future<void> _tearDown(WidgetTester tester) async {
+  Future<void> tearDownDb(WidgetTester tester) async {
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 1));
     await tester.runAsync(db.close);
@@ -29,13 +30,13 @@ void main() {
   }
 
   /// سنة فعّالة + صف + ثلاثة طلاب بأسماء متشابهة (نصف اسم مشترك).
-  Future<void> _seed(WidgetTester tester) async {
+  Future<void> seedDb(WidgetTester tester) async {
     await tester.runAsync(() async {
       final int year = await db.into(db.academicYears).insert(
-            AcademicYearsCompanion(
+            const AcademicYearsCompanion(
               name: Value('2026-2027'),
-              start: const Value('2026-09-01'),
-              end: const Value('2027-06-30'),
+              start: Value('2026-09-01'),
+              end: Value('2027-06-30'),
               active: Value(true),
             ),
           );
@@ -57,7 +58,7 @@ void main() {
             classId: Value(cls),
             fullName: Value(name),
             personKey: Value('p-${name.hashCode}'),
-            seq: Value(0),
+            seq: const Value(0),
             createdAt: const Value('2026-09-01T08:00:00'),
           ),
         );
@@ -68,7 +69,7 @@ void main() {
   testWidgets(
     'بحث الطلاب في حوار الإجازة يصفي القائمة حسب الاسم',
     (WidgetTester tester) async {
-      await _seed(tester);
+      await seedDb(tester);
       try {
         await tester.pumpWidget(
           ProviderScope(
@@ -93,7 +94,13 @@ void main() {
         await tester.pumpAndSettle();
 
         // فتح قائمة الطلاب: تُصفى حسب النص المكتوب.
-        await tester.tap(find.byType(DropdownButtonFormField));
+        await tester.tap(
+          find.byWidgetPredicate(
+            (Widget w) =>
+                w is DropdownButtonFormField &&
+                w.decoration?.labelText == 'الطالب',
+          ),
+        );
         await tester.pumpAndSettle();
 
         expect(find.text('محمد كريم'), findsOneWidget,
@@ -102,7 +109,7 @@ void main() {
             reason: 'الطلاب غير المطابقين لا يظهرون',);
         expect(find.text('علي حسن'), findsNothing);
       } finally {
-        await _tearDown(tester);
+        await tearDownDb(tester);
       }
     },
   );
@@ -110,7 +117,7 @@ void main() {
   testWidgets(
     'بحث بلا نتيجة يُظهر رسالة ولا ينهار الحوار',
     (WidgetTester tester) async {
-      await _seed(tester);
+      await seedDb(tester);
       try {
         await tester.pumpWidget(
           ProviderScope(
@@ -134,7 +141,7 @@ void main() {
         expect(find.text('لا طالب مطابق للبحث'), findsOneWidget);
         expect(tester.takeException(), isNull);
       } finally {
-        await _tearDown(tester);
+        await tearDownDb(tester);
       }
     },
   );

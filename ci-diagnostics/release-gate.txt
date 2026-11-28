@@ -5,10 +5,10 @@
 ==============================================================================
 
 ── app-release.apk: app-release.apk
-   الحجم        : 93,294,556 بايت
-   SHA-256      : 163dfcb6e45cfd85e1da291ae17c07dc65520be2ee6af6c9121b4d607ff7951b
+   الحجم        : 93,554,646 بايت
+   SHA-256      : 53deee83c0aa29275878ae3f3c901f2699784ec65c3e6a2e0769634b622a710f
    سلامة ZIP    : سليم
-   عدد المداخل  : 545
+   عدد المداخل  : 546
    البنية       : manifest=True resources.arsc=True classes.dex=4
    الوسم        : name=iq.techtouch.student_hodor, versionCode=8, versionName=1.3.1, minSdk=24, targetSdk=36, native-code='arm64-v8a' 'armeabi-v7a' 'x86_64'
    الصلاحيات   : android.permission.CAMERA, android.permission.POST_NOTIFICATIONS, android.permission.RECEIVE_BOOT_COMPLETED, android.permission.SCHEDULE_EXACT_ALARM, android.permission.VIBRATE, iq.techtouch.student_hodor.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
@@ -40,10 +40,10 @@
        - lib/x86_64/libsurface_util_jni.so (x86_64) محاذاة ELF=16384 16KB✓
 
 ── app-arm64-v8a-release.apk: app-arm64-v8a-release.apk
-   الحجم        : 35,849,905 بايت
-   SHA-256      : 669f38401694bc581b4a69b209bc9b11f217e46e23a68daaae17b156061d9b4d
+   الحجم        : 36,109,991 بايت
+   SHA-256      : 1575ef7472c977272a3c31dec31990f7861b0fa67e3ba1abd3cb41215a3a71ff
    سلامة ZIP    : سليم
-   عدد المداخل  : 531
+   عدد المداخل  : 532
    البنية       : manifest=True resources.arsc=True classes.dex=4
    الوسم        : name=iq.techtouch.student_hodor, versionCode=2008, versionName=1.3.1, minSdk=24, targetSdk=36, native-code='arm64-v8a'
    الصلاحيات   : android.permission.CAMERA, android.permission.POST_NOTIFICATIONS, android.permission.RECEIVE_BOOT_COMPLETED, android.permission.SCHEDULE_EXACT_ALARM, android.permission.VIBRATE, iq.techtouch.student_hodor.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
@@ -61,8 +61,8 @@
        - lib/arm64-v8a/libsurface_util_jni.so (arm64-v8a) محاذاة ELF=16384 16KB✓
 
 ── المنشور سابقاً: student-hodor-1.3.1-8-universal.apk: student-hodor-1.3.1-8-universal.apk
-   الحجم        : 93,294,563 بايت
-   SHA-256      : da3fc6db796a0f4d17140b5115a8b467609539b6116978b247d9ec2112989280
+   الحجم        : 93,294,556 بايت
+   SHA-256      : 163dfcb6e45cfd85e1da291ae17c07dc65520be2ee6af6c9121b4d607ff7951b
    سلامة ZIP    : سليم
    عدد المداخل  : 545
    البنية       : manifest=True resources.arsc=True classes.dex=4

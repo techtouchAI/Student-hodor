@@ -85,7 +85,7 @@ void main() {
         await tester.enterText(
           find.byWidgetPredicate(
             (Widget w) =>
-                w is TextField && w.decoration.labelText == 'بحث في الطلاب',
+                w is TextField && w.decoration?.labelText == 'بحث في الطلاب',
           ),
           'محمد',
         );
@@ -130,7 +130,7 @@ void main() {
         await tester.enterText(
           find.byWidgetPredicate(
             (Widget w) =>
-                w is TextField && w.decoration.labelText == 'بحث في الطلاب',
+                w is TextField && w.decoration?.labelText == 'بحث في الطلاب',
           ),
           'لا يوجد طالب بهذا الاسم',
         );

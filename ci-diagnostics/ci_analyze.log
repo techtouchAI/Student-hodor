@@ -1,6 +1,2 @@
 Analyzing Student-hodor...                                      
-
-  error • The property 'labelText' can't be unconditionally accessed because the receiver can be 'null'. Try making the access conditional (using '?.') or adding a null check to the target ('!') • test/leaves_search_test.dart:88:48 • unchecked_use_of_nullable_value
-  error • The property 'labelText' can't be unconditionally accessed because the receiver can be 'null'. Try making the access conditional (using '?.') or adding a null check to the target ('!') • test/leaves_search_test.dart:133:48 • unchecked_use_of_nullable_value
-
-2 issues found. (ran in 17.1s)
+No issues found! (ran in 17.6s)

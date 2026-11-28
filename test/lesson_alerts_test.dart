@@ -107,7 +107,7 @@ void main() {
   test('وقت تالف في الحصة يُتخطى بلا استثناء', () async {
     await seed();
     await (db.update(db.lessons)..where((l) => l.slot.equals(1)))
-        .write(const LessonsCompanion(end: const Value('xx:xx')));
+        .write(const LessonsCompanion(end: Value('xx:xx')));
     final LessonAlerts alerts = LessonAlerts(db);
 
     // لا استثناء، وبداية الحصة الثانية (08:50) تُسجّل بعد 08:55.

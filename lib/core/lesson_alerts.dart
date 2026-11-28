@@ -65,8 +65,8 @@ class LessonAlerts {
       final DateTime endAt = _at(dateKey, end);
       if (!at.isBefore(startAt)) {
         fired += await _fire(
-          l,
-          dateKey,
+          lesson: l,
+          dateKey: dateKey,
           isStart: true,
           at: startAt,
           shown: shown,
@@ -75,8 +75,8 @@ class LessonAlerts {
       }
       if (!at.isBefore(endAt)) {
         fired += await _fire(
-          l,
-          dateKey,
+          lesson: l,
+          dateKey: dateKey,
           isStart: false,
           at: endAt,
           shown: shown,

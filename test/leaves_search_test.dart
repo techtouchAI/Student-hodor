@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -87,7 +85,7 @@ void main() {
         await tester.enterText(
           find.byWidgetPredicate(
             (Widget w) =>
-                w is TextField && w.decoration?.labelText == 'بحث في الطلاب',
+                w is TextField && w.decoration.labelText == 'بحث في الطلاب',
           ),
           'محمد',
         );
@@ -98,7 +96,7 @@ void main() {
           find.byWidgetPredicate(
             (Widget w) =>
                 w is DropdownButtonFormField &&
-                w.decoration?.labelText == 'الطالب',
+                w.decoration.labelText == 'الطالب',
           ),
         );
         await tester.pumpAndSettle();
@@ -132,7 +130,7 @@ void main() {
         await tester.enterText(
           find.byWidgetPredicate(
             (Widget w) =>
-                w is TextField && w.decoration?.labelText == 'بحث في الطلاب',
+                w is TextField && w.decoration.labelText == 'بحث في الطلاب',
           ),
           'لا يوجد طالب بهذا الاسم',
         );

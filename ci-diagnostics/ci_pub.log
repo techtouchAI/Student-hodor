@@ -2,7 +2,7 @@ Resolving dependencies...
 Downloading packages...
 + _fe_analyzer_shared 100.0.0 (111.0.0 available)
 + analyzer 13.0.0 (14.7.0 available)
-+ android_file_picker 2.2.1
++ android_file_picker 2.2.2
 + archive 3.6.1 (4.7.1 available)
 + args 2.7.0
 + async 2.13.1

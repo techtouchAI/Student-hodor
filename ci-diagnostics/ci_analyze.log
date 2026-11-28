@@ -1,2 +1,5 @@
 Analyzing Student-hodor...                                      
-No issues found! (ran in 18.3s)
+
+warning • The '!' will have no effect because the receiver can't be null. Try removing the '!' operator • test/screens_widget_test.dart:243:77 • unnecessary_non_null_assertion
+
+1 issue found. (ran in 17.7s)

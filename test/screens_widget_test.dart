@@ -18,6 +18,7 @@ import 'dart:async';
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart' show CircularProgressIndicator;
+import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter/widgets.dart'
     show Size, SizedBox, Text, TextOverflow;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -213,6 +214,35 @@ void main() {
           expect(find.textContaining('كشف السادس ـ أ'), findsOneWidget);
           expect(find.text('علي حسن'), findsOneWidget);
           expect(find.textContaining('مسجل: 0 / 2'), findsOneWidget);
+          expect(tester.takeException(), isNull);
+        } finally {
+          await _tearDownDb(tester, db);
+        }
+      },
+      timeout: _kTestTimeout,
+    );
+
+    testWidgets(
+      'كشف اليوم: زر الإقفال لا يتكسّر شعارُه على الشاشة الضيقة',
+      (WidgetTester tester) async {
+        // عرض شاشة هاتف ضيق: كان الـ Row السابق يضغط زر الإقفال حتى
+        // يتكسّر شعارُه (حرف فوق آخر). Wrap + minWidth يمنع التكسّر.
+        tester.view.physicalSize = const Size(320, 1200);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.reset);
+        final AppDb db = await _seedDb(tester);
+        try {
+          final String today = SchoolTime.dateKey(DateTime.now());
+          await _pumpScreen(
+            tester,
+            db,
+            AppRoutes.classLocation('/day-sheet', 1, 'السادس ـ أ', date: today),
+          );
+          expect(find.text('إقفال الحصة'), findsOneWidget);
+          final RenderParagraph label =
+              tester.renderObject<RenderParagraph>(find.text('إقفال الحصة'));
+          expect(label.size.height, lessThan(24),
+              reason: 'شعار زر الإقفال يجب أن يبقى على سطر واحد',);
           expect(tester.takeException(), isNull);
         } finally {
           await _tearDownDb(tester, db);

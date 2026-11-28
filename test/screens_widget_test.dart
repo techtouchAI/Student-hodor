@@ -240,9 +240,9 @@ void main() {
           );
           expect(find.text('إقفال الحصة'), findsOneWidget);
           final RenderParagraph label =
-              tester.getRenderObject<RenderParagraph>(find.text('إقفال الحصة'))!;
+              tester.renderObject<RenderParagraph>(find.text('إقفال الحصة'))!;
           expect(label.size.height, lessThan(24),
-              reason: 'شعار زر الإقفال يجب أن يبقى على سطر واحد');
+              reason: 'شعار زر الإقفال يجب أن يبقى على سطر واحد',);
           expect(tester.takeException(), isNull);
         } finally {
           await _tearDownDb(tester, db);

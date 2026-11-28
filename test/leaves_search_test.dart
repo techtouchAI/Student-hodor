@@ -104,7 +104,9 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.text('محمد كريم'), findsOneWidget,
+        // الاسم المطابق يظهر في عنصر القائمة، كما يُعرض كقيمة محددة
+        // في الحقل نفسه بعد التحديد التلقائي لأول تطابق.
+        expect(find.text('محمد كريم'), findsWidgets,
             reason: 'الطالب المطابق يظهر',);
         expect(find.text('أحمد حسن'), findsNothing,
             reason: 'الطلاب غير المطابقين لا يظهرون',);

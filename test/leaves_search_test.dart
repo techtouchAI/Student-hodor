@@ -75,7 +75,7 @@ void main() {
         await tester.pumpWidget(
           ProviderScope(
             overrides: <Override>[dbProvider.overrideWithValue(db)],
-            child: const LeavesScreen(),
+            child: const MaterialApp(home: LeavesScreen()),
           ),
         );
         await tester.pumpAndSettle();
@@ -123,7 +123,7 @@ void main() {
         await tester.pumpWidget(
           ProviderScope(
             overrides: <Override>[dbProvider.overrideWithValue(db)],
-            child: const LeavesScreen(),
+            child: const MaterialApp(home: LeavesScreen()),
           ),
         );
         await tester.pumpAndSettle();
